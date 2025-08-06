@@ -40,6 +40,7 @@ type RouterConfig struct {
 	MainPageHandler    *MainPageHandler
 	StaticFileHandler  *StaticFileHandler
 	MiddlewareManager  *middleware.MiddlewareManager
+	ProductsHandler    *ProductsHandler
 }
 
 // SetupRoutes registers all application endpoints on the given router and applies route-specific middleware for authentication and rate limiting.
@@ -81,6 +82,16 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 		authMW, rateLimitMW,
 	)).Methods("GET")
 
+	// Rutas de productos
+	router.Handle("/products", c.MiddlewareManager.Apply(
+		http.HandlerFunc(c.ProductsHandler.Handle),
+		authMW, rateLimitMW,
+	)).Methods("GET")
+
+	router.Handle("/products/{id}", c.MiddlewareManager.Apply(
+		http.HandlerFunc(c.ProductsHandler.HandleGetByID), rateLimitMW,
+	)).Methods("GET")
+
 	// 4. Protected routes
 	router.Handle("/comments/newComments", c.MiddlewareManager.Apply(
 		http.HandlerFunc(c.CommentsAddHandler.Handle),
@@ -113,6 +124,7 @@ func NewRouter(
 	commentAddService input.CommentAddService,
 	rateHandler ratelimiter.RateLimiterHandler,
 	staticFileService output.StaticFilePort,
+	productsGetService input.ProductsGetService,
 ) *mux.Router {
 	// 1. Initialize a new router
 	router := mux.NewRouter()
@@ -124,6 +136,7 @@ func NewRouter(
 	commentsAddHandler := NewCommentAddsHandler(commentAddService)
 	mainPageHandler := NewMainPageHandler()
 	staticFileHandler := NewStaticFileHandler(staticFileService)
+	productsHandler := NewProductsHandler(productsGetService)
 
 	// 3. Configure main page handler with static directory
 	mainPageHandler.SetStaticDir(staticFileService.GetStaticDir())
@@ -153,6 +166,7 @@ func NewRouter(
 		MainPageHandler:    mainPageHandler,
 		StaticFileHandler:  staticFileHandler,
 		MiddlewareManager:  middlewareManager,
+		ProductsHandler:    productsHandler,
 	}
 
 	// 6. Register routes on router
