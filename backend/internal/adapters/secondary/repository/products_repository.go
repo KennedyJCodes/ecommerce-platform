@@ -51,12 +51,28 @@ func (r *SqlProductsRepository) GetProductByID(id int) (models.Product, error) {
 	`
 
 	err := r.db.Get(&product, sqlQuery, id)
-    if err != nil {
-        if errors.Is(err, sql.ErrNoRows) {
-            return models.Product{}, Custom_errors.NewNotFoundError("product not found")
-        }
-        return models.Product{}, Custom_errors.NewInternalError(Custom_errors.ErrDatabaseQuery).WithError(err)
-    }
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.Product{}, Custom_errors.NewNotFoundError("product not found")
+		}
+		return models.Product{}, Custom_errors.NewInternalError(Custom_errors.ErrDatabaseQuery).WithError(err)
+	}
 
-    return product, nil
+	return product, nil
+}
+
+func (r *SqlProductsRepository) GetProductsByBrand(brand string) ([]models.Product, error) {
+	var productByBrand []models.Product
+	const sqlQuery = `
+	SELECT *
+	FROM Products
+	WHERE brand = ?`
+
+	err := r.db.Select(&productByBrand, sqlQuery, brand)
+	if err != nil {
+		log.Println(err)
+		return []models.Product{}, Custom_errors.NewInternalError(Custom_errors.ErrDatabaseQuery).WithError(err)
+	}
+
+	return productByBrand, nil
 }

@@ -88,8 +88,12 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 		authMW, rateLimitMW,
 	)).Methods("GET")
 
-	router.Handle("/products/{id}", c.MiddlewareManager.Apply(
+	router.Handle("/product-id/{id}", c.MiddlewareManager.Apply(
 		http.HandlerFunc(c.ProductsHandler.HandleGetByID), rateLimitMW,
+	)).Methods("GET")
+
+	router.Handle("/products-brand/{brand}", c.MiddlewareManager.Apply(
+		http.HandlerFunc(c.ProductsHandler.HandleGetByBrand), rateLimitMW,
 	)).Methods("GET")
 
 	// 4. Protected routes

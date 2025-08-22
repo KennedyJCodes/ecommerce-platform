@@ -1,7 +1,6 @@
 package http
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -24,7 +23,6 @@ func NewProductsHandler(productsService input.ProductsGetService) *ProductsHandl
 func (h *ProductsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	products, err := h.productsService.GetProducts()
 	if err != nil {
-		log.Println(err)
 		httpUtil.HandleError(w, errors.NewInternalError("Error getting products"))
 		return
 	}
@@ -33,7 +31,6 @@ func (h *ProductsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductsHandler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
-	// Extraer el ID de los parámetros de la URL
 	vars := mux.Vars(r)
 	idStr, exists := vars["id"]
 	if !exists {
@@ -41,17 +38,14 @@ func (h *ProductsHandler) HandleGetByID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Convertir el ID a entero
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewBadRequestError("Invalid ID format"))
 		return
 	}
 
-	// Obtener el producto por ID
 	product, err := h.productsService.GetProductByID(id)
 	if err != nil {
-		// Verificar si es un error de "no encontrado"
 		if errors.IsNotFound(err) {
 			httpUtil.HandleError(w, errors.NewNotFoundError("Product not found"))
 			return
@@ -61,4 +55,25 @@ func (h *ProductsHandler) HandleGetByID(w http.ResponseWriter, r *http.Request) 
 	}
 
 	httpUtil.SendJSONResponse(w, http.StatusOK, product)
+}
+
+func (h *ProductsHandler) HandleGetByBrand(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	brand, exists := vars["brand"]
+	if !exists {
+		httpUtil.HandleError(w, errors.NewBadRequestError("Brand parameter is required"))
+		return
+	}
+
+	products, err := h.productsService.GetProductsByBrand(brand)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			httpUtil.HandleError(w, errors.NewNotFoundError("Product not found"))
+			return
+		}
+		httpUtil.HandleError(w, errors.NewInternalError("Error getting product"))
+		return
+	}
+
+	httpUtil.SendJSONResponse(w, http.StatusOK, products)
 }
