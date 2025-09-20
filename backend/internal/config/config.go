@@ -42,6 +42,11 @@ func NewAppConfig() *AppConfig {
 	config.SetDefault("database.port", 3306)
 	config.SetDefault("database.name", "store_watches")
 
+	// Redis configuration defaults
+	config.SetDefault("redis.addr", "localhost:6379")
+	config.SetDefault("redis.password", "")
+	config.SetDefault("redis.db", 0)
+
 	// Allow environment variables to override settings
 	config.AutomaticEnv()
 
@@ -116,6 +121,21 @@ func (a *AppConfig) GetStaticDir() string {
 // IsProduction returns true if the ENV environment variable equals "production".
 func (a *AppConfig) IsProduction() bool {
 	return a.config.GetString("ENV") == "production"
+}
+
+// GetRedisAddr returns the Redis server address.
+func (a *AppConfig) GetRedisAddr() string {
+	return a.config.GetString("redis.addr")
+}
+
+// GetRedisPassword returns the Redis password.
+func (a *AppConfig) GetRedisPassword() string {
+	return a.config.GetString("redis.password")
+}
+
+// GetRedisDB returns the Redis database number.
+func (a *AppConfig) GetRedisDB() int {
+	return a.config.GetInt("redis.db")
 }
 
 // ValidateConfig performs sanity checks on critical settings.
