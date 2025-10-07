@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
 	"github.com/spf13/viper"
@@ -21,29 +22,35 @@ type AppConfig struct {
 // It sets up Viper to read from a YAML file named "config" in the ./internal/config directory, registers default values, enables automatic environment variable overrides, and logs warnings if the config file cannot be read.
 func NewAppConfig() *AppConfig {
 	config := viper.New()
-
+	
 	// Configuration file settings
 	config.SetConfigName("config")
 	config.SetConfigType("yaml")
 	config.AddConfigPath("./internal/config")
+	
+	// Allow environment variables to override settings
+	config.AutomaticEnv()
+	config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	// Default values for JWT, server port, rate limiting, static directory, and database
-	config.SetDefault("security.jwt.jwt_secret", "your-secret-key")
-
 	config.SetDefault("server.port", "8080")
-	config.SetDefault("rate_limiting.requests", 10.0)
-	config.SetDefault("rate_limiting.cleanup_minutes", 5)
-
 	config.SetDefault("STATIC_DIR", "./../frontend")
 
-	config.SetDefault("database.user", "root")
-	config.SetDefault("database.password", "password")
+	config.SetDefault("rate_limiting.requests", 10.0)
+	config.SetDefault("rate_limiting.burst", 5)
+	config.SetDefault("rate_limiting.cleanup_minutes", 5)
+
 	config.SetDefault("database.host", "localhost")
 	config.SetDefault("database.port", 3306)
 	config.SetDefault("database.name", "store_watches")
 
-	// Allow environment variables to override settings
-	config.AutomaticEnv()
+	config.SetDefault("redis.host", "localhost")
+	config.SetDefault("redis.port", 6379)
+	config.SetDefault("redis.db", 0)
+	config.SetDefault("redis.pool_size", 10)
+	config.SetDefault("redis.min_idle_conns", 5)
+	config.SetDefault("redis.max_retries", 3)
+
 
 	// Attempt to read the config file; log a warning if it fails
 	if err := config.ReadInConfig(); err != nil {
@@ -54,6 +61,46 @@ func NewAppConfig() *AppConfig {
 	return &AppConfig{
 		config: config,
 	}
+}
+
+func ValidateRequiredConfig(config *viper.Viper) {
+	required := []string{
+		"security.jwt.jwt_secret",
+
+		"database.user",
+		"database.password",
+
+		"redis.username",
+		"redis.password",
+		"redis.dial_timeout",
+		"redis.read_timeout",
+		"redis.write_timeout",
+	}
+
+	missing := []string{}
+	for _, key := range required {
+		value := config.GetString(key)
+		if value == "" {
+			missing = append(missing, key)
+		}
+		
+		if key == "security.jwt.jwt_secret" && value == "your-secret-key" {
+			log.Fatalf("Missing configuration: security.jwt.jwt_secret cannot use the insecure default value 'your-secret-key'. Please set a strong secret via ENV or config.yaml.")
+		}
+	}
+
+
+	if len(missing) > 0 {
+		log.Fatalf("Missing configuration (use ENV vars or config.yaml): %v", missing)
+	}
+}
+
+func (a *AppConfig) GetString(key string) string {
+	return a.config.GetString(key)
+}
+
+func (a *AppConfig) GetInt(key string) int {
+	return a.config.GetInt(key)
 }
 
 // GetPort returns the HTTP server port as a string.
@@ -76,11 +123,27 @@ func (a *AppConfig) GetJWTSecret() string {
 	return a.config.GetString("security.jwt.jwt_secret")
 }
 
+func (a *AppConfig) GetRedisConfig() models.RedisConfig {
+	return models.RedisConfig{
+		Host: a.config.GetString("redis.host"),
+		Port: a.config.GetString("redis.port"),
+		Username: a.config.GetString("redis.username"),
+		Password: a.config.GetString("redis.password"),
+		DB: a.config.GetInt("redis.db"),
+		DialTimeout: a.config.GetDuration("redis.dial_timeout"),
+		ReadTimeout: a.config.GetDuration("redis.read_timeout"),
+		WriteTimeout: a.config.GetDuration("redis.write_timeout"),
+		PoolSize: a.config.GetInt("redis.pool_size"),
+		MinIdleConns: a.config.GetInt("redis.min_idle_conns"),
+		MaxRetries: a.config.GetInt("redis.max_retries"),
+	}
+}
+
 // GetRateLimitConfig returns a LimiterConfig populated from rate_limiting settings.
 func (a *AppConfig) GetRateLimitConfig() models.LimiterConfig {
 	return models.LimiterConfig{
 		RequestPerSecond: a.config.GetFloat64("rate_limiting.requests"),
-		Burst:            a.config.GetInt("rate_limiting.cleanup_minutes"),
+		Burst:            a.config.GetInt("rate_limiting.burst"),
 	}
 }
 
@@ -116,12 +179,4 @@ func (a *AppConfig) GetStaticDir() string {
 // IsProduction returns true if the ENV environment variable equals "production".
 func (a *AppConfig) IsProduction() bool {
 	return a.config.GetString("ENV") == "production"
-}
-
-// ValidateConfig performs sanity checks on critical settings.
-// Currently warns if the default JWT secret is used in production
-func (a *AppConfig) ValidateConfig() {
-	if a.GetJWTSecret() == "your-secret-key" && a.IsProduction() {
-		log.Println("WARNING: Using default JWT key in production, this is insecure")
-	}
 }

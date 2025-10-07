@@ -37,7 +37,7 @@ import (
 func main() {
 	// Step 1: Load and validate configuration
 	appConfig := config.NewAppConfig()
-	appConfig.ValidateConfig()
+	config.ValidateRequiredConfig(appConfig.GetConfig())
 
 	// Step 2: Initialize global services (e.g., JWT auth)
 	initializeCommonServices(appConfig)
@@ -67,7 +67,7 @@ func main() {
 		staticFileAdapter,
 	)
 
-	// Step 6: Start HTTP server	
+	// Step 6: Start HTTP server
 	port := appConfig.GetPort()
 	log.Printf("Server started at http://localhost:%s", port)
 	log.Printf("Serving static files from: %s", staticFileAdapter.GetStaticDir())
@@ -91,7 +91,7 @@ func setupDatabase(appConfig *config.AppConfig) (*sqlx.DB, error) {
 	host := cfg.GetString("database.host")
 	port := cfg.GetInt("database.port")
 	dbName := cfg.GetString("database.name")
-	
+
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", user, password, host, port, dbName)
 	return sqlx.Connect("mysql", dsn)
 }
@@ -133,7 +133,7 @@ func setupRegisterService(userRepo output.UserRepository) input.UserServiceRegis
 func setupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService) {
 	commentRepo := repository.NewSqlCommentRepository(db)
 	commentValidator := &service_comments.CommentValidator{}
-	return  service_comments.NewCommentGetService(commentRepo, commentValidator), service_comments.NewCommentAddService(commentRepo, commentValidator)
+	return service_comments.NewCommentGetService(commentRepo, commentValidator), service_comments.NewCommentAddService(commentRepo, commentValidator)
 }
 
 // setupRateLimiter configures and returns a rate limiting handler.
