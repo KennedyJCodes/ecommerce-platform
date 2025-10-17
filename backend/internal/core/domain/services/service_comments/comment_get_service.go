@@ -16,7 +16,6 @@ import (
 //     potential future filters or pagination validations).
 type CommentGetService struct {
 	commentRepository output.CommentRepository
-    commentValidate input.Validator
 }
 
 // NewCommentGetService constructs and returns a CommentGetService instance.
@@ -27,10 +26,9 @@ type CommentGetService struct {
 
 // Returns:
 //   - input.CommentGetService: service interface for fetching all comments.
-func NewCommentGetService(commentRepository output.CommentRepository, commentValidate input.Validator) input.CommentGetService {
+func NewCommentGetService(commentRepository output.CommentRepository) input.CommentGetService {
     return &CommentGetService{
         commentRepository: commentRepository,
-        commentValidate: commentValidate,
     }
 }
 

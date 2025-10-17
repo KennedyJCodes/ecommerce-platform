@@ -51,6 +51,7 @@ func DefaultAuthOptions() *AuthOptions {
 			"/register",
 			"/css/",
 			"/js/",
+			"/products",
 			"/assets/"},
 	}
 }

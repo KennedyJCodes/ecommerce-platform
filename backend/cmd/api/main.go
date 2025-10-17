@@ -17,6 +17,7 @@ import (
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_comments"
+	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_products"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
 	ratelimiter "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/rate_limiter"
@@ -65,6 +66,7 @@ func main() {
 	commentGetService, commentAddService := setupCommentService(db)
 	rateHandler := setupRateLimiter(appConfig)
 	staticFileAdapter := setupStaticFileAdapter(appConfig)
+	productsGetService := setupProductsService(db)
 
 	// Step 5: Configure HTTP router with handlers and middleware
 	router := primaryHttp.NewRouter(
@@ -74,6 +76,7 @@ func main() {
 		commentAddService,
 		rateHandler,
 		staticFileAdapter,
+		productsGetService,
 	)
 
 	// Step 6: Start HTTP server
@@ -146,7 +149,12 @@ func setupRegisterService(userRepo output.UserRepository) input.UserServiceRegis
 func setupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService) {
 	commentRepo := repository.NewSqlCommentRepository(db)
 	commentValidator := &service_comments.CommentValidator{}
-	return service_comments.NewCommentGetService(commentRepo, commentValidator), service_comments.NewCommentAddService(commentRepo, commentValidator)
+	return  service_comments.NewCommentGetService(commentRepo), service_comments.NewCommentAddService(commentRepo, commentValidator)
+}
+
+func setupProductsService(db *sqlx.DB) (input.ProductsGetService) {
+	productsRepo := repository.NewSqlProductsRepository(db)
+	return  service_products.NewProductsGetService(productsRepo)
 }
 
 // setupRateLimiter configures and returns a rate limiting handler.
