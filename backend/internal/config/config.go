@@ -3,12 +3,16 @@
 package config
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
 
@@ -111,6 +115,35 @@ func (a *AppConfig) GetPort() string {
 		return "8080"
 	}
 	return port
+}
+
+func NewRedisClient(cfg models.RedisConfig) *redis.Client {
+	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
+	
+	client := redis.NewClient(&redis.Options{
+		Addr:         addr,
+		Username:     cfg.Username,
+		Password:     cfg.Password,
+		DB:           cfg.DB,
+		DialTimeout:  cfg.DialTimeout,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
+		PoolSize:     cfg.PoolSize,
+		MinIdleConns: cfg.MinIdleConns,
+		MaxRetries:   cfg.MaxRetries,
+	})
+
+	// Verificar la conexión con timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pong, err := client.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalf("❌ Error conectando a Redis en %s: %v", addr, err)
+	}
+
+	log.Printf("✓ Conectado a Redis exitosamente en %s - Response: %s", addr, pong)
+	return client
 }
 
 // GetConfig exposes the underlying Viper instance for advanced use cases.
