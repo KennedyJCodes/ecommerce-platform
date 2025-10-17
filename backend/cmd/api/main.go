@@ -14,6 +14,7 @@ import (
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/repository"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/static"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/config"
+	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_comments"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
@@ -37,17 +38,25 @@ import (
 func main() {
 	// Step 1: Load and validate configuration
 	appConfig := config.NewAppConfig()
-	appConfig.ValidateConfig()
+	config.ValidateRequiredConfig(appConfig.GetConfig())
 
 	// Step 2: Initialize global services (e.g., JWT auth)
 	initializeCommonServices(appConfig)
 
 	// Step 3: Database setup
-	db, err := setupDatabase(appConfig)
+	db, err := setupDatabaseMySQL(appConfig)
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
 	defer db.Close()
+
+	redisConfig, err := setupDatabaseRedis(appConfig)
+	if err != nil {
+		log.Fatalf("Error connecting to Redis: %v", err)
+	}
+		
+	redisClient := config.NewRedisClient(redisConfig)
+	defer redisClient.Close()
 
 	// Step 4: Dependency injection for domain services
 	userRepo := setupUserRepository(db)
@@ -67,7 +76,7 @@ func main() {
 		staticFileAdapter,
 	)
 
-	// Step 6: Start HTTP server	
+	// Step 6: Start HTTP server
 	port := appConfig.GetPort()
 	log.Printf("Server started at http://localhost:%s", port)
 	log.Printf("Serving static files from: %s", staticFileAdapter.GetStaticDir())
@@ -84,18 +93,22 @@ func initializeCommonServices(appConfig *config.AppConfig) {
 // setupDatabase establishes a connection to the MySQL database.
 
 // It uses configuration values such as username, password, host, and database name to construct the DSN string and open the connection. It returns a *sqlx.DB instance and an error if the connection fails.
-func setupDatabase(appConfig *config.AppConfig) (*sqlx.DB, error) {
+func setupDatabaseMySQL(appConfig *config.AppConfig) (*sqlx.DB, error) {
 	cfg := appConfig.GetConfig()
 	user := cfg.GetString("database.user")
 	password := cfg.GetString("database.password")
 	host := cfg.GetString("database.host")
 	port := cfg.GetInt("database.port")
 	dbName := cfg.GetString("database.name")
-	
+
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", user, password, host, port, dbName)
 	return sqlx.Connect("mysql", dsn)
 }
 
+func setupDatabaseRedis(appConfig *config.AppConfig) (models.RedisConfig, error) {
+	redisConfig := appConfig.GetRedisConfig()
+	return redisConfig, nil
+}
 // setupUserRepository returns an implementation of the UserRepository interface.
 
 // It sets up dependencies for user authentication such as salt generation and password hashing and injects them into the SQL-based repository.
@@ -133,7 +146,7 @@ func setupRegisterService(userRepo output.UserRepository) input.UserServiceRegis
 func setupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService) {
 	commentRepo := repository.NewSqlCommentRepository(db)
 	commentValidator := &service_comments.CommentValidator{}
-	return  service_comments.NewCommentGetService(commentRepo, commentValidator), service_comments.NewCommentAddService(commentRepo, commentValidator)
+	return service_comments.NewCommentGetService(commentRepo, commentValidator), service_comments.NewCommentAddService(commentRepo, commentValidator)
 }
 
 // setupRateLimiter configures and returns a rate limiting handler.
