@@ -1,12 +1,12 @@
 package models
 
 type Product struct {
-	ProductID int `db:"product_id"`
-	Product_Name string `db:"product_name"`
-	Product_Description string `db:"product_description"`
-	Product_Price float64 `db:"product_price"`
-	Stock_Quantity int `db:"stock_quantity"`
-	Brand string `db:"brand"`
-	Image_Url string `db:"image_url"`
-	Movement_Type string `db:"movement_type"`
+	Product_ID int `db:"Product_ID"`
+	Product_Name string `db:"Product_Name"`
+	Product_Description string `db:"Product_Description"`
+	Product_Price float64 `db:"Product_Price"`
+	Stock_Quantity int `db:"Stock_Quantity"`
+	Brand string `db:"Brand"`
+	Image_Url string `db:"Image_Url"`
+	Movement_Type string `db:"Movement_Type"`
 }

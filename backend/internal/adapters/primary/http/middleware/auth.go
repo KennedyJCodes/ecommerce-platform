@@ -105,7 +105,7 @@ func AuthMiddleware(options *AuthOptions) Middleware {
 			}
 
 			ctx := r.Context()
-			contextWithUser := context.WithValue(ctx, userIDContextKey, claims.UserId)
+			contextWithUser := context.WithValue(ctx, userIDContextKey, claims.UserID)
 
 			next.ServeHTTP(w, r.WithContext(contextWithUser))
 		})

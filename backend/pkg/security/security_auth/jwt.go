@@ -27,7 +27,7 @@ func NewJWTService(secretKey string) *JWTService {
 // The token embeds the username and an expiration set to one hour from now.
 func (j *JWTService) GenerateJWT(userId int, userName string) (string, error) {
 	var claims = models.Claims{
-		UserId: userId,
+		UserID: userId,
 		UserName: userName,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Hour)),

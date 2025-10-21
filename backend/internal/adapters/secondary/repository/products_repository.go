@@ -47,7 +47,7 @@ func (r *SqlProductsRepository) GetProductByID(id int) (models.Product, error) {
 	const sqlQuery = `
 	SELECT *
 	FROM Products
-	WHERE product_id = ?
+	WHERE Product_ID = ?
 	`
 
 	err := r.db.Get(&product, sqlQuery, id)
@@ -66,7 +66,7 @@ func (r *SqlProductsRepository) GetProductsByBrand(brand string) ([]models.Produ
 	const sqlQuery = `
 	SELECT *
 	FROM Products
-	WHERE brand = ?`
+	WHERE Brand = ?`
 
 	err := r.db.Select(&productByBrand, sqlQuery, brand)
 	if err != nil {
