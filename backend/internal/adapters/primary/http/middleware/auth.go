@@ -25,7 +25,7 @@ const userIDContextKey contextKey = "userID"
 // authenticated user's ID from context:
 //
 //	userID := r.Context().Value(middleware.GetUserIDContextKey()).(string)
-func GetUserIdContextKey() contextKey {
+func GetUserIDContextKey() contextKey {
 	return userIDContextKey
 }
 

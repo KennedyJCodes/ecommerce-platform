@@ -69,7 +69,7 @@ func (h *CommentsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// Step 3: Extract authenticated user ID from context
 	ctx := r.Context()
-	userIDValue := ctx.Value(middleware.GetUserIdContextKey())
+	userIDValue := ctx.Value(middleware.GetUserIDContextKey())
 	userIdInt, ok := userIDValue.(int)
 	if !ok {
 		httpUtil.HandleError(w, errors.NewInternalError(errors.ErrInternalServer))

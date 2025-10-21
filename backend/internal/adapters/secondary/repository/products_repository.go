@@ -70,7 +70,6 @@ func (r *SqlProductsRepository) GetProductsByBrand(brand string) ([]models.Produ
 
 	err := r.db.Select(&productByBrand, sqlQuery, brand)
 	if err != nil {
-		log.Println(err)
 		return []models.Product{}, Custom_errors.NewInternalError(Custom_errors.ErrDatabaseQuery).WithError(err)
 	}
 
