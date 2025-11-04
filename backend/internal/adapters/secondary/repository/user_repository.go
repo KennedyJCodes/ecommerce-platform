@@ -75,19 +75,27 @@ func (r *SQLUserRepository) GetHashPassword(username string) (string, error) {
 
 // It generates a new salt, combines it with the plain password, hashes the result, and executes an INSERT statement. Any generation, hashing, or SQL errors are wrapped as internal errors.
 func (r *SQLUserRepository) SaveUser(username, password string) error {
-
 	hash, err := r.hasher.Hash([]byte(password))
-	log.Println("hash", hash)
+	if err != nil {
+		return errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
+	}
+	
+	tx, err := r.db.Begin()
+	if err != nil {
+		return errors.NewInternalError(errors.ErrDatabaseTransaction).WithError(err)
+	}
+	
+	defer tx.Rollback()
+
+	_, err = tx.Exec("INSERT INTO User_Registration (UserName, Password) VALUES (?, ?)", username, hash)
 	if err != nil {
 		return errors.NewInternalError(errors.ErrDatabaseInsert).WithError(err)
 	}
 
-	// Insert the new user record
-	_, err = r.db.Exec("INSERT INTO User_Registration (UserName, Password) VALUES (?, ?)", username, hash)
-	log.Println("err", err)
-	if err != nil {
-		return errors.NewInternalError(errors.ErrDatabaseInsert).WithError(err)
+	if err = tx.Commit(); err != nil {
+		return errors.NewInternalError(errors.ErrDatabaseCommit).WithError(err)
 	}
+
 	return nil
 }
 

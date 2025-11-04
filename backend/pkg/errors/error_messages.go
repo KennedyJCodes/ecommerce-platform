@@ -6,6 +6,7 @@ package errors
 // Common error messages
 const (
 	// Authentication errors
+	ErrHashingPassword    = "Error hashing password"
 	ErrInvalidCredentials = "Invalid credentials"
 	ErrUserNotFound       = "User not found"
 	ErrUserAlreadyExists  = "The user already exists"
@@ -15,6 +16,9 @@ const (
 	ErrTokenValidation    = "Invalid or expired token"
 
 	// Database errors
+	ErrDatabaseTransaction = "Error starting database transaction"
+	ErrDatabaseRollback    = "Error rolling back database transaction"
+	ErrDatabaseCommit      = "Error committing database transaction"
 	ErrDatabaseConnection = "Database connection error"
 	ErrDatabaseQuery      = "Error executing query"
 	ErrDatabaseInsert     = "Error inserting into the database"
