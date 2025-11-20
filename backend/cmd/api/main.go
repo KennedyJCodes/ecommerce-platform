@@ -24,6 +24,7 @@ import (
 	securityAuth "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/security_auth"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/unrolled/secure"
 )
 
 // main is the application entry point.
@@ -55,7 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error connecting to Redis: %v", err)
 	}
-		
+
 	redisClient := config.NewRedisClient(redisConfig)
 	defer redisClient.Close()
 
@@ -79,11 +80,51 @@ func main() {
 		productsGetService,
 	)
 
+	secureMiddleware := secure.New(secure.Options{
+		FrameDeny:             true,
+		ContentTypeNosniff:    true,
+		BrowserXssFilter:      true, // ✅ Activado - establece X-XSS-Protection: 1;
+		STSSeconds:            31536000,
+		STSIncludeSubdomains:  true,
+		SSLRedirect:           false,  // ✅ true en producción, false en desarrollo
+		IsDevelopment:         true, // ✅ false en producción, true en desarrollo
+		ContentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';",
+	})
+
+	// Endpoints sensibles que no deben ser cacheados
+	sensitivePaths := map[string]bool{
+		"/login":                true,
+		"/register":             true,
+		"/comments/newComments": true,
+	}
+
+	securedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		err := secureMiddleware.Process(w, r)
+		if err != nil {
+			log.Println("Error processing security headers:", err)
+			return
+		}
+
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), usb=(), payment=(), accelerometer=(), gyroscope=(), magnetometer=(), clipboard-read=(), clipboard-write=(), fullscreen=(self)")	
+		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+
+		if sensitivePaths[r.URL.Path] {
+			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
+		}
+
+		router.ServeHTTP(w, r)
+	})
+
 	// Step 6: Start HTTP server
 	port := appConfig.GetPort()
 	log.Printf("Server started at http://localhost:%s", port)
 	log.Printf("Serving static files from: %s", staticFileAdapter.GetStaticDir())
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Fatal(http.ListenAndServe(":"+port, securedHandler))
 }
 
 // initializeCommonServices sets up services that are shared globally across the application.
@@ -112,6 +153,7 @@ func setupDatabaseRedis(appConfig *config.AppConfig) (models.RedisConfig, error)
 	redisConfig := appConfig.GetRedisConfig()
 	return redisConfig, nil
 }
+
 // setupUserRepository returns an implementation of the UserRepository interface.
 
 // It sets up dependencies for user authentication such as salt generation and password hashing and injects them into the SQL-based repository.
@@ -149,12 +191,12 @@ func setupRegisterService(userRepo output.UserRepository) input.UserServiceRegis
 func setupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService) {
 	commentRepo := repository.NewSqlCommentRepository(db)
 	commentValidator := &service_comments.CommentValidator{}
-	return  service_comments.NewCommentGetService(commentRepo), service_comments.NewCommentAddService(commentRepo, commentValidator)
+	return service_comments.NewCommentGetService(commentRepo), service_comments.NewCommentAddService(commentRepo, commentValidator)
 }
 
-func setupProductsService(db *sqlx.DB) (input.ProductsGetService) {
+func setupProductsService(db *sqlx.DB) input.ProductsGetService {
 	productsRepo := repository.NewSqlProductsRepository(db)
-	return  service_products.NewProductsGetService(productsRepo)
+	return service_products.NewProductsGetService(productsRepo)
 }
 
 // setupRateLimiter configures and returns a rate limiting handler.

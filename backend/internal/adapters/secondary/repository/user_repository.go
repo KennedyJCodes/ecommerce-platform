@@ -48,9 +48,10 @@ func (r *SQLUserRepository) UserExists(username string) (bool, error) {
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM User_Registration WHERE UserName = ?)"
 	err := r.db.QueryRow(query, username).Scan(&exists)
-	if err != nil {
-		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
-	}
+		if err != nil {
+			return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
+		}
+
 	return exists, nil
 }
 
@@ -61,12 +62,13 @@ func (r *SQLUserRepository) GetHashPassword(username string) (string, error) {
 	var hashPassword string
 	query := "SELECT Password FROM User_Registration WHERE UserName = ?"
 	err := r.db.QueryRow(query, username).Scan(&hashPassword)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", errors.NewNotFoundError(errors.ErrUserNotFound)
-		}
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return "", errors.NewNotFoundError(errors.ErrUserNotFound)
+			}
 		return "", errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
-	}
+		}
+
 	return hashPassword, nil
 }
 

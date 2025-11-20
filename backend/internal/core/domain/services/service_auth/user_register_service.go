@@ -69,7 +69,6 @@ func (r *UserRegisterService) Register(account models.Account) (string, error) {
 		return "", errors.NewConflictError(errors.ErrUserAlreadyExists)
 	}
 
-	
 	// 4. Persist the new user with salted+hashed password
 	if err := r.UserRepo.SaveUser(account.UserName, account.Password); err != nil {
 		return "", err

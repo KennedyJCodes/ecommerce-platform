@@ -139,10 +139,10 @@ func NewRedisClient(cfg models.RedisConfig) *redis.Client {
 
 	pong, err := client.Ping(ctx).Result()
 	if err != nil {
-		log.Fatalf("❌ Error conectando a Redis en %s: %v", addr, err)
+		log.Fatalf("Error connecting to Redis on %s: %v", addr, err)
 	}
 
-	log.Printf("✓ Conectado a Redis exitosamente en %s - Response: %s", addr, pong)
+	log.Printf("Successfully connected to Redis on %s - Response: %s", addr, pong)
 	return client
 }
 
