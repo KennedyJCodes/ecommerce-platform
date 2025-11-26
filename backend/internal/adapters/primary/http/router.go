@@ -54,53 +54,33 @@ type RouterConfig struct {
 // Parameters:
 //   - router: *mux.Router instance to configure routes on.
 func (c *RouterConfig) SetupRoutes(router *mux.Router) {
-	// 1. Register static file serving routes
 	c.StaticFileHandler.RegisterRoutes(router)
 
-	// 2. Prepare middleware for rate limiting and authentication
 	rateLimitMW := middleware.RateLimitMiddleware(c.IPExtractor, c.RateLimiter)
 	authMW := middleware.AuthMiddleware(middleware.DefaultAuthOptions())
 
-	// 3. Public routes
-	router.Handle("/", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.MainPageHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("GET")
+	public := router.PathPrefix("").Subrouter()
+	public.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PublicCORSConfig())))
+	public.Use(mux.MiddlewareFunc(rateLimitMW))
 
-	router.Handle("/register", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.RegisterHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("POST")
+	public.Handle("/", http.HandlerFunc(c.MainPageHandler.Handle)).Methods("GET", "OPTIONS")
+	public.Handle("/comments", http.HandlerFunc(c.CommentsGetHandler.Handle)).Methods("GET", "OPTIONS")
+	public.Handle("/products", http.HandlerFunc(c.ProductsHandler.Handle)).Methods("GET", "OPTIONS")
+	public.Handle("/product-id/{id}", http.HandlerFunc(c.ProductsHandler.HandleGetByID)).Methods("GET", "OPTIONS")
+	public.Handle("/products-brand/{brand}", http.HandlerFunc(c.ProductsHandler.HandleGetByBrand)).Methods("GET", "OPTIONS")
+	
+	private := router.PathPrefix("").Subrouter()
+	private.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PrivateCORSConfig())))
+	private.Use(mux.MiddlewareFunc(rateLimitMW))
+	private.Use(mux.MiddlewareFunc(authMW))
+	
+	private.Handle("/comments/newComments", http.HandlerFunc(c.CommentsAddHandler.Handle)).Methods("POST", "OPTIONS")
 
-	router.Handle("/login", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.LoginHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("POST")
-
-	router.Handle("/comments", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.CommentsGetHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("GET")
-
-	// Rutas de productos
-	router.Handle("/products", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.ProductsHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("GET")
-
-	router.Handle("/product-id/{id}", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.ProductsHandler.HandleGetByID), rateLimitMW,
-	)).Methods("GET")
-
-	router.Handle("/products-brand/{brand}", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.ProductsHandler.HandleGetByBrand), rateLimitMW,
-	)).Methods("GET")
-
-	// 4. Protected routes
-	router.Handle("/comments/newComments", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.CommentsAddHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("POST")
+	loginRouter := router.PathPrefix("").Subrouter()
+	loginRouter.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PrivateCORSConfig())))
+	loginRouter.Use(mux.MiddlewareFunc(rateLimitMW))
+	loginRouter.Handle("/login", http.HandlerFunc(c.LoginHandler.Handle)).Methods("POST", "OPTIONS")
+	loginRouter.Handle("/register", http.HandlerFunc(c.RegisterHandler.Handle)).Methods("POST", "OPTIONS")
 }
 
 // NewRouter constructs and returns a *mux.Router configured with all application routes, handlers, and global middleware.
@@ -150,13 +130,9 @@ func NewRouter(
 	timingConfig := middleware.DefaultTimingConfig()
 	timingConfig.WarningThreshold = 200 * 1000 * 1000 // 200 milliseconds
 
-	corsConfig := middleware.DefaultCORSConfig()
-	// corsCfg.AllowedOrigins = []string{"https://example.com"} // customize as needed
-
 	// Add global middleware: logging, timing, CORS
 	middlewareManager.AddGlobal(middleware.LoggingMiddleware)
 	middlewareManager.AddGlobal(middleware.TimingMiddleware(timingConfig))
-	middlewareManager.AddGlobal(middleware.CORSMiddleware(corsConfig))
 	middlewareManager.ApplyToRouter(router)
 
 	// 5. Build RouterConfig with dependencies

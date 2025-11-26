@@ -7,6 +7,6 @@ type Product struct {
 	Product_Price float64 `db:"Product_Price"`
 	Stock_Quantity int `db:"Stock_Quantity"`
 	Brand string `db:"Brand"`
-	Image_Url string `db:"Image_Url"`
+	Image_URL string `db:"Image_URL"`
 	Movement_Type string `db:"Movement_Type"`
 }
