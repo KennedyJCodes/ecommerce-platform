@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/sale-watches/pkg/http"
@@ -19,14 +20,16 @@ import (
 // It acts as an adapter between HTTP requests and the core domain's login functionality, using the UserServiceLogin interface to process login operations.
 type LoginHandler struct {
 	userServiceLogin input.UserServiceLogin
+	csrfService      input.CSRFService
 }
 
 // NewLoginHandler creates a new instance of LoginHandler.
 
 // It receives an implementation of the UserServiceLogin interface, which encapsulates the business logic for authenticating users.
-func NewLoginHandler(userServiceLogin input.UserServiceLogin) *LoginHandler {
+func NewLoginHandler(userServiceLogin input.UserServiceLogin, csrfService input.CSRFService) *LoginHandler {
 	return &LoginHandler{
 		userServiceLogin: userServiceLogin,
+		csrfService:      csrfService,
 	}
 }
 
@@ -43,6 +46,13 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
 		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))
 		return
+	}
+
+	// Create CSRF cookie setter for this request and inject into service
+	csrfCookieSetter := NewCSRFCookieSetter(w)
+	if loginSvc, ok := h.userServiceLogin.(*service_auth.UserLoginService); ok {
+		loginSvc.BaseAuthService.CSRFCookieSetter = csrfCookieSetter
+		loginSvc.BaseAuthService.CSRFService = h.csrfService
 	}
 
 	token, err := h.userServiceLogin.Login(account)

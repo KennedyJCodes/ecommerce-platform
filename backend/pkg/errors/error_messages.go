@@ -14,6 +14,9 @@ const (
 	ErrInvalidPassword    = "Invalid password"
 	ErrTokenGeneration    = "Error generating token"
 	ErrTokenValidation    = "Invalid or expired token"
+	ErrInvalidCSRFToken = "Invalid CSRF token"
+	ErrCSRFTokenExpired = "CSRF token expired"
+	ErrCSRFTokenNotFound    = "CSRF token not found"
 
 	// Database errors
 	ErrDatabaseTransaction = "Error starting database transaction"

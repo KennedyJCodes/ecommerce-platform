@@ -1,6 +1,6 @@
 // Package repository provides SQL-based implementations of output ports for data persistence.
 // This file contains SqlCommentRepository, which implements CommentRepository using a MySQL database via sqlx.
-package repository
+package repository_mysql
 
 import (
 	"log"

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/sale-watches/pkg/http"
@@ -19,14 +20,16 @@ import (
 // It serves as an adapter between HTTP requests and the core business logic for registering users, utilizing the UserServiceRegister interface.
 type RegisterHandler struct {
 	userServiceRegister input.UserServiceRegister
+	csrfService         input.CSRFService
 }
 
 // NewRegisterHandler creates a new instance of RegisterHandler.
 
 // It receives an implementation of the UserServiceRegister interface that encapsulates the business logic for user registration.
-func NewRegisterHandler(userServiceRegister input.UserServiceRegister) *RegisterHandler {
+func NewRegisterHandler(userServiceRegister input.UserServiceRegister, csrfService input.CSRFService) *RegisterHandler {
 	return &RegisterHandler{
 		userServiceRegister: userServiceRegister,
+		csrfService:         csrfService,
 	}
 }
 
@@ -46,6 +49,13 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
 		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))
 		return
+	}
+
+	// Create CSRF cookie setter for this request and inject into service
+	csrfCookieSetter := NewCSRFCookieSetter(w)
+	if registerSvc, ok := h.userServiceRegister.(*service_auth.UserRegisterService); ok {
+		registerSvc.BaseAuthService.CSRFCookieSetter = csrfCookieSetter
+		registerSvc.BaseAuthService.CSRFService = h.csrfService
 	}
 
 	// Attempt to register the user and generate an authentication token.

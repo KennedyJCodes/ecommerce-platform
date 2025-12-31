@@ -2,6 +2,8 @@
 package service_auth
 
 import (
+	"fmt"
+
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
@@ -23,14 +25,19 @@ type UserLoginService struct {
 //   - userNameValidator: validator for username input (input.Validator)
 //   - passwordValidator: validator for password input (input.Validator)
 
+//   - csrfService: service for CSRF token generation (input.CSRFService)
+//   - csrfCookieSetter: setter for CSRF token cookies (output.CSRFCookieSetter)
+//
 // Returns:
 //   - input.UserServiceLogin: ready-to-use login service.
-func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator) input.UserServiceLogin {
+func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceLogin {
 	return &UserLoginService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,
 			UserNameValidator: userNameValidator,
 			PasswordValidator: passwordValidator,
+			CSRFService:       csrfService,
+			CSRFCookieSetter:  csrfCookieSetter,
 		},
 	}
 }
@@ -81,6 +88,16 @@ func (l *UserLoginService) Login(account models.Account) (string, error) {
 		return "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
 
-	// 5. Generate JWT token
-	return l.GenerateToken(userId, account.UserName)
+	// 5. Generate and set CSRF token
+	userIDStr := fmt.Sprintf("%d", userId)
+	if err := l.GenerateAndSetCSRFToken(userIDStr); err != nil {
+		return "", err
+	}
+
+	// 6. Generate JWT token
+	token, err := l.GenerateToken(userId, account.UserName)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }

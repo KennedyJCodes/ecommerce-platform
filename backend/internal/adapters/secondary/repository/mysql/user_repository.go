@@ -1,5 +1,5 @@
 // Package repository provides SQL-based implementations of output ports for persisting and retrieving user data. It depends on a SQL database connection and pluggable security components for salt generation and password hashing.
-package repository
+package repository_mysql
 
 import (
 	"database/sql"

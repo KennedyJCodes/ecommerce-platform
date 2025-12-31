@@ -43,7 +43,7 @@ func (h *ProductsHandler) HandleGetByID(w http.ResponseWriter, r *http.Request) 
 		httpUtil.HandleError(w, errors.NewBadRequestError("Invalid ID format"))
 		return
 	}
-	
+
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewBadRequestError("Invalid ID format"))
 		return

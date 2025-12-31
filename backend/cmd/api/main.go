@@ -10,13 +10,18 @@ import (
 	"log"
 	"net/http"
 
+	"time"
+
 	primaryHttp "github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/primary/http"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/repository"
+	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/primary/http/middleware"
+	repository_mysql "github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/repository/mysql"
+	repository_redis "github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/repository/redis"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/static"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/config"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_comments"
+	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_csrf"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_products"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
@@ -24,6 +29,7 @@ import (
 	securityAuth "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/security_auth"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
 	"github.com/unrolled/secure"
 )
 
@@ -62,12 +68,14 @@ func main() {
 
 	// Step 4: Dependency injection for domain services
 	userRepo := setupUserRepository(db)
-	userServiceLogin := setupLoginService(userRepo)
-	userServiceRegister := setupRegisterService(userRepo)
+	csrfService := setupCSRFService(redisClient)
+	userServiceLogin := setupLoginService(userRepo, csrfService)
+	userServiceRegister := setupRegisterService(userRepo, csrfService)
 	commentGetService, commentAddService := setupCommentService(db)
 	rateHandler := setupRateLimiter(appConfig)
 	staticFileAdapter := setupStaticFileAdapter(appConfig)
 	productsGetService := setupProductsService(db)
+	csrfMiddleware := setupCSRFMiddleware(csrfService)
 
 	// Step 5: Configure HTTP router with handlers and middleware
 	router := primaryHttp.NewRouter(
@@ -78,16 +86,18 @@ func main() {
 		rateHandler,
 		staticFileAdapter,
 		productsGetService,
+		csrfMiddleware,
+		csrfService,
 	)
 
 	secureMiddleware := secure.New(secure.Options{
 		FrameDeny:             true,
 		ContentTypeNosniff:    true,
-		BrowserXssFilter:      true, // ✅ Activado - establece X-XSS-Protection: 1;
+		BrowserXssFilter:      true,
 		STSSeconds:            31536000,
 		STSIncludeSubdomains:  true,
-		SSLRedirect:           false,  // ✅ true en producción, false en desarrollo
-		IsDevelopment:         true, // ✅ false en producción, true en desarrollo
+		SSLRedirect:           false,
+		IsDevelopment:         true, 
 		ContentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';",
 	})
 
@@ -107,7 +117,7 @@ func main() {
 
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), usb=(), payment=(), accelerometer=(), gyroscope=(), magnetometer=(), clipboard-read=(), clipboard-write=(), fullscreen=(self)")	
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), usb=(), payment=(), accelerometer=(), gyroscope=(), magnetometer=(), clipboard-read=(), clipboard-write=(), fullscreen=(self)")
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
 
@@ -159,25 +169,27 @@ func setupDatabaseRedis(appConfig *config.AppConfig) (models.RedisConfig, error)
 // It sets up dependencies for user authentication such as salt generation and password hashing and injects them into the SQL-based repository.
 func setupUserRepository(db *sqlx.DB) output.UserRepository {
 	hasher := securityAuth.BcryptHasher{}
-	return repository.NewSQLUserRepository(db, hasher)
+	return repository_mysql.NewSQLUserRepository(db, hasher)
 }
 
 // setupLoginService initializes and returns the user login service.
 
 // This service validates credentials and authenticates users.
 // It relies on validators for username and password and uses the user repository to query user data.
-func setupLoginService(userRepo output.UserRepository) input.UserServiceLogin {
+func setupLoginService(userRepo output.UserRepository, csrfService input.CSRFService) input.UserServiceLogin {
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}
-	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator)
+	// CSRFCookieSetter will be injected per request in the handler
+	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, csrfService, nil)
 }
 
 // setupRegisterService initializes and returns the user registration service.
 // It validates user input and stores new users in the database using the provided repository.
-func setupRegisterService(userRepo output.UserRepository) input.UserServiceRegister {
+func setupRegisterService(userRepo output.UserRepository, csrfService input.CSRFService) input.UserServiceRegister {
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}
-	return service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator)
+	// CSRFCookieSetter will be injected per request in the handler
+	return service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, csrfService, nil)
 }
 
 // setupCommentService initializes services for retrieving and creating user comments.
@@ -189,13 +201,13 @@ func setupRegisterService(userRepo output.UserRepository) input.UserServiceRegis
 //   - input.CommentGetService: service interface to fetch comments
 //   - input.CommentAddService: service interface to add new comments
 func setupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService) {
-	commentRepo := repository.NewSqlCommentRepository(db)
+	commentRepo := repository_mysql.NewSqlCommentRepository(db)
 	commentValidator := &service_comments.CommentValidator{}
 	return service_comments.NewCommentGetService(commentRepo), service_comments.NewCommentAddService(commentRepo, commentValidator)
 }
 
 func setupProductsService(db *sqlx.DB) input.ProductsGetService {
-	productsRepo := repository.NewSqlProductsRepository(db)
+	productsRepo := repository_mysql.NewSqlProductsRepository(db)
 	return service_products.NewProductsGetService(productsRepo)
 }
 
@@ -213,4 +225,22 @@ func setupRateLimiter(appConfig *config.AppConfig) ratelimiter.RateLimiterHandle
 func setupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
 	staticDir := appConfig.GetStaticDir()
 	return static.NewStaticFileAdapter(staticDir)
+}
+
+// setupCSRFService initializes and returns the CSRF service.
+// It configures the CSRF service with a Redis repository and sets the token expiration time.
+func setupCSRFService(redisClient *redis.Client) input.CSRFService {
+	csrfRepo := repository_redis.NewRedisCSRFRepository(redisClient)
+	return service_csrf.NewCSRFUseCase(csrfRepo, 24*time.Hour)
+}
+
+// setupCSRFMiddleware initializes and returns the CSRF protection middleware.
+// It uses the provided CSRF service to create the middleware.
+func setupCSRFMiddleware(csrfService input.CSRFService) *middleware.CSRFMiddleware {
+	// Type assertion to get the concrete type for the middleware
+	if csrfUseCase, ok := csrfService.(*service_csrf.CSRFUseCase); ok {
+		return middleware.NewCSRFMiddleware(csrfUseCase)
+	}
+	// Fallback: this shouldn't happen in normal operation
+	return nil
 }

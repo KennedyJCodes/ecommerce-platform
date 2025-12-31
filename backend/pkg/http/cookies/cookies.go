@@ -10,12 +10,12 @@ import (
 // CookieConfig defines the complete configuration for HTTP cookie properties.
 // Used as a template for creating standardized http.Cookie instances.
 type CookieConfig struct {
-	Name     string	// Cookie name (required)
-	Value    string	// Cookie value (empty for session cookies)
+	Name     string        // Cookie name (required)
+	Value    string        // Cookie value (empty for session cookies)
 	MaxAge   time.Duration // Duration until cookie expiration
-	HttpOnly bool // Restrict cookie access to HTTP only
-	Path     string // URL path scope for cookie
-	Secure   bool // Require HTTPS transport
+	HttpOnly bool          // Restrict cookie access to HTTP only
+	Path     string        // URL path scope for cookie
+	Secure   bool          // Require HTTPS transport
 	SameSite http.SameSite // SameSite policy enforcement
 }
 
@@ -160,5 +160,18 @@ func ClearCookie(w http.ResponseWriter, name string) {
 		Path:     "/",
 		HttpOnly: true,
 	}
+	SetCookie(w, config)
+}
+
+// SetCSRFCookie sets a CSRF token cookie with secure defaults.
+// The cookie is HttpOnly, has SameSite=Strict, and Secure flag based on production environment.
+func SetCSRFCookie(w http.ResponseWriter, token string, isProduction bool) {
+	config := NewCookieConfig("csrf_token",
+		WithValue(token),
+		WithMaxAge(24*time.Hour),
+		WithHttpOnly(true),
+		WithSameSite(http.SameSiteStrictMode),
+		WithSecure(isProduction),
+	)
 	SetCookie(w, config)
 }

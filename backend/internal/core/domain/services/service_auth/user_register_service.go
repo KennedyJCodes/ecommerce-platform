@@ -2,6 +2,8 @@
 package service_auth
 
 import (
+	"fmt"
+
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
@@ -22,14 +24,19 @@ type UserRegisterService struct {
 //   - userNameValidator: enforces rules on username formats.
 //   - passwordValidator: enforces rules on password strength.
 
+//   - csrfService: service for CSRF token generation (input.CSRFService)
+//   - csrfCookieSetter: setter for CSRF token cookies (output.CSRFCookieSetter)
+//
 // Returns:
 //   - input.UserServiceRegister: the initialized registration service.
-func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator) input.UserServiceRegister {
+func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceRegister {
 	return &UserRegisterService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,
 			UserNameValidator: userNameValidator,
 			PasswordValidator: passwordValidator,
+			CSRFService:       csrfService,
+			CSRFCookieSetter:  csrfCookieSetter,
 		},
 	}
 }
@@ -73,12 +80,18 @@ func (r *UserRegisterService) Register(account models.Account) (string, error) {
 	if err := r.UserRepo.SaveUser(account.UserName, account.Password); err != nil {
 		return "", err
 	}
-	
+
 	userId, err := r.UserRepo.GetID(account.UserName)
 	if err != nil {
 		return "", err
 	}
 
-	// 5. Issue a JWT token for the new user
+	// 5. Generate and set CSRF token
+	userIDStr := fmt.Sprintf("%d", userId)
+	if err := r.GenerateAndSetCSRFToken(userIDStr); err != nil {
+		return "", err
+	}
+
+	// 6. Issue a JWT token for the new user
 	return r.GenerateToken(userId, account.UserName)
 }

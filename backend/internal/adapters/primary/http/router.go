@@ -41,6 +41,7 @@ type RouterConfig struct {
 	StaticFileHandler  *StaticFileHandler
 	MiddlewareManager  *middleware.MiddlewareManager
 	ProductsHandler    *ProductsHandler
+	CSRFMiddleware     *middleware.CSRFMiddleware
 }
 
 // SetupRoutes registers all application endpoints on the given router and applies route-specific middleware for authentication and rate limiting.
@@ -58,6 +59,7 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 
 	rateLimitMW := middleware.RateLimitMiddleware(c.IPExtractor, c.RateLimiter)
 	authMW := middleware.AuthMiddleware(middleware.DefaultAuthOptions())
+	csrfMW := c.CSRFMiddleware.ProtectCR
 
 	public := router.PathPrefix("").Subrouter()
 	public.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PublicCORSConfig())))
@@ -68,12 +70,13 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 	public.Handle("/products", http.HandlerFunc(c.ProductsHandler.Handle)).Methods("GET", "OPTIONS")
 	public.Handle("/product-id/{id}", http.HandlerFunc(c.ProductsHandler.HandleGetByID)).Methods("GET", "OPTIONS")
 	public.Handle("/products-brand/{brand}", http.HandlerFunc(c.ProductsHandler.HandleGetByBrand)).Methods("GET", "OPTIONS")
-	
+
 	private := router.PathPrefix("").Subrouter()
 	private.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PrivateCORSConfig())))
 	private.Use(mux.MiddlewareFunc(rateLimitMW))
 	private.Use(mux.MiddlewareFunc(authMW))
-	
+	private.Use(mux.MiddlewareFunc(csrfMW))
+
 	private.Handle("/comments/newComments", http.HandlerFunc(c.CommentsAddHandler.Handle)).Methods("POST", "OPTIONS")
 
 	loginRouter := router.PathPrefix("").Subrouter()
@@ -109,13 +112,15 @@ func NewRouter(
 	rateHandler ratelimiter.RateLimiterHandler,
 	staticFileService output.StaticFilePort,
 	productsGetService input.ProductsGetService,
+	csrfMiddleware *middleware.CSRFMiddleware,
+	csrfService input.CSRFService,
 ) *mux.Router {
 	// 1. Initialize a new router
 	router := mux.NewRouter()
 
 	// 2. Instantiate HTTP handlers with injected domain services
-	loginHandler := NewLoginHandler(userServiceLogin)
-	registerHandler := NewRegisterHandler(userServiceRegister)
+	loginHandler := NewLoginHandler(userServiceLogin, csrfService)
+	registerHandler := NewRegisterHandler(userServiceRegister, csrfService)
 	commentsGetHandler := NewCommentsGetHandler(commentGetService)
 	commentsAddHandler := NewCommentAddsHandler(commentAddService)
 	mainPageHandler := NewMainPageHandler()
@@ -147,6 +152,7 @@ func NewRouter(
 		StaticFileHandler:  staticFileHandler,
 		MiddlewareManager:  middlewareManager,
 		ProductsHandler:    productsHandler,
+		CSRFMiddleware:     csrfMiddleware,
 	}
 
 	// 6. Register routes on router

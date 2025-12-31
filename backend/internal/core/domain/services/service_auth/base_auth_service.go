@@ -13,13 +13,19 @@ import (
 // BaseAuthService offers common authentication operations shared by login and registration services. It delegates credential validation to injected validators, user lookup to the UserRepository, and token creation to the security_auth package.
 type BaseAuthService struct {
 	// UserRepo provides access to user persistence (e.g., lookup by username).
-	UserRepo          output.UserRepository
+	UserRepo output.UserRepository
 
 	// UserNameValidator enforces rules on allowed username formats.
 	UserNameValidator input.Validator
 
 	// PasswordValidator enforces rules on allowed password formats.
 	PasswordValidator input.Validator
+
+	// CSRFService handles CSRF token generation and validation.
+	CSRFService input.CSRFService
+
+	// CSRFCookieSetter sets CSRF token cookies in HTTP responses.
+	CSRFCookieSetter output.CSRFCookieSetter
 }
 
 // ValidateUserName checks the supplied username against the UserNameValidator.
@@ -57,4 +63,20 @@ func (b *BaseAuthService) GenerateToken(userId int, username string) (string, er
 	}
 
 	return token, nil
+}
+
+// GenerateAndSetCSRFToken generates a CSRF token for the user and sets it as a cookie.
+// Returns an error if token generation fails.
+func (b *BaseAuthService) GenerateAndSetCSRFToken(userID string) error {
+	if b.CSRFService == nil || b.CSRFCookieSetter == nil {
+		return nil
+	}
+
+	csrfToken, err := b.CSRFService.GenerateToken(userID)
+	if err != nil {
+		return errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
+	}
+
+	b.CSRFCookieSetter.SetCSRFCookie(csrfToken)
+	return nil
 }
