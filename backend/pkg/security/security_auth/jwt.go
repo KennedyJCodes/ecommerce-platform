@@ -1,5 +1,5 @@
 // Package securityAuth provides JWT creation and validation services for the sale‑watches application’s authentication flow.
-package securityAuth
+package security_auth
 
 import (
 	"fmt"
