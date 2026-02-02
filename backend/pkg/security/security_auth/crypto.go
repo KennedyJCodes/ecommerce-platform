@@ -1,6 +1,6 @@
 // Package securityAuth provides interfaces and implementations for password hashing
 // and salt generation, supporting secure authentication workflows in the sale-watches application.
-package securityAuth
+package security_auth
 
 import (
 	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
