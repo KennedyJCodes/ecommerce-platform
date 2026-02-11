@@ -1,121 +1,91 @@
-// Package main provides the entry point for the Watch Store API server.
-
-// It is responsible for loading configuration, initializing all application components, and starting the HTTP server to handle incoming API requests.
-
-// The application follows a clean architecture pattern, separating concerns into adapters, domain services, ports, and infrastructure components.
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	primaryHttp "github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/primary/http"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/bootstrap"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/bootstrap/database"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/config"
+	"github.com/David-Alejandro-Jimenez/sale-watches/internal/app"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/unrolled/secure"
 )
 
-// main is the application entry point.
-// It performs the following steps:
-// 1. Loads and validates application configuration.
-// 2. Initializes global security services (e.g., JWT).
-// 3. Establishes a database connection.
-// 4. Creates domain services and their dependencies (repositories, validators).
-// 5. Configures the HTTP router with endpoints and middleware.
-// 6. Starts listening on the configured port.
-
-// If any of these steps fails, main will log the error and exit the application.
 func main() {
-	// Step 1: Load and validate configuration
-	appConfig := config.NewAppConfig()
-	config.ValidateRequiredConfig(appConfig.GetConfig())
+	log.Println("Starting application...")
+    
+    // Inicializar aplicación
+    application := app.NewConfigApplication()
+    log.Println("Application instance created")
+    
+    // Configurar componentes con manejo de errores
+    log.Println("Loading configuration...")
+    if err := application.LoadConfig(); err != nil {
+        log.Fatalf("Failed to load config: %v", err)
+    }
+    log.Println("Configuration loaded")
+    
+    log.Println("Setting up common services...")
+    if err := application.SetupCommonServices(); err != nil {
+        log.Fatalf("Failed to setup common services: %v", err)
+    }
+    log.Println("Common services setup complete")
+    
+    log.Println("Connecting to database...")
+    if err := application.SetupDatabase(); err != nil {
+        log.Fatalf("Failed to setup database: %v", err)
+    }
+    log.Println("Database connected")
+    defer application.Close()
+    
+    log.Println("Connecting to Redis...")
+    if err := application.SetupRedis(); err != nil {
+        log.Fatalf("Failed to setup Redis: %v", err)
+    }
+    log.Println("Redis connected")
 
-	// Step 2: Initialize global services (e.g., JWT auth)
-	bootstrap.SetupCommonServices(appConfig)
+    log.Println("Building router...")
+    router := application.BuildRouter()
+    log.Println("Router built")
+    
+    log.Println("Applying security middleware...")
+    securedHandler := app.WrapWithSecurityMiddleware(router)
+    log.Println("Security middleware applied")
 
-	// Step 3: Database setup
-	db, err := bootstrap_database.SetupDatabaseMySQL(appConfig)
-	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
-	}
-	defer db.Close()
+    port := application.GetPort()
 
-	redisConfig, err := bootstrap_database.SetupDatabaseRedis(appConfig)
-	if err != nil {
-		log.Fatalf("Error connecting to Redis: %v", err)
-	}
+    server := &http.Server{
+        Addr:           ":" + port,
+        Handler:        securedHandler,
+        ReadTimeout:    15 * time.Second,
+        WriteTimeout:   15 * time.Second,
+        IdleTimeout:    60 * time.Second,
+        MaxHeaderBytes: 1 << 20,
+    }
 
-	redisClient := config.NewRedisClient(redisConfig)
-	defer redisClient.Close()
+    quit := make(chan os.Signal, 1)
+    signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	// Step 4: Dependency injection for domain services
-	userRepo := bootstrap.SetupUserRepository(db)
-	csrfService := bootstrap.SetupCSRFService(redisClient)
-	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, csrfService)
-	commentGetService, commentAddService := bootstrap.SetupCommentService(db)
-	rateHandler := bootstrap.SetupRateLimiter(appConfig)
-	staticFileAdapter := bootstrap.SetupStaticFileAdapter(appConfig)
-	productsGetService := bootstrap.SetupProductsService(db)
-	csrfMiddleware := bootstrap.SetupCSRFMiddleware(csrfService)
+    go func() {
+        log.Printf("Server started on http://localhost:%s", port)
+        log.Println("Press Ctrl+C to stop")
+        
+        if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+            log.Fatalf("Server failed: %v", err)
+        }
+    }()
 
-	// Step 5: Configure HTTP router with handlers and middleware
-	router := primaryHttp.NewRouter(
-		userServiceLogin,
-		userServiceRegister,
-		commentGetService,
-		commentAddService,
-		rateHandler,
-		staticFileAdapter,
-		productsGetService,
-		csrfMiddleware,
-		csrfService,
-	)
+    <-quit
+    log.Println("Shutting down server gracefully...")
 
-	secureMiddleware := secure.New(secure.Options{
-		FrameDeny:             true,
-		ContentTypeNosniff:    true,
-		BrowserXssFilter:      true,
-		STSSeconds:            31536000,
-		STSIncludeSubdomains:  true,
-		SSLRedirect:           false,
-		IsDevelopment:         true, 
-		ContentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';",
-	})
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
 
-	// Endpoints sensibles que no deben ser cacheados
-	sensitivePaths := map[string]bool{
-		"/login":                true,
-		"/register":             true,
-		"/comments/newComments": true,
-	}
+    if err := server.Shutdown(ctx); err != nil {
+        log.Printf("Server forced to shutdown: %v", err)
+    }
 
-	securedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := secureMiddleware.Process(w, r)
-		if err != nil {
-			log.Println("Error processing security headers:", err)
-			return
-		}
-
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), usb=(), payment=(), accelerometer=(), gyroscope=(), magnetometer=(), clipboard-read=(), clipboard-write=(), fullscreen=(self)")
-		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
-		w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
-
-		if sensitivePaths[r.URL.Path] {
-			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
-			w.Header().Set("Pragma", "no-cache")
-			w.Header().Set("Expires", "0")
-		}
-
-		router.ServeHTTP(w, r)
-	})
-
-	// Step 6: Start HTTP server
-	port := appConfig.GetPort()
-	log.Printf("Server started at http://localhost:%s", port)
-	log.Printf("Serving static files from: %s", staticFileAdapter.GetStaticDir())
-	log.Fatal(http.ListenAndServe(":"+port, securedHandler))
+    log.Println("Server stopped gracefully")
 }
