@@ -1,1 +1,7 @@
+# Ignore credentials from databases, JWT, etc.
 /backend/internal/config/config.yaml
+/backend/internal/config/.env
+
+# Ignore temporary build folders
+/backend/tmp
+/tmp/
