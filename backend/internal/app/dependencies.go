@@ -1,3 +1,5 @@
+// Package app provides the main application entry point and dependency orchestration.
+// This file focuses on assembling the core dependencies and wiring them into the primary HTTP adapter (the router).
 package app
 
 import (
@@ -11,6 +13,8 @@ import (
 	ratelimiter "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/rate_limiter"
 )
 
+// Dependencies holds all the initialized services, ports, and handlers required  to run the application.
+// By grouping these in a single struct, the application ensures that all required components are ready before starting the HTTP server.
 type Dependencies struct {
     UserServiceLogin    input.UserServiceLogin
     UserServiceRegister input.UserServiceRegister
@@ -23,9 +27,19 @@ type Dependencies struct {
     CSRFService         input.CSRFService
 }
 
+// BuildDependencies orchestrates the initialization of all internal services and repositories.
+// It uses the bootstrap package to set up:
+//  1. Repositories (User, Comments, Products).
+//  2. Core Services (Auth, CSRF, Comments).
+//  3. Infrastructure Adapters (Rate Limiter, Static Files).
+// Returns:
+//   - *Dependencies: a pointer to the fully populated Dependencies struct.
 func (a *Application) BuildDependencies() *Dependencies {
+    // Initialize core repositories and services using shared database connections.
     userRepo := bootstrap.SetupUserRepository(a.db)
     csrfService := bootstrap.SetupCSRFService(a.redisClient)
+
+    // Inject repositories and services into their respective application logic layers.
     userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, csrfService)
     commentGetService, commentAddService := bootstrap.SetupCommentService(a.db)
     
@@ -42,9 +56,15 @@ func (a *Application) BuildDependencies() *Dependencies {
     }
 }
 
+// BuildRouter constructs the final HTTP handler for the application.
+// This method serves as the Composition Root, where dependencies are resolved and passed into the primary HTTP adapter (NewRouter).
+// Returns:
+//   - http.Handler: a fully configured router ready to serve requests.
 func (a *Application) BuildRouter() http.Handler {
+    // Step 1: Resolve all dependencies.
     deps := a.BuildDependencies()
     
+    // Step 2: Inject dependencies into the HTTP router factory.
     return primaryHttp.NewRouter(
         deps.UserServiceLogin,
         deps.UserServiceRegister,
