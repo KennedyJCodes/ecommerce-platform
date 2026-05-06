@@ -10,25 +10,20 @@ import (
 	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
 )
 
-// UserRegisterService implements the input.UserServiceRegister interface.
-
-// It uses BaseAuthService for shared validation and token generation logic, and orchestrates the full registration flow.
+// UserRegisterService handles the logic for creating new user identities.
+// It leverages BaseAuthService for shared validation and token orchestration, ensuring that new accounts meet the same security standards as existing ones.
 type UserRegisterService struct {
 	BaseAuthService
 }
 
-// NewUserRegisterService constructs a UserRegisterService with its dependencies.
+// NewUserRegisterService constructs a UserRegisterService with the necessary collaborators for persistence, validation, and security session management.
 
 // Parameters:
-//   - userRepo: repository for persisting and querying user data.
-//   - userNameValidator: enforces rules on username formats.
-//   - passwordValidator: enforces rules on password strength.
-
-//   - csrfService: service for CSRF token generation (input.CSRFService)
-//   - csrfCookieSetter: setter for CSRF token cookies (output.CSRFCookieSetter)
-//
+//   - userRepo: output port for user persistence.
+//   - userNameValidator/passwordValidator: components to enforce domain constraints.
+//   - csrfService/csrfCookieSetter: infrastructure for CSRF protection.
 // Returns:
-//   - input.UserServiceRegister: the initialized registration service.
+//   - input.UserServiceRegister: the registration service interface.
 func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceRegister {
 	return &UserRegisterService{
 		BaseAuthService: BaseAuthService{
@@ -41,33 +36,27 @@ func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, p
 	}
 }
 
-// Register processes a new user registration.
+// Register orchestrates the onboarding of a new user into the system.
 
-// It performs the following steps in order:
-//   1. ValidateUserName – ensures the username meets formatting rules.
-//   2. ValidatePassword – ensures the password meets strength rules.
-//   3. CheckUserExists – returns a ConflictError if the username is already taken.
-//   4. SaveUser       – persists the new username and password (with salt and hash).
-//   5. GenerateToken – issues a JWT token for the newly created user.
-
-// Parameters:
-//   - account: models.Account containing UserName and Password.
-
-// Returns:
-//   - string: a signed JWT token upon successful registration.
-//   - error: non‑nil if any validation, conflict, or persistence error occurs.
+// The registration flow is executed as an atomic-like business process:
+//  1. Format Validation: Verifies username and password against complexity rules.
+//  2. Collision Check: Prevents duplicate accounts by verifying username uniqueness.
+//  3. Secure Persistence: Delegates the hashing and storage to the repository layer.
+//  4. Identity Resolution: Retrieves the newly generated unique ID.
+//  5. Security Context: Initializes the CSRF state for the new user.
+//  6. Session Issuance: Returns a signed JWT for immediate authentication.
+// Returns a JWT token string on success, or an error if any step in the flow fails.
 func (r *UserRegisterService) Register(account models.Account) (string, error) {
-	// 1. Validate username format
+	// 1. Validate input integrity (Format and Strength)
 	if err := r.ValidateUserName(account.UserName); err != nil {
 		return "", errors.NewValidationError(errors.ErrInvalidUsername)
 	}
 
-	// 2. Validate password strength
 	if err := r.ValidatePassword(account.Password); err != nil {
 		return "", errors.NewValidationError(errors.ErrInvalidPassword)
 	}
 
-	// 3. Ensure the user does not already exist
+	// 2. Ensure username uniqueness (Conflict Check)
 	exists, err := r.CheckUserExists(account.UserName)
 	if err != nil {
 		return "", err
@@ -76,22 +65,24 @@ func (r *UserRegisterService) Register(account models.Account) (string, error) {
 		return "", errors.NewConflictError(errors.ErrUserAlreadyExists)
 	}
 
-	// 4. Persist the new user with salted+hashed password
+	// 3. Persist the new identity
+	// The repository is expected to handle the cryptographic hashing before storage.
 	if err := r.UserRepo.SaveUser(account.UserName, account.Password); err != nil {
 		return "", err
 	}
 
+	// 4. Resolve the persistent ID
 	userId, err := r.UserRepo.GetID(account.UserName)
 	if err != nil {
 		return "", err
 	}
 
-	// 5. Generate and set CSRF token
+	// 5. Establish immediate security session (CSRF)
 	userIDStr := fmt.Sprintf("%d", userId)
 	if err := r.GenerateAndSetCSRFToken(userIDStr); err != nil {
 		return "", err
 	}
 
-	// 6. Issue a JWT token for the new user
+	// 6. Generate access token
 	return r.GenerateToken(userId, account.UserName)
 }
