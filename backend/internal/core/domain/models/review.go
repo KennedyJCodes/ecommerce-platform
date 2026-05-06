@@ -1,17 +1,14 @@
 // Package models defines core domain entities for the sale‑watches application.
-
-// This file declares Review, representing a user’s feedback submitted via the API. It will be fully implemented in the future.
+// This file declares the Review type, which is used to process and validate user feedback submitted via the application's public API.
 package models
 
-// Review represents a user’s review of a product or service.
-// It captures who wrote it, what they said, and the score they assigned.
-
-// Fields:
-//   - Content:  the textual body of the review.
-//   - Rating:   the numeric score given by the user (e.g., 1–5).
-// Comments should begin with the name of the thing being described and end in a period. :contentReference[oaicite:0]{index=0}
+// Review represents a formal user evaluation of a product or service.
+// Unlike internal comment structures, this model acts as a Data Transfer Object (DTO) specifically designed to capture the core sentiment (content and rating provided by the customer during the submission process.
 type Review struct {
-	Content  string `json:"Content"` // the textual body of the review :contentReference[oaicite:2]{index=2}
+	// Content: the textual body of the review containing the user's opinion.
+	Content  string `json:"Content"`
 
-	Rating   int    `json:"Rating"` // the numeric score assigned by the user :contentReference[oaicite:3]{index=3}
+	// Rating: the numeric score assigned by the user (typically on a scale of 1–5).
+	// This value is used to calculate product satisfaction metrics.
+	Rating   int    `json:"Rating"`	
 }
