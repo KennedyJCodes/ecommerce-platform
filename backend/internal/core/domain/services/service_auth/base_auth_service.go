@@ -1,6 +1,5 @@
 // Package service_auth provides implementations of input port interfaces for authentication.
-// It contains shared logic for validating credentials, checking user existence, and
-// generating JWT tokens.
+// It centralizes the core logic for security flows, ensuring consistent handling of credentials and identity tokens across the application.
 package service_auth
 
 import (
@@ -10,26 +9,30 @@ import (
 	securityAuth "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/security_auth"
 )
 
-// BaseAuthService offers common authentication operations shared by login and registration services. It delegates credential validation to injected validators, user lookup to the UserRepository, and token creation to the security_auth package.
+// BaseAuthService serves as a foundational structure for authentication use cases.
+// Instead of duplicating logic, it provides shared methods for:
+//  1. Validating input formats via injected strategy validators.
+//  2. Interfacing with persistence for identity verification.
+//  3. Orchestrating the generation of session (JWT) and security (CSRF) tokens.
 type BaseAuthService struct {
-	// UserRepo provides access to user persistence (e.g., lookup by username).
+	// UserRepo: output port for user data persistence and existence checks.
 	UserRepo output.UserRepository
 
-	// UserNameValidator enforces rules on allowed username formats.
+	// UserNameValidator: strategy to enforce username complexity and format rules.
 	UserNameValidator input.Validator
 
-	// PasswordValidator enforces rules on allowed password formats.
+	// PasswordValidator: strategy to enforce password security requirements.
 	PasswordValidator input.Validator
 
-	// CSRFService handles CSRF token generation and validation.
+	// CSRFService: domain service to manage the lifecycle of CSRF tokens.
 	CSRFService input.CSRFService
 
-	// CSRFCookieSetter sets CSRF token cookies in HTTP responses.
+	// CSRFCookieSetter: output port to bridge domain tokens with HTTP transport cookies.
 	CSRFCookieSetter output.CSRFCookieSetter
 }
 
-// ValidateUserName checks the supplied username against the UserNameValidator.
-// Returns a ValidationError if the username is invalid.
+// ValidateUserName evaluates if the provided username meets business requirements.
+// Returns a domain-specific ValidationError if the format is rejected.
 func (b *BaseAuthService) ValidateUserName(username interface{}) error {
 	if err := b.UserNameValidator.Validate(username); err != nil {
 		return errors.NewValidationError(errors.ErrInvalidUsername)
@@ -37,8 +40,8 @@ func (b *BaseAuthService) ValidateUserName(username interface{}) error {
 	return nil
 }
 
-// ValidatePassword checks the supplied password against the PasswordValidator.
-// Returns a ValidationError if the password is invalid.
+// ValidatePassword evaluates if the provided password meets security standards.
+// Returns a domain-specific ValidationError if the requirements are not met.
 func (b *BaseAuthService) ValidatePassword(password interface{}) error {
 	if err := b.PasswordValidator.Validate(password); err != nil {
 		return errors.NewValidationError(errors.ErrInvalidPassword)
@@ -46,7 +49,8 @@ func (b *BaseAuthService) ValidatePassword(password interface{}) error {
 	return nil
 }
 
-// CheckUserExists queries the UserRepository to determine if a user with the given username already exists. Returns (true, nil) if found, (false, nil) if not, or an InternalError if the lookup fails.
+// CheckUserExists verifies the presence of a username in the persistence layer.
+// Returns (true, nil) if the user is registered, or handles database errors gracefully.
 func (b *BaseAuthService) CheckUserExists(username string) (bool, error) {
 	exists, err := b.UserRepo.UserExists(username)
 	if err != nil {
@@ -55,7 +59,8 @@ func (b *BaseAuthService) CheckUserExists(username string) (bool, error) {
 	return exists, nil
 }
 
-// GenerateToken creates a signed JWT for the given username using the default JWT service. Returns the token string or an InternalError if token generation fails.
+// GenerateToken wraps the security package logic to create an identity JWT.
+// It maps technical token generation errors into domain-understandable InternalErrors.
 func (b *BaseAuthService) GenerateToken(userId int, username string) (string, error) {
 	token, err := securityAuth.GenerateJWT(userId, username)
 	if err != nil {
@@ -65,8 +70,8 @@ func (b *BaseAuthService) GenerateToken(userId int, username string) (string, er
 	return token, nil
 }
 
-// GenerateAndSetCSRFToken generates a CSRF token for the user and sets it as a cookie.
-// Returns an error if token generation fails.
+// GenerateAndSetCSRFToken orchestrates the creation of a CSRF token and its subsequent delivery to the client via a cookie setter.
+// It fails silently if services are not injected, allowing for optional CSRF flows.
 func (b *BaseAuthService) GenerateAndSetCSRFToken(userID string) error {
 	if b.CSRFService == nil || b.CSRFCookieSetter == nil {
 		return nil

@@ -1,6 +1,5 @@
-// Package service_auth provides input‑port implementations for validating user credentials.
-
-// It includes username and password validators enforcing basic length and character rules.
+// Package service_auth provides implementations of domain validators.
+// It ensures that user-provided data meets the security and business requirements before it reaches the core services.
 package service_auth
 
 import (
@@ -9,21 +8,20 @@ import (
 )
 
 const (
-	minUserNameLength = 5 // minimum number of characters for a valid username
+	// minUserNameLength defines the lower bound for username characters.
+	minUserNameLength = 5
 
-	minPasswordLength = 10 // minimum number of characters for a valid password
+	// minPasswordLength defines the minimum entropy required for passwords.
+	minPasswordLength = 10
 )
 
-// UserNameValidator checks that usernames are non‑empty and meet a minimum length.
-//
-// It returns an error if the username is empty or shorter than minUserNameLength.
+// UserNameValidator implements the input.Validator interface for username strings.
 type UserNameValidator struct{}
 
-// Validate enforces the username rules:
-//   • non‑empty
-//   • at least minUserNameLength characters
-
-// Returns a formatted error describing the violation.
+// Validate checks the username against length and nullability constraints.
+// Parameters:
+//   - input: expected to be a string.
+// Returns an error with a descriptive message if validation fails.
 func (c *UserNameValidator) Validate(input interface{}) error {
 	username := input.(string)
 	if username == "" {
@@ -37,19 +35,15 @@ func (c *UserNameValidator) Validate(input interface{}) error {
 	return nil
 }
 
-// PasswordValidator checks that passwords are non‑empty, of sufficient length, and contain at least one uppercase letter, one digit, and one special character.
-
-// It returns an error describing the first rule violation encountered.
+// PasswordValidator implements complex rule validation for user passwords.
+// It checks for length, casing, digits, and special characters.
 type PasswordValidator struct{}
 
-// Validate enforces the password rules:
-//   • non‑empty
-//   • at least minPasswordLength characters
-//   • contains at least one uppercase letter (unicode.IsUpper) :contentReference[oaicite:1]{index=1}
-//   • contains at least one digit (unicode.IsDigit)
-//   • contains at least one punctuation or symbol (unicode.IsPunct or unicode.IsSymbol)
-
-// Returns a formatted error for the first unmet requirement.
+// Validate ensures the password meets the minimum security policy:
+//  - Non-empty and at least 10 characters.
+//  - At least one uppercase letter.
+//  - At least one numeric digit.
+//  - At least one special character (symbol or punctuation).
 func (p *PasswordValidator) Validate(input interface{}) error {
 	password := input.(string)
 	if password == "" {
@@ -73,6 +67,7 @@ func (p *PasswordValidator) Validate(input interface{}) error {
 			hasSpecialCharacter = true
 		}
 
+		// Early exit if all conditions are met
 		if hasUppercase && hasDigit && hasSpecialCharacter {
 			break
 		}

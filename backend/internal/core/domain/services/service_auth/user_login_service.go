@@ -11,25 +11,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UserLoginService implements the input.UserServiceLogin interface.
-
-// It handles user authentication by validating input, checking user existence, verifying credentials, and issuing JWT tokens.
+// UserLoginService orchestrates the authentication flow for existing users.
+// It embeds BaseAuthService to reuse common security logic, adhering to the input.UserServiceLogin port. It is responsible for the transition from raw credentials to a secure, authenticated session.
 type UserLoginService struct {
 	BaseAuthService
 }
 
-// NewUserLoginService constructs a UserLoginService with necessary dependencies.
+// NewUserLoginService initializes a UserLoginService with all necessary 
+// infrastructure and domain dependencies.
 
 // Parameters:
-//   - userRepo: repository for user data access (output.UserRepository)
-//   - userNameValidator: validator for username input (input.Validator)
-//   - passwordValidator: validator for password input (input.Validator)
-
-//   - csrfService: service for CSRF token generation (input.CSRFService)
-//   - csrfCookieSetter: setter for CSRF token cookies (output.CSRFCookieSetter)
-//
+//   - userRepo: persistence adapter for user data.
+//   - userNameValidator/passwordValidator: business rule engines for input integrity.
+//   - csrfService/csrfCookieSetter: components for cross-site request forgery protection.
 // Returns:
-//   - input.UserServiceLogin: ready-to-use login service.
+//   - input.UserServiceLogin: the abstracted login service interface.
 func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceLogin {
 	return &UserLoginService{
 		BaseAuthService: BaseAuthService{
@@ -42,28 +38,22 @@ func NewUserLoginService(userRepo output.UserRepository, userNameValidator, pass
 	}
 }
 
-// Login authenticates a user and returns a signed JWT token.
+// Login executes the full authentication protocol.
+// The process follows a strict security sequence:
+//  1. Input Validation: Ensures data follows domain formats before hitting the DB.
+//  2. Identity Verification: Confirms the user exists.
+//  3. Credential Challenge: Performs a secure bcrypt comparison against the stored hash.
+//  4. Security Upgrading: Generates a new CSRF context for the authenticated session.
+//  5. Token Issuance: Signs a JWT to be used for subsequent authorized requests.
 
-// Steps:
-//   1. Validate username format.
-//   2. Check that the user exists in the repository.
-//   3. Retrieve stored salt and password hash for the username.
-//   4. Combine provided password with salt and compare hash.
-//   5. Generate and return a JWT token if credentials are valid.
-
-// Parameters:
-//   - account: models.Account containing Username and Password.
-
-// Returns:
-//   - token string: a signed JWT token on success.
-//   - error: non-nil if validation, lookup, or authentication fails.
+// Returns the signed JWT string or a domain-specific error (Unauthorized, NotFound, etc.).
 func (l *UserLoginService) Login(account models.Account) (string, error) {
-	// 1. Validate username
+	// 1. Validate format integrity
 	if err := l.ValidateUserName(account.UserName); err != nil {
 		return "", errors.NewValidationError(errors.ErrInvalidUsername)
 	}
 
-	// 2. Check user existence
+	// 2. Identify user in persistence
 	exists, err := l.CheckUserExists(account.UserName)
 	if err != nil {
 		return "", err
@@ -72,6 +62,7 @@ func (l *UserLoginService) Login(account models.Account) (string, error) {
 		return "", errors.NewNotFoundError(errors.ErrUserNotFound)
 	}
 
+	// 3. Retrieve security credentials
 	storedHash, err := l.UserRepo.GetHashPassword(account.UserName)
 	if err != nil {
 		return "", err
@@ -82,19 +73,20 @@ func (l *UserLoginService) Login(account models.Account) (string, error) {
 		return "", err
 	}
 
-	// 4. Verify password by hashing provided password with salt
+	// 4. Cryptographic verification
+	// CompareHashAndPassword handles the complexity of constant-time comparisons to prevent timing attacks.
 	err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(account.Password))
 	if err != nil {
 		return "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
 
-	// 5. Generate and set CSRF token
+	// 5. Establish CSRF Protection for the new session
 	userIDStr := fmt.Sprintf("%d", userId)
 	if err := l.GenerateAndSetCSRFToken(userIDStr); err != nil {
 		return "", err
 	}
 
-	// 6. Generate JWT token
+	// 6. Finalize session via JWT
 	token, err := l.GenerateToken(userId, account.UserName)
 	if err != nil {
 		return "", err

@@ -8,36 +8,25 @@ import (
 	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
 )
 
-// CommentGetService handles the retrieval of comments from the repository and can apply additional business rules or transformations if needed.
-
-// Fields:
-//   - commentRepository: provides access to persisted comment data.
-//   - commentValidate: validator for input parameters (unused currently, reserved for
-//     potential future filters or pagination validations).
+// CommentGetService orchestrates the retrieval of user feedback and reviews.
+// It acts as a read-only domain service that abstracts the persistence layer from the delivery mechanisms (API/UI).
 type CommentGetService struct {
 	commentRepository output.CommentRepository
 }
 
-// NewCommentGetService constructs and returns a CommentGetService instance.
-
+// NewCommentGetService constructs and returns a CommentGetService instance 
+// using the provided output port for data fetching.
+//
 // Parameters:
-//   - commentRepository: implementation of output.CommentRepository for data fetching.
-//   - commentValidate: implementation of input.Validator for any retrieval constraints.
-
-// Returns:
-//   - input.CommentGetService: service interface for fetching all comments.
+//   - commentRepository: implementation of output.CommentRepository for data access.
 func NewCommentGetService(commentRepository output.CommentRepository) input.CommentGetService {
     return &CommentGetService{
         commentRepository: commentRepository,
     }
 }
 
-// AllComments retrieves all comments sorted by date (descending) via the repository.
-// It returns an InternalError if the underlying query fails.
-//
-// Returns:
-//   - []models.Comment: slice of Comment models including ID, Date, Content, UserID, UserName, and Rating.
-//   - error: non-nil if database retrieval fails.
+// AllComments fetches the complete list of comments from the repository.
+// It ensures that data is retrieved according to domain rules (e.g., chronological order).
 func (s *CommentGetService) AllComments() ([]models.Comment, error) {
     // Call repository to get comments
     comments, err := s.commentRepository.GetComments()
