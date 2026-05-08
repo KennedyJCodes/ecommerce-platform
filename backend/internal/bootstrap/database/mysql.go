@@ -5,7 +5,7 @@ package bootstrap_database
 import (
 	"fmt"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/config"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -13,10 +13,12 @@ import (
 // It retrieves database credentials (user, password, host, port, name) from the config provider, constructs a Data Source Name (DSN), and establishes a connection pool using sqlx.
 
 // Implementation Details:
-//  - Uses "parseTime=true" in the DSN to ensure MySQL DATE/DATETIME fields are correctly mapped to time.Time in Go.
-//  - Returns a thread-safe *sqlx.DB connection pool.
+//   - Uses "parseTime=true" in the DSN to ensure MySQL DATE/DATETIME fields are correctly mapped to time.Time in Go.
+//   - Returns a thread-safe *sqlx.DB connection pool.
+//
 // Parameters:
 //   - appConfig: a pointer to the application configuration manager.
+//
 // Returns:
 //   - *sqlx.DB: an active database connection pool if successful.
 //   - error: an error if the connection cannot be established or configuration is missing.

@@ -4,9 +4,9 @@ package service_products
 import (
 	"log"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 )
 
 // ProductsGetService orchestrates the retrieval of product information.
@@ -25,6 +25,7 @@ func NewProductsGetService(productsRepository output.ProductsRepository) input.P
 // GetProductsByBrand filters and retrieves watches belonging to a specific brand.
 // Parameters:
 //   - brand: the manufacturer's name to filter by.
+//
 // Returns a slice of products or an error if the repository query fails.
 func (p *ProductsGetService) GetProductsByBrand(brand string) ([]models.Product, error) {
 	products, err := p.productsRepository.GetProductsByBrand(brand)
@@ -38,6 +39,7 @@ func (p *ProductsGetService) GetProductsByBrand(brand string) ([]models.Product,
 // GetProductByID fetches the details of a single watch based on its unique ID.
 // Parameters:
 //   - id: the unique numerical identifier of the product.
+//
 // Returns the product model or an empty model and an error if not found.
 func (p *ProductsGetService) GetProductByID(id int) (models.Product, error) {
 	product, err := p.productsRepository.GetProductByID(id)

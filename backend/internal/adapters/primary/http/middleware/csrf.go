@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_csrf"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_csrf"
 )
 
 // CSRFMiddleware coordinates CSRF protection by validating tokens against a dedicated CSRF service. It uses a Double Submit Cookie pattern coupled with server-side validation.
@@ -26,18 +26,18 @@ func NewCSRFMiddleware(service_csrf *service_csrf.CSRFUseCase) *CSRFMiddleware {
 // Implementation details:
 //  1. Filters by HTTP Method: Only POST, PUT, DELETE, and PATCH methods are intercepted.
 //     Safe methods (GET, HEAD, OPTIONS, TRACE) bypass validation automatically.
-//  2. Authentication Check: Retrieves the userID from the request context. 
+//  2. Authentication Check: Retrieves the userID from the request context.
 //     Requires the authentication middleware to have run previously.
-//  3. Token Extraction: 
+//  3. Token Extraction:
 //     - Mandatory: "csrf_token" cookie.
 //     - Complementary: Token from "X-CSRF-Token" header or "csrf_token" form field.
 //  4. Double Submit Validation: Ensures the cookie value matches the provided header/form value.
 //  5. Service Validation: Calls the CSRF service to verify token integrity and user ownership.
 
 // Security considerations:
-//  - This middleware depends on GetUserIDContextKey() to identify the user.
-//  - If the user is not authenticated (missing context value), it returns 401 Unauthorized.
-//  - Mismatched or missing tokens result in a 403 Forbidden response.
+//   - This middleware depends on GetUserIDContextKey() to identify the user.
+//   - If the user is not authenticated (missing context value), it returns 401 Unauthorized.
+//   - Mismatched or missing tokens result in a 403 Forbidden response.
 func (m *CSRFMiddleware) ProtectCR(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only check CSRF for non-safe methods (State-changing operations)

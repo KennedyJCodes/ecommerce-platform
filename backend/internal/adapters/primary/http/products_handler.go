@@ -1,4 +1,4 @@
-// Package http implements HTTP handlers and adapters for the sale-watches application.
+// Package http implements HTTP handlers and adapters for the ecommerce-platform application.
 // This file contains the ProductsHandler, which manages product-related requests such as retrieving all products, filtering by brand, or fetching by specific ID.
 package http
 
@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
-	httpUtil "github.com/David-Alejandro-Jimenez/sale-watches/pkg/http"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
 	"github.com/gorilla/mux"
 )
 
@@ -45,7 +45,7 @@ func (h *ProductsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 //  1. Extracts the "id" variable from the request URL using gorilla/mux.
 //  2. Converts the ID from string to integer.
 //  3. Validates that the ID is a non-negative value.
-//  4. Calls the domain service to fetch the product.	
+//  4. Calls the domain service to fetch the product.
 //  5. Returns 404 if not found, 400 for invalid ID format, or 200 with the product data.
 func (h *ProductsHandler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)

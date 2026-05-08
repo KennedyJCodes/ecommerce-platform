@@ -2,7 +2,7 @@
 package service_comments
 
 import (
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 )
 
 // CommentValidationData represents the payload required to validate a comment.
@@ -11,7 +11,7 @@ import (
 //   - Rating: numerical score for the comment; must be between 1 and 5 (inclusive).
 type CommentValidationData struct {
 	Content string
-	Rating int
+	Rating  int
 }
 
 // CommentValidator enforces business rules for comment creation.

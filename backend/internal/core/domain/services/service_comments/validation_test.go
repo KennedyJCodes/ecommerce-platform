@@ -3,14 +3,14 @@ package service_comments_test
 import (
 	"testing"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_comments"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_comments"
 )
 
 func TestCommentValidator(t *testing.T) {
 	validator := service_comments.CommentValidator{}
-	cases := []struct{
-		name string
-		input interface{}
+	cases := []struct {
+		name    string
+		input   interface{}
 		wantErr bool
 	}{
 		{"Wrong type", "is not CommentValidationData", true},

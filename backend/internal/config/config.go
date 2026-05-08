@@ -1,4 +1,4 @@
-// Package config provides application configuration management for the sale-watches application.
+// Package config provides application configuration management for the ecommerce-platform application.
 // It wraps Viper to load configuration from YAML files, environment variables, and defaults.
 package config
 
@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
@@ -26,12 +26,12 @@ type AppConfig struct {
 // It sets up Viper to read from a YAML file named "config" in the ./internal/config directory, registers default values, enables automatic environment variable overrides, and logs warnings if the config file cannot be read.
 func NewAppConfig() *AppConfig {
 	config := viper.New()
-	
+
 	// Configuration file settings
 	config.SetConfigName("config")
 	config.SetConfigType("yaml")
 	config.AddConfigPath("./internal/config")
-	
+
 	// Allow environment variables to override settings
 	config.AutomaticEnv()
 	config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -54,7 +54,6 @@ func NewAppConfig() *AppConfig {
 	config.SetDefault("redis.pool_size", 10)
 	config.SetDefault("redis.min_idle_conns", 5)
 	config.SetDefault("redis.max_retries", 3)
-
 
 	// Attempt to read the config file; log a warning if it fails
 	if err := config.ReadInConfig(); err != nil {
@@ -87,12 +86,11 @@ func ValidateRequiredConfig(config *viper.Viper) {
 		if value == "" {
 			missing = append(missing, key)
 		}
-		
+
 		if key == "security.jwt.jwt_secret" && value == "your-secret-key" {
 			log.Fatalf("Missing configuration: security.jwt.jwt_secret cannot use the insecure default value 'your-secret-key'. Please set a strong secret via ENV or config.yaml.")
 		}
 	}
-
 
 	if len(missing) > 0 {
 		log.Fatalf("Missing configuration (use ENV vars or config.yaml): %v", missing)
@@ -119,7 +117,7 @@ func (a *AppConfig) GetPort() string {
 
 func NewRedisClient(cfg models.RedisConfig) *redis.Client {
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
-	
+
 	client := redis.NewClient(&redis.Options{
 		Addr:         addr,
 		Username:     cfg.Username,
@@ -158,17 +156,17 @@ func (a *AppConfig) GetJWTSecret() string {
 
 func (a *AppConfig) GetRedisConfig() models.RedisConfig {
 	return models.RedisConfig{
-		Host: a.config.GetString("redis.host"),
-		Port: a.config.GetString("redis.port"),
-		Username: a.config.GetString("redis.username"),
-		Password: a.config.GetString("redis.password"),
-		DB: a.config.GetInt("redis.db"),
-		DialTimeout: a.config.GetDuration("redis.dial_timeout"),
-		ReadTimeout: a.config.GetDuration("redis.read_timeout"),
+		Host:         a.config.GetString("redis.host"),
+		Port:         a.config.GetString("redis.port"),
+		Username:     a.config.GetString("redis.username"),
+		Password:     a.config.GetString("redis.password"),
+		DB:           a.config.GetInt("redis.db"),
+		DialTimeout:  a.config.GetDuration("redis.dial_timeout"),
+		ReadTimeout:  a.config.GetDuration("redis.read_timeout"),
 		WriteTimeout: a.config.GetDuration("redis.write_timeout"),
-		PoolSize: a.config.GetInt("redis.pool_size"),
+		PoolSize:     a.config.GetInt("redis.pool_size"),
 		MinIdleConns: a.config.GetInt("redis.min_idle_conns"),
-		MaxRetries: a.config.GetInt("redis.max_retries"),
+		MaxRetries:   a.config.GetInt("redis.max_retries"),
 	}
 }
 

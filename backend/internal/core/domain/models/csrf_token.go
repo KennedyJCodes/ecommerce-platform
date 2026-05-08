@@ -1,4 +1,4 @@
-// Package models defines core domain entities for the sale-watches application.
+// Package models defines core domain entities for the ecommerce-platform application.
 package models
 
 import "time"

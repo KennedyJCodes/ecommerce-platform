@@ -3,12 +3,12 @@
 package bootstrap
 
 import (
-	repository_mysql "github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/repository/mysql"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_auth"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_comments"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_products"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
+	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_comments"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_products"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -17,6 +17,7 @@ import (
 
 // Parameters:
 //   - db: an active *sqlx.DB connection pool.
+//
 // Returns:
 //   - input.CommentGetService: service for fetching comments.
 //   - input.CommentAddService: service for adding new comments.
@@ -30,6 +31,7 @@ func SetupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAdd
 
 // Parameters:
 //   - db: an active *sqlx.DB connection pool.
+//
 // Returns:
 //   - input.ProductsGetService: the service implementing the product retrieval port.
 func SetupProductsService(db *sqlx.DB) input.ProductsGetService {
@@ -43,6 +45,7 @@ func SetupProductsService(db *sqlx.DB) input.ProductsGetService {
 // Parameters:
 //   - userRepo: the user persistence adapter (output port).
 //   - csrfService: the service for managing CSRF tokens (input port).
+//
 // Returns:
 //   - input.UserServiceLogin: the service handling user authentication.
 //   - input.UserServiceRegister: the service handling new user creation.
@@ -50,8 +53,8 @@ func SetupUserService(userRepo output.UserRepository, csrfService input.CSRFServ
 	// Initialize specific domain validators.
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}
-	
-	// Create services with shared dependencies. 
+
+	// Create services with shared dependencies.
 	// The 'nil' parameter is reserved for future extensions (e.g., specific cookie setters).
 	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, csrfService, nil), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, csrfService, nil)
 }

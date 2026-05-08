@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/bootstrap"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/bootstrap/database"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/config"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap"
+	bootstrap_database "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap/database"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 )
@@ -24,16 +24,16 @@ import (
 // and upon completion or during shutdown, call Close.
 type Application struct {
 	config      *config.AppConfig // app configuration (e.g. port, DSNs, flags)
-	db          *sqlx.DB // connection to the main database
-	redisClient *redis.Client // Redis client for cache/sessions
-	httpServer  *http.Server // HTTP server responsible for managing incoming requests and lifecycle control
+	db          *sqlx.DB          // connection to the main database
+	redisClient *redis.Client     // Redis client for cache/sessions
+	httpServer  *http.Server      // HTTP server responsible for managing incoming requests and lifecycle control
 }
 
 // NewApplication creates and returns an empty Application instance.
 // It does not perform any initialization that depends on the configuration.
 // (That's why LoadConfig and the specific Setup commands run separately).
 func NewConfigApplication() *Application {
-    return &Application{}
+	return &Application{}
 }
 
 // LoadConfig initializes the application configuration and validates
@@ -45,16 +45,16 @@ func NewConfigApplication() *Application {
 // - currently the implementation always returns nil; if you change to a
 // validation that can fail, propagate the error appropriately.
 func (a *Application) LoadConfig() error {
-    a.config = config.NewAppConfig()
-    config.ValidateRequiredConfig(a.config.GetConfig())
-    return nil
+	a.config = config.NewAppConfig()
+	config.ValidateRequiredConfig(a.config.GetConfig())
+	return nil
 }
 
 // SetupCommonServices registers or configures shared services at the application level (for example: global loggers, dependency providers, common HTTP clients, etc.). It depends on LoadConfig having already been executed.
 // It does not return an error in the current deployment, but if the services you register can fail, consider propagating errors to abort the startup.
 func (a *Application) SetupCommonServices() error {
-    bootstrap.SetupCommonServices(a.config)
-    return nil
+	bootstrap.SetupCommonServices(a.config)
+	return nil
 }
 
 // SetupDatabase establishes the primary connection to the database (MySQL)
@@ -63,12 +63,12 @@ func (a *Application) SetupCommonServices() error {
 // Side effects:
 // - assigns the obtained connection to a.db.
 func (a *Application) SetupDatabase() error {
-    db, err := bootstrap_database.SetupDatabaseMySQL(a.config)
-    if err != nil {
-        return fmt.Errorf("error connecting to database: %w", err)
-    }
-    a.db = db
-    return nil
+	db, err := bootstrap_database.SetupDatabaseMySQL(a.config)
+	if err != nil {
+		return fmt.Errorf("error connecting to database: %w", err)
+	}
+	a.db = db
+	return nil
 }
 
 // SetupRedis initializes the Redis connection/client used by the application
@@ -76,29 +76,29 @@ func (a *Application) SetupDatabase() error {
 // Side effects:
 // - assigns a.redisClient a ready-to-use client.
 func (a *Application) SetupRedis() error {
-    redisConfig, err := bootstrap_database.SetupDatabaseRedis(a.config)
-    if err != nil {
-        return fmt.Errorf("error connecting to Redis: %w", err)
-    }
-    a.redisClient = config.NewRedisClient(redisConfig)
-    return nil
+	redisConfig, err := bootstrap_database.SetupDatabaseRedis(a.config)
+	if err != nil {
+		return fmt.Errorf("error connecting to Redis: %w", err)
+	}
+	a.redisClient = config.NewRedisClient(redisConfig)
+	return nil
 }
 
 // GetPort returns the port configured for the server. It is provided
 // as a method to encapsulate the source of the value (internal configuration).
 // It does not perform any validations; it assumes that LoadConfig has already populated the value.
 func (a *Application) GetPort() string {
-    return a.config.GetPort()
+	return a.config.GetPort()
 }
 
 // Close releases external resources opened by the application, such as the
 // database connection and the Redis client. It is idempotent in that it checks for nil before closing each resource.
 // You must call Close in the shutdown flow to prevent resource leaks.
 func (a *Application) Close() {
-    if a.db != nil {
-        a.db.Close()
-    }
-    if a.redisClient != nil {
-        a.redisClient.Close()
-    }
+	if a.db != nil {
+		a.db.Close()
+	}
+	if a.redisClient != nil {
+		a.redisClient.Close()
+	}
 }

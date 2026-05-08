@@ -3,7 +3,7 @@ package service_auth_test
 import (
 	"testing"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_auth"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
 )
 
 func TestUserNameValidator(t *testing.T) {

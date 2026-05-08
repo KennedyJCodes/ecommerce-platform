@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -18,7 +18,7 @@ type RedisCSRFRepository struct {
 	// client: the Redis client used to execute commands.
 	client *redis.Client
 	// context: the background context for Redis operations.
-	context    context.Context
+	context context.Context
 }
 
 // NewRedisCSRFRepository creates and returns a new instance of RedisCSRFRepository.
@@ -26,8 +26,8 @@ type RedisCSRFRepository struct {
 //   - client: an initialized *redis.Client connection.
 func NewRedisCSRFRepository(client *redis.Client) *RedisCSRFRepository {
 	return &RedisCSRFRepository{
-		client: client,
-		context:    context.Background(),
+		client:  client,
+		context: context.Background(),
 	}
 }
 
@@ -36,6 +36,7 @@ func NewRedisCSRFRepository(client *redis.Client) *RedisCSRFRepository {
 // The key is prefixed with "csrf:" followed by the UserID for easy identification.
 // Parameters:
 //   - token: a pointer to the models.CSRFToken containing UserID, Token value, and Expiration.
+//
 // Returns:
 //   - error: an error if serialization or the Redis SET command fails.
 func (r *RedisCSRFRepository) Save(token *models.CSRFToken) error {
@@ -47,7 +48,7 @@ func (r *RedisCSRFRepository) Save(token *models.CSRFToken) error {
 	key := "csrf:" + token.UserID
 	// Calculate TTL dynamically based on the distance to ExpiresAt.
 	timeToLive := time.Until(token.ExpiresAt)
-	
+
 	return r.client.Set(r.context, key, data, timeToLive).Err()
 }
 
@@ -56,6 +57,7 @@ func (r *RedisCSRFRepository) Save(token *models.CSRFToken) error {
 // Otherwise, it deserializes the JSON data into a models.CSRFToken struct.
 // Parameters:
 //   - userID: the unique identifier of the user whose token is being searched.
+//
 // Returns:
 //   - *models.CSRFToken: the retrieved token if found.
 //   - error: a NotFoundError if missing, or InternalError for other Redis/parsing failures.
@@ -75,12 +77,13 @@ func (r *RedisCSRFRepository) Find(userID string) (*models.CSRFToken, error) {
 		return nil, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
 	}
 
-	return &token, nil	
+	return &token, nil
 }
 
 // Delete removes a CSRF token from Redis, effectively invalidating the session's CSRF state.
 // Parameters:
 //   - userID: the unique identifier of the user whose token should be removed.
+//
 // Returns:
 //   - error: an error if the Redis DEL command fails.
 func (r *RedisCSRFRepository) Delete(userID string) error {

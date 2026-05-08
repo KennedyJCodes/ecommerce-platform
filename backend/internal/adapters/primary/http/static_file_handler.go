@@ -1,4 +1,4 @@
-// Package http implements HTTP handlers for the sale-watches application.
+// Package http implements HTTP handlers for the ecommerce-platform application.
 // This file contains the StaticFileHandler which is responsible for serving static files.
 // It restricts the served files based on allowed extensions and ensures that only valid paths are served.
 package http
@@ -8,10 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/gorilla/mux"
 )
-
 
 // StaticFileHandler is an HTTP handler for serving static files.
 
@@ -20,7 +19,6 @@ type StaticFileHandler struct {
 	staticFileService output.StaticFilePort
 	allowedExtensions map[string]bool
 }
-
 
 // NewStaticFileHandler creates and returns a new instance of StaticFileHandler.
 

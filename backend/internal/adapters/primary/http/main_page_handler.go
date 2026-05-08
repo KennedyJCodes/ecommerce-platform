@@ -1,4 +1,4 @@
-// Package http implements HTTP handlers for the sale-watches application.
+// Package http implements HTTP handlers for the ecommerce-platform application.
 // This file contains the MainPageHandler, responsible for serving the main page of the application.
 package http
 

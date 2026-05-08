@@ -6,7 +6,7 @@ package middleware
 import (
 	"net/http"
 
-	ratelimiter "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/rate_limiter"
+	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
 )
 
 // RateLimitMiddleware returns a Middleware that enforces rate limiting based on client IP.

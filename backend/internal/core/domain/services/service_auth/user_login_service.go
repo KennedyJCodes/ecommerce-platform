@@ -4,10 +4,10 @@ package service_auth
 import (
 	"fmt"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -17,13 +17,14 @@ type UserLoginService struct {
 	BaseAuthService
 }
 
-// NewUserLoginService initializes a UserLoginService with all necessary 
+// NewUserLoginService initializes a UserLoginService with all necessary
 // infrastructure and domain dependencies.
 
 // Parameters:
 //   - userRepo: persistence adapter for user data.
 //   - userNameValidator/passwordValidator: business rule engines for input integrity.
 //   - csrfService/csrfCookieSetter: components for cross-site request forgery protection.
+//
 // Returns:
 //   - input.UserServiceLogin: the abstracted login service interface.
 func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceLogin {

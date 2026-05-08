@@ -1,4 +1,4 @@
-// Package models defines core domain entities for the sale-watches application.
+// Package models defines core domain entities for the ecommerce-platform application.
 // This file declares the Product type, the central entity representing a watch in the catalog.
 package models
 
@@ -26,7 +26,7 @@ type Product struct {
 
 	// Image_URL: the path or link to the product's visual asset.
 	Image_URL string `db:"Image_URL"`
-	
+
 	// Movement_Type: technical specification of the watch mechanism (e.g., Quartz, Automatic, Manual).
 	Movement_Type string `db:"Movement_Type"`
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -27,7 +27,7 @@ func NewJWTService(secretKey string) *JWTService {
 // The token embeds the username and an expiration set to one hour from now.
 func (j *JWTService) GenerateJWT(userId int, userName string) (string, error) {
 	var claims = models.Claims{
-		UserID: userId,
+		UserID:   userId,
 		UserName: userName,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Hour)),

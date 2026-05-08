@@ -2,9 +2,9 @@
 package service_comments
 
 import (
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 )
 
 // CommentAddService orchestrates the validation and persistence of a new comment.
@@ -15,7 +15,7 @@ import (
 //   - commentValidate: enforces validation rules via the input.Validator interface.
 type CommentAddService struct {
 	commentRepository output.CommentRepository
-    commentValidate input.Validator
+	commentValidate   input.Validator
 }
 
 // NewCommentAddService constructs a CommentAddService with the given dependencies.
@@ -27,10 +27,10 @@ type CommentAddService struct {
 // Returns:
 //   - input.CommentAddService: service to add new comments.
 func NewCommentAddService(commentRepository output.CommentRepository, commentValidate input.Validator) input.CommentAddService {
-    return &CommentAddService{
-        commentRepository: commentRepository,
-        commentValidate: commentValidate,
-    }
+	return &CommentAddService{
+		commentRepository: commentRepository,
+		commentValidate:   commentValidate,
+	}
 }
 
 // AddComment validates the comment data and saves it to the repository.
@@ -48,23 +48,22 @@ func NewCommentAddService(commentRepository output.CommentRepository, commentVal
 // Returns:
 //   - error: nil on success, or a validation/InternalError on failure.
 func (s *CommentAddService) AddComment(userID int, content string, rating int) error {
-    // Step 1: Prepare validation payload
-    validationData := CommentValidationData{
-        Content: content,
-        Rating: rating,
+	// Step 1: Prepare validation payload
+	validationData := CommentValidationData{
+		Content: content,
+		Rating:  rating,
+	}
 
-    }
+	// Step 2: Validate input
+	err := s.commentValidate.Validate(validationData)
+	if err != nil {
+		return err
+	}
 
-    // Step 2: Validate input
-    err := s.commentValidate.Validate(validationData) 
-    if err != nil{
-        return err
-    }
-
-    // Step 3: Persist the comment
-    err = s.commentRepository.SaveComment(userID, content, rating)
-    if err != nil {
-        return errors.NewInternalError("Error Saving Comment").WithError(err)
-    } 
-    return nil
+	// Step 3: Persist the comment
+	err = s.commentRepository.SaveComment(userID, content, rating)
+	if err != nil {
+		return errors.NewInternalError("Error Saving Comment").WithError(err)
+	}
+	return nil
 }

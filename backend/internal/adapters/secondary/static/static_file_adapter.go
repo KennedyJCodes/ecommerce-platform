@@ -1,4 +1,4 @@
-// Package static provides an implementation of the StaticFilePort interface for serving static files from a configured directory in the sale-watches application.
+// Package static provides an implementation of the StaticFilePort interface for serving static files from a configured directory in the ecommerce-platform application.
 package static
 
 import (
