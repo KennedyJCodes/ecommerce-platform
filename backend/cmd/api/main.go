@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/app"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/app"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -34,89 +34,89 @@ import (
 // allowing up to 30 seconds to complete ongoing requests.
 
 func main() {
-	log.Println("Starting application...")
-    
-    // Create application instance.
-    application := app.NewConfigApplication()
-    log.Println("Application instance created")
-    
-    // Load configuration from environment variables or config files
-    log.Println("Loading configuration...")
-    if err := application.LoadConfig(); err != nil {
-        log.Fatalf("Failed to load config: %v", err)
-    }
-    log.Println("Configuration loaded")
-    
-    // Configure common services such as validators, loggers, etc.
-    log.Println("Setting up common services...")
-    if err := application.SetupCommonServices(); err != nil {
-        log.Fatalf("Failed to setup common services: %v", err)
-    }
-    log.Println("Common services setup complete")
-    
-    // Establish a connection to a MySQL database
-    log.Println("Connecting to database...")
-    if err := application.SetupDatabase(); err != nil {
-        log.Fatalf("Failed to setup database: %v", err)
-    }
-    log.Println("Database connected")
-    defer application.Close()
-    
-    // Establish a connection with Redis for caching and sessions
-    log.Println("Connecting to Redis...")
-    if err := application.SetupRedis(); err != nil {
-        log.Fatalf("Failed to setup Redis: %v", err)
-    }
-    log.Println("Redis connected")
+    log.Println("Starting application...")
 
-    // Build router with all routes and handlers
-    log.Println("Building router...")
-    router := application.BuildRouter()
-    log.Println("Router built")
-    
-    // Apply security middleware (CORS, rate limiting, etc.)v
-    log.Println("Applying security middleware...")
-    securedHandler := app.WrapWithSecurityMiddleware(router)
-    log.Println("Security middleware applied")
+	// Create application instance.
+	application := app.NewConfigApplication()
+	log.Println("Application instance created")
 
-    port := application.GetPort()
+	// Load configuration from environment variables or config files
+	log.Println("Loading configuration...")
+	if err := application.LoadConfig(); err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+	log.Println("Configuration loaded")
 
-    // Configure HTTP server with appropriate timeouts
-    server := &http.Server{
-        Addr:           ":" + port,
-        Handler:        securedHandler,
-        ReadTimeout:    15 * time.Second,
-        WriteTimeout:   15 * time.Second,
-        IdleTimeout:    60 * time.Second,
-        MaxHeaderBytes: 1 << 20,
-    }
+	// Configure common services such as validators, loggers, etc.
+	log.Println("Setting up common services...")
+	if err := application.SetupCommonServices(); err != nil {
+		log.Fatalf("Failed to setup common services: %v", err)
+	}
+	log.Println("Common services setup complete")
 
-    // Channel for receiving interruption signals
-    quit := make(chan os.Signal, 1)
-    signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	// Establish a connection to a MySQL database
+	log.Println("Connecting to database...")
+	if err := application.SetupDatabase(); err != nil {
+		log.Fatalf("Failed to setup database: %v", err)
+	}
+	log.Println("Database connected")
+	defer application.Close()
 
-    // Start server in separate goroutine
-    go func() {
-        log.Printf("Server started on http://localhost:%s", port)
-        log.Println("Press Ctrl+C to stop")
-        
-        if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-            log.Fatalf("Server failed: %v", err)
-        }
-    }()
+	// Establish a connection with Redis for caching and sessions
+	log.Println("Connecting to Redis...")
+	if err := application.SetupRedis(); err != nil {
+		log.Fatalf("Failed to setup Redis: %v", err)
+	}
+	log.Println("Redis connected")
 
-    // Wait for interrupt signal
-    <-quit
-    log.Println("Shutting down server gracefully...")
+	// Build router with all routes and handlers
+	log.Println("Building router...")
+	router := application.BuildRouter()
+	log.Println("Router built")
 
-    // Create context with 30-second timeout for graceful shutdown
-    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-    defer cancel()
+	// Apply security middleware (CORS, rate limiting, etc.)v
+	log.Println("Applying security middleware...")
+	securedHandler := app.WrapWithSecurityMiddleware(router)
+	log.Println("Security middleware applied")
 
-    // Attempt to shut down the server gracefully
-    if err := server.Shutdown(ctx); err != nil {
-        log.Printf("Server forced to shutdown: %v", err)
-    }
+	port := application.GetPort()
 
-    log.Println("Server stopped gracefully")
+	// Configure HTTP server with appropriate timeouts
+	server := &http.Server{
+		Addr:           ":" + port,
+		Handler:        securedHandler,
+		ReadTimeout:    15 * time.Second,
+		WriteTimeout:   15 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	// Channel for receiving interruption signals
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	// Start server in separate goroutine
+	go func() {
+		log.Printf("Server started on http://localhost:%s", port)
+		log.Println("Press Ctrl+C to stop")
+
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal
+	<-quit
+	log.Println("Shutting down server gracefully...")
+
+	// Create context with 30-second timeout for graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Attempt to shut down the server gracefully
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server stopped gracefully")
 }

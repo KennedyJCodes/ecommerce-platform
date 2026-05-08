@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/primary/http/middleware"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
-	httpUtil "github.com/David-Alejandro-Jimenez/sale-watches/pkg/http"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
 )
 
 // CommentsAddHandler handles HTTP requests for adding new comments (reviews).

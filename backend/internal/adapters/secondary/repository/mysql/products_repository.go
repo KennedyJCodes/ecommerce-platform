@@ -7,9 +7,9 @@ import (
 	"errors"
 	"log"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	Custom_errors "github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	Custom_errors "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -56,6 +56,7 @@ func (r *SqlProductsRepository) GetProducts() ([]models.Product, error) {
 // It performs a parameterized query to prevent SQL injection and checks for the existence of the record.
 // Parameters:
 //   - id: the integer ID of the product to retrieve.
+//
 // Returns:
 //   - models.Product: the found product model.
 //   - error: a NotFoundError if the ID does not exist, or a BadRequestError for invalid input formats.
@@ -87,6 +88,7 @@ func (r *SqlProductsRepository) GetProductByID(id int) (models.Product, error) {
 // GetProductsByBrand retrieves all products that belong to a specific brand.
 // Parameters:
 //   - brand: string representing the brand name (e.g., "Rolex", "Casio").
+//
 // Returns:
 //   - []models.Product: a slice of products matching the criteria.
 func (r *SqlProductsRepository) GetProductsByBrand(brand string) ([]models.Product, error) {
@@ -96,7 +98,7 @@ func (r *SqlProductsRepository) GetProductsByBrand(brand string) ([]models.Produ
 		FROM Products
 		WHERE Brand = ?`
 
-	// Execute parameterized query to filter by brand.	
+	// Execute parameterized query to filter by brand.
 	err := r.db.Select(&productByBrand, sqlQuery, brand)
 	if err != nil {
 		return []models.Product{}, Custom_errors.NewInternalError(Custom_errors.ErrDatabaseQuery).WithError(err)

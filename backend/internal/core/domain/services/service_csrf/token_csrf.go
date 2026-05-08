@@ -6,9 +6,9 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 )
 
 // CSRFUseCase orchestrates the lifecycle of anti-forgery tokens.
@@ -65,8 +65,8 @@ func (uc *CSRFUseCase) ValidateToken(tokenValue string, userID string) error {
 	}
 
 	if token.Value != tokenValue {
-        return errors.NewNotFoundError(errors.ErrInvalidCSRFToken)
-    }
+		return errors.NewNotFoundError(errors.ErrInvalidCSRFToken)
+	}
 
 	// Check if token has exceeded its TTL
 	if !token.IsValid() {

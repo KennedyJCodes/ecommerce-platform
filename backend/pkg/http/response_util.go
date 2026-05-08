@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 )
 
 // SendJSONResponse sends a JSON-encoded response with proper headers and status code.

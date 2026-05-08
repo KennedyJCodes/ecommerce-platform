@@ -5,12 +5,12 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/primary/http/middleware"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/repository/redis"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/config"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_csrf"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/rate_limiter"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
+	repository_redis "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/redis"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_csrf"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -19,6 +19,7 @@ import (
 
 // Parameters:
 //   - appConfig: the global application configuration manager.
+//
 // Returns:
 //   - ratelimiter.RateLimiterHandler: a configured rate limiter ready for middleware injection.
 func SetupRateLimiter(appConfig *config.AppConfig) ratelimiter.RateLimiterHandler {
@@ -31,6 +32,7 @@ func SetupRateLimiter(appConfig *config.AppConfig) ratelimiter.RateLimiterHandle
 
 // Parameters:
 //   - redisClient: an active *redis.Client connection.
+//
 // Returns:
 //   - input.CSRFService: the initialized service implementing the CSRF input port.
 func SetupCSRFService(redisClient *redis.Client) input.CSRFService {
@@ -44,6 +46,7 @@ func SetupCSRFService(redisClient *redis.Client) input.CSRFService {
 
 // Parameters:
 //   - csrfService: the CSRF service instance (input port).
+//
 // Returns:
 //   - *middleware.CSRFMiddleware: the configured middleware, or nil if the type assertion fails.
 func SetupCSRFMiddleware(csrfService input.CSRFService) *middleware.CSRFMiddleware {

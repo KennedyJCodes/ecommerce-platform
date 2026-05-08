@@ -3,10 +3,10 @@
 package service_auth
 
 import (
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
-	securityAuth "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/security_auth"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // BaseAuthService serves as a foundational structure for authentication use cases.

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"golang.org/x/time/rate"
 )
 
@@ -66,7 +66,7 @@ func (d *DefaultRateLimiter) Allow(ipAddress string) bool {
 // Uses sync.Map for concurrent access safety and automatic cleanup of inactive entries.
 type DefaultRateLimiterManager struct {
 	defaultConfig  models.LimiterConfig // Default rate limiting parameters
-	ipLimiterCache sync.Map // Concurrent storage for IP limiter records
+	ipLimiterCache sync.Map             // Concurrent storage for IP limiter records
 }
 
 // NewRateLimiterManager creates a new rate limiter manager with default configuration:
@@ -127,5 +127,5 @@ func (m *DefaultRateLimiterManager) CleanupInactiveLimiters(expirationDuration t
 // LimiterEntry represents a rate limiter instance with last access timestamp.
 type LimiterEntry struct {
 	limiter  *rate.Limiter // Token bucket rate limiter instance
-	lastSeen time.Time // Last access time for cleanup tracking
+	lastSeen time.Time     // Last access time for cleanup tracking
 }

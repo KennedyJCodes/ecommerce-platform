@@ -2,7 +2,7 @@
 // These interfaces serve as contracts for service implementations that handle core application logic.
 package input
 
-import "github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
+import "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 
 // UserServiceLogin defines the interface for user authentication operations.
 // Implementations should verify user credentials and provide JWT tokens for authenticated sessions.

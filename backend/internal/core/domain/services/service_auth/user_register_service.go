@@ -4,10 +4,10 @@ package service_auth
 import (
 	"fmt"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 )
 
 // UserRegisterService handles the logic for creating new user identities.
@@ -22,6 +22,7 @@ type UserRegisterService struct {
 //   - userRepo: output port for user persistence.
 //   - userNameValidator/passwordValidator: components to enforce domain constraints.
 //   - csrfService/csrfCookieSetter: infrastructure for CSRF protection.
+//
 // Returns:
 //   - input.UserServiceRegister: the registration service interface.
 func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceRegister {
@@ -45,6 +46,7 @@ func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, p
 //  4. Identity Resolution: Retrieves the newly generated unique ID.
 //  5. Security Context: Initializes the CSRF state for the new user.
 //  6. Session Issuance: Returns a signed JWT for immediate authentication.
+//
 // Returns a JWT token string on success, or an error if any step in the flow fails.
 func (r *UserRegisterService) Register(account models.Account) (string, error) {
 	// 1. Validate input integrity (Format and Strength)

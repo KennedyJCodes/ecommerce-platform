@@ -1,4 +1,4 @@
-// Package static provides an adapter for serving static assets in the sale-watches application.
+// Package static provides an adapter for serving static assets in the ecommerce-platform application.
 // It wraps Go's standard http.FileServer to mount directories and paths for CSS, JavaScript, and other assets.
 package static
 

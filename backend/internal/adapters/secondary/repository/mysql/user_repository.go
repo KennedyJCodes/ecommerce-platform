@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
-	securityAuth "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/security_auth"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -15,8 +15,8 @@ import (
 
 // It requires a *sqlx.DB for database operations, a Generator for creating salts, and a Hasher for hashing passwords.
 type SQLUserRepository struct {
-	db            *sqlx.DB
-	hasher        securityAuth.Hasher
+	db     *sqlx.DB
+	hasher securityAuth.Hasher
 }
 
 // NewSQLUserRepository creates a new SQLUserRepository instance.
@@ -35,8 +35,8 @@ func NewSQLUserRepository(db *sqlx.DB, hasher securityAuth.Hasher) output.UserRe
 	log.Println("NewSQLUserRepository() is running successfully")
 
 	return &SQLUserRepository{
-		db:            db,
-		hasher:        hasher,
+		db:     db,
+		hasher: hasher,
 	}
 }
 
@@ -48,9 +48,9 @@ func (r *SQLUserRepository) UserExists(username string) (bool, error) {
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM User_Registration WHERE UserName = ?)"
 	err := r.db.QueryRow(query, username).Scan(&exists)
-		if err != nil {
-			return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
-		}
+	if err != nil {
+		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
+	}
 
 	return exists, nil
 }
@@ -62,16 +62,15 @@ func (r *SQLUserRepository) GetHashPassword(username string) (string, error) {
 	var hashPassword string
 	query := "SELECT Password FROM User_Registration WHERE UserName = ?"
 	err := r.db.QueryRow(query, username).Scan(&hashPassword)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return "", errors.NewNotFoundError(errors.ErrUserNotFound)
-			}
-		return "", errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", errors.NewNotFoundError(errors.ErrUserNotFound)
 		}
+		return "", errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
+	}
 
 	return hashPassword, nil
 }
-
 
 // SaveUser inserts a new user into the database with a salted and hashed password.
 
@@ -81,12 +80,12 @@ func (r *SQLUserRepository) SaveUser(username, password string) error {
 	if err != nil {
 		return errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
 	}
-	
+
 	tx, err := r.db.Begin()
 	if err != nil {
 		return errors.NewInternalError(errors.ErrDatabaseTransaction).WithError(err)
 	}
-	
+
 	defer tx.Rollback()
 
 	_, err = tx.Exec("INSERT INTO User_Registration (UserName, Password) VALUES (?, ?)", username, hash)

@@ -1,4 +1,4 @@
-module github.com/David-Alejandro-Jimenez/sale-watches
+module github.com/David-Alejandro-Jimenez/ecommerce-platform
 
 go 1.23.2
 

@@ -1,13 +1,13 @@
-// Package http implements HTTP handlers for the sale-watches application.
+// Package http implements HTTP handlers for the ecommerce-platform application.
 // This file, which contains the CommentsHandler, is planned to be further enhanced in a future development phase. Note that only this file's functionality will be completed later.
 package http
 
 import (
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
-	httpUtil "github.com/David-Alejandro-Jimenez/sale-watches/pkg/http"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
 )
 
 // CommentsHandler handles HTTP requests related to comments.

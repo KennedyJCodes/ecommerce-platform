@@ -1,14 +1,14 @@
-// Package http implements HTTP handlers and the routing configuration for the sale-watches application.
+// Package http implements HTTP handlers and the routing configuration for the ecommerce-platform application.
 // It provides the RouterConfig type and NewRouter factory function, which wire up handlers, middlewares, rate limiters, and static file serving to produce a fully configured *mux.Router* ready to handle API requests.
 package http
 
 import (
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/primary/http/middleware"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	ratelimiter "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/rate_limiter"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
 	"github.com/gorilla/mux"
 )
 

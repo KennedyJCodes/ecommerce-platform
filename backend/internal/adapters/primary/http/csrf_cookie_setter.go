@@ -1,12 +1,12 @@
-// Package http implements HTTP handlers and adapters for the sale-watches application.
+// Package http implements HTTP handlers and adapters for the ecommerce-platform application.
 package http
 
 import (
 	"net/http"
 	"os"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/http/cookies"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 )
 
 // csrfCookieSetter implements output.CSRFCookieSetter interface.

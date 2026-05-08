@@ -5,9 +5,9 @@ package repository_mysql
 import (
 	"log"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -44,7 +44,7 @@ func NewSqlCommentRepository(db *sqlx.DB) output.CommentRepository {
 // Returns:
 //   - []models.Comment: slice of Comment models containing ID, Date, Content, UserID, UserName, and Rating.
 //   - error: non-nil if the query fails, wrapped as an InternalError.
-func(r *SqlCommentRepository) GetComments() ([]models.Comment, error) {
+func (r *SqlCommentRepository) GetComments() ([]models.Comment, error) {
 	var comment []models.Comment
 	// Define SQL query to select comments and join with user table.
 	const sqlQuery = `
@@ -68,7 +68,7 @@ func(r *SqlCommentRepository) GetComments() ([]models.Comment, error) {
 		return nil, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
 	}
 	return comment, nil
-} 
+}
 
 // SaveComment inserts a new comment into the database with the current timestamp.
 // It uses parameterized queries to prevent SQL injection.
@@ -80,7 +80,7 @@ func(r *SqlCommentRepository) GetComments() ([]models.Comment, error) {
 
 // Returns:
 //   - error: non-nil if the insert fails, wrapped as an InternalError.
-func(r *SqlCommentRepository) SaveComment(userID int, content string, rating int) error {
+func (r *SqlCommentRepository) SaveComment(userID int, content string, rating int) error {
 	const query = `INSERT INTO comments (UserID, Content, Rating, Date)
 	VALUES (?, ?, ?, NOW())`
 

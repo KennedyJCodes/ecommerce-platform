@@ -3,20 +3,21 @@
 package bootstrap
 
 import (
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/repository/mysql"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/static"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/config"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/security_auth"
+	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/static"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 	"github.com/jmoiron/sqlx"
 )
 
 // SetupStaticFileAdapter initializes the static file service.
-// It retrieves the static directory path from the application configuration and 
+// It retrieves the static directory path from the application configuration and
 // returns an implementation of the StaticFilePort.
 
 // Parameters:
 //   - appConfig: the global application configuration manager.
+//
 // Returns:
 //   - output.StaticFilePort: an adapter capable of serving and validating static assets.
 func SetupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
@@ -29,6 +30,7 @@ func SetupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
 
 // Parameters:
 //   - db: an active *sqlx.DB connection pool.
+//
 // Returns:
 //   - output.UserRepository: a repository ready to handle user-related database operations.
 func SetupUserRepository(db *sqlx.DB) output.UserRepository {

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	securityAuth "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/security_auth"
+	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // contextKey is a private type used to define keys for context values.
