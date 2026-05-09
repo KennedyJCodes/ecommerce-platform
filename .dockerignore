@@ -1,0 +1,8 @@
+.git
+.gitignore
+.gitattributes
+backend/tmp
+backend/internal/config/config.yaml
+backend/internal/config/.env
+.DS_Store
+*.md
