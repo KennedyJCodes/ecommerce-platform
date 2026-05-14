@@ -11,6 +11,7 @@
 - [Arquitectura del código](#arquitectura-del-código)
 - [Requisitos previos](#requisitos-previos)
 - [Puesta en marcha con Docker](#puesta-en-marcha-con-docker)
+- [Ficheros de Docker Compose](#ficheros-de-docker-compose)
 - [Variables de entorno](#variables-de-entorno)
 - [Puertos y servicios](#puertos-y-servicios)
 - [Base de datos](#base-de-datos)
@@ -98,11 +99,27 @@ El backend sigue una organización por capas inspirada en **hexagonal / puertos 
 
 Para parar los contenedores: `Ctrl+C` o `docker compose down`. Los datos de MySQL persisten en el volumen Docker `mysql_data`. Si necesitas **reinicializar la base desde cero**, elimina el volumen: `docker compose down -v` (esto borra los datos de MySQL).
 
+### Ficheros de Docker Compose
+
+Además de `docker-compose.yml` en la raíz del repositorio hay dos ficheros opcionales que conviene conocer:
+
+| Fichero | Rol |
+|---------|-----|
+| `docker-compose.yml` | Definición principal: MySQL, Redis, backend, red y volúmenes. |
+| `docker-compose.override.yml` | Si existe en la raíz, **Docker Compose lo fusiona automáticamente** con el fichero principal (no hace falta pasar `-f`). En este proyecto monta `./frontend` en el contenedor del backend para **editar estáticos sin reconstruir la imagen**. Si prefieres servir solo lo copiado en la imagen, renombra o elimina este fichero antes de levantar el stack. |
+| `docker-compose.prod.yml` | Fragmento con ajustes orientados a un despliegue más parecido a producción (reinicio, recursos, `ENV=production`, healthcheck del backend). **No** se aplica solo: indica ambos ficheros al ejecutar Compose, por ejemplo: |
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+```
+
+Con `docker-compose.prod.yml`, MySQL y Redis suelen publicarse en el host en los puertos **3306** y **6379** (no en 3307/6380). Comprueba que no choquen con instancias locales. El healthcheck del backend usa `wget`; si la imagen final no lo incluye, el servicio puede quedar en estado *unhealthy* hasta que añadas la herramienta al `Dockerfile` o cambies el `test` del healthcheck.
+
 ## Variables de entorno
 
 La configuración se basa en **variables de entorno**, documentadas en [`.env.example`](.env.example). Docker Compose inyecta en el servicio `backend` las credenciales de MySQL y Redis y el secreto JWT; el resto (rate limiting, PayPal, etc.) puedes definirla en tu `.env` siguiendo ese mismo ejemplo.
 
-En código, Viper sustituye puntos por guiones bajos al leer entorno (por ejemplo la clave lógica `database.host` corresponde a `DATABASE_HOST`).
+En código, las claves que lee Viper coinciden con el nombre de las variables de entorno en mayúsculas (por ejemplo `DATABASE_HOST`, `REDIS_PORT`). `AutomaticEnv()` permite sobrescribir lo definido en `backend/internal/config/.env` con variables del sistema operativo (incluidas las que inyecta Docker Compose en el contenedor).
 
 ## Puertos y servicios
 
@@ -113,6 +130,8 @@ En código, Viper sustituye puntos por guiones bajos al leer entorno (por ejempl
 | Redis | **6380** | 6379 |
 
 Los puertos **3307** y **6380** evitan choques con instalaciones locales de MySQL y Redis en los puertos por defecto.
+
+Si levantas el stack con `docker-compose.prod.yml`, en el host pueden publicarse **3306** y **6379**; los detalles están en [Ficheros de Docker Compose](#ficheros-de-docker-compose).
 
 ## Base de datos
 
