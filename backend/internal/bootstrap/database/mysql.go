@@ -26,11 +26,11 @@ func SetupDatabaseMySQL(appConfig *config.AppConfig) (*sqlx.DB, error) {
 	cfg := appConfig.GetConfig()
 
 	// Retrieve connection parameters from the configuration source.
-	user := cfg.GetString("database.user")
-	password := cfg.GetString("database.password")
-	host := cfg.GetString("database.host")
-	port := cfg.GetInt("database.port")
-	dbName := cfg.GetString("database.name")
+	user := cfg.GetString("DATABASE_USER")
+	password := cfg.GetString("DATABASE_PASSWORD")
+	host := cfg.GetString("DATABASE_HOST")
+	port := cfg.GetInt("DATABASE_PORT")
+	dbName := cfg.GetString("DATABASE_NAME")
 
 	// Construct the MySQL Data Source Name (DSN).
 	// parseTime=true is critical for handling time-based domain models.

@@ -5,6 +5,9 @@
 # Docker Compose environment variables (secrets)
 .env
 
+# Ignore Go compiled binaries
+*.exe
+
 # Ignore temporary build folders
 /backend/tmp
 /tmp/
