@@ -1,0 +1,5 @@
+services:
+  backend:
+    volumes:
+      - ./frontend:/frontend:ro
+  

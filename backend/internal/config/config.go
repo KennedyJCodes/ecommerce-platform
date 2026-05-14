@@ -1,5 +1,5 @@
 // Package config provides application configuration management for the ecommerce-platform application.
-// It wraps Viper to load configuration from YAML files, environment variables, and defaults.
+// It wraps Viper to load configuration from a .env file and OS environment variables, with sensible defaults.
 package config
 
 import (
@@ -23,42 +23,37 @@ type AppConfig struct {
 }
 
 // NewAppConfig initializes and returns a new AppConfig.
-// It sets up Viper to read from a YAML file named "config" in the ./internal/config directory, registers default values, enables automatic environment variable overrides, and logs warnings if the config file cannot be read.
+// It reads a .env file from ./internal/config/.env, registers default values for all settings, and enables automatic
+// overrides via OS environment variables. OS environment variables take precedence over the .env file.
 func NewAppConfig() *AppConfig {
 	config := viper.New()
 
-	// Configuration file settings
-	config.SetConfigName("config")
-	config.SetConfigType("yaml")
-	config.AddConfigPath("./internal/config")
-
-	// Allow environment variables to override settings
 	config.AutomaticEnv()
 	config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Default values for JWT, server port, rate limiting, static directory, and database
-	config.SetDefault("server.port", "8080")
+	// Default values for server, database, Redis, and rate limiting
+	config.SetDefault("SERVER_PORT", "8080")
 	config.SetDefault("STATIC_DIR", "./../frontend")
+	config.SetDefault("RATE_LIMITING_REQUESTS", 10.0)
+	config.SetDefault("RATE_LIMITING_BURST", 5)
+	config.SetDefault("RATE_LIMITING_CLEANUP_MINUTES", 5)
+	config.SetDefault("DATABASE_HOST", "localhost")
+	config.SetDefault("DATABASE_PORT", 3306)
+	config.SetDefault("DATABASE_NAME", "store_watches")
+	config.SetDefault("REDIS_HOST", "localhost")
+	config.SetDefault("REDIS_PORT", 6379)
+	config.SetDefault("REDIS_DB", 0)
+	config.SetDefault("REDIS_POOL_SIZE", 10)
+	config.SetDefault("REDIS_MIN_IDLE_CONNS", 5)
+	config.SetDefault("REDIS_MAX_RETRIES", 3)
 
-	config.SetDefault("rate_limiting.requests", 10.0)
-	config.SetDefault("rate_limiting.burst", 5)
-	config.SetDefault("rate_limiting.cleanup_minutes", 5)
-
-	config.SetDefault("database.host", "localhost")
-	config.SetDefault("database.port", 3306)
-	config.SetDefault("database.name", "store_watches")
-
-	config.SetDefault("redis.host", "localhost")
-	config.SetDefault("redis.port", 6379)
-	config.SetDefault("redis.db", 0)
-	config.SetDefault("redis.pool_size", 10)
-	config.SetDefault("redis.min_idle_conns", 5)
-	config.SetDefault("redis.max_retries", 3)
-
-	// Attempt to read the config file; log a warning if it fails
-	if err := config.ReadInConfig(); err != nil {
-		log.Printf("Warning: Error reading configuration file: %v", err)
-		log.Println("Using default values and environment variable")
+	// Attempt to read the .env file; log a warning if it fails
+	if file, err := os.Open("./internal/config/.env"); err == nil {
+		config.ReadConfig(file)
+		file.Close()
+	} else {
+		log.Printf("Warning: Could not read .env file: %v", err)
+		log.Println("Using default values and OS environment variables")
 	}
 
 	return &AppConfig{
@@ -66,18 +61,18 @@ func NewAppConfig() *AppConfig {
 	}
 }
 
+// ValidateRequiredConfig checks that all mandatory configuration keys are present and non-empty.
+// It terminates the application with a fatal error if any required key is missing or uses an insecure default.
 func ValidateRequiredConfig(config *viper.Viper) {
 	required := []string{
-		"security.jwt.jwt_secret",
-
-		"database.user",
-		"database.password",
-
-		"redis.username",
-		"redis.password",
-		"redis.dial_timeout",
-		"redis.read_timeout",
-		"redis.write_timeout",
+		"SECURITY_JWT_JWT_SECRET",
+		"DATABASE_USER",
+		"DATABASE_PASSWORD",
+		"REDIS_USERNAME",
+		"REDIS_PASSWORD",
+		"REDIS_DIAL_TIMEOUT",
+		"REDIS_READ_TIMEOUT",
+		"REDIS_WRITE_TIMEOUT",
 	}
 
 	missing := []string{}
@@ -87,34 +82,38 @@ func ValidateRequiredConfig(config *viper.Viper) {
 			missing = append(missing, key)
 		}
 
-		if key == "security.jwt.jwt_secret" && value == "your-secret-key" {
-			log.Fatalf("Missing configuration: security.jwt.jwt_secret cannot use the insecure default value 'your-secret-key'. Please set a strong secret via ENV or config.yaml.")
+		if key == "SECURITY_JWT_JWT_SECRET" && value == "your-secret-key" {
+			log.Fatalf("Missing configuration: SECURITY_JWT_JWT_SECRET cannot use the insecure default value 'your-secret-key'. Please set a strong secret via ENV or .env file.")
 		}
 	}
 
 	if len(missing) > 0 {
-		log.Fatalf("Missing configuration (use ENV vars or config.yaml): %v", missing)
+		log.Fatalf("Missing configuration (use ENV vars or .env file): %v", missing)
 	}
 }
 
+// GetString returns a string value from the configuration by key.
 func (a *AppConfig) GetString(key string) string {
 	return a.config.GetString(key)
 }
 
+// GetInt returns an integer value from the configuration by key.
 func (a *AppConfig) GetInt(key string) int {
 	return a.config.GetInt(key)
 }
 
 // GetPort returns the HTTP server port as a string.
-// It falls back to "8080" if not set.
+// It falls back to "8080" if not set or empty.
 func (a *AppConfig) GetPort() string {
-	port := a.config.GetString("server.port")
+	port := a.config.GetString("SERVER_PORT")
 	if port == "" {
 		return "8080"
 	}
 	return port
 }
 
+// NewRedisClient creates and returns a new Redis client connected to the configured Redis instance.
+// It verifies the connection with a 5-second timeout and terminates the application on failure.
 func NewRedisClient(cfg models.RedisConfig) *redis.Client {
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 
@@ -131,7 +130,7 @@ func NewRedisClient(cfg models.RedisConfig) *redis.Client {
 		MaxRetries:   cfg.MaxRetries,
 	})
 
-	// Verificar la conexión con timeout
+	// Verify the connection with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -151,30 +150,31 @@ func (a *AppConfig) GetConfig() *viper.Viper {
 
 // GetJWTSecret retrieves the JWT secret key from configuration.
 func (a *AppConfig) GetJWTSecret() string {
-	return a.config.GetString("security.jwt.jwt_secret")
+	return a.config.GetString("SECURITY_JWT_JWT_SECRET")
 }
 
+// GetRedisConfig returns a RedisConfig struct populated from the REDIS_* configuration keys.
 func (a *AppConfig) GetRedisConfig() models.RedisConfig {
 	return models.RedisConfig{
-		Host:         a.config.GetString("redis.host"),
-		Port:         a.config.GetString("redis.port"),
-		Username:     a.config.GetString("redis.username"),
-		Password:     a.config.GetString("redis.password"),
-		DB:           a.config.GetInt("redis.db"),
-		DialTimeout:  a.config.GetDuration("redis.dial_timeout"),
-		ReadTimeout:  a.config.GetDuration("redis.read_timeout"),
-		WriteTimeout: a.config.GetDuration("redis.write_timeout"),
-		PoolSize:     a.config.GetInt("redis.pool_size"),
-		MinIdleConns: a.config.GetInt("redis.min_idle_conns"),
-		MaxRetries:   a.config.GetInt("redis.max_retries"),
+		Host:         a.config.GetString("REDIS_HOST"),
+		Port:         a.config.GetString("REDIS_PORT"),
+		Username:     a.config.GetString("REDIS_USERNAME"),
+		Password:     a.config.GetString("REDIS_PASSWORD"),
+		DB:           a.config.GetInt("REDIS_DB"),
+		DialTimeout:  a.config.GetDuration("REDIS_DIAL_TIMEOUT"),
+		ReadTimeout:  a.config.GetDuration("REDIS_READ_TIMEOUT"),
+		WriteTimeout: a.config.GetDuration("REDIS_WRITE_TIMEOUT"),
+		PoolSize:     a.config.GetInt("REDIS_POOL_SIZE"),
+		MinIdleConns: a.config.GetInt("REDIS_MIN_IDLE_CONNS"),
+		MaxRetries:   a.config.GetInt("REDIS_MAX_RETRIES"),
 	}
 }
 
-// GetRateLimitConfig returns a LimiterConfig populated from rate_limiting settings.
+// GetRateLimitConfig returns a LimiterConfig populated from RATE_LIMITING_* configuration keys.
 func (a *AppConfig) GetRateLimitConfig() models.LimiterConfig {
 	return models.LimiterConfig{
-		RequestPerSecond: a.config.GetFloat64("rate_limiting.requests"),
-		Burst:            a.config.GetInt("rate_limiting.burst"),
+		RequestPerSecond: a.config.GetFloat64("RATE_LIMITING_REQUESTS"),
+		Burst:            a.config.GetInt("RATE_LIMITING_BURST"),
 	}
 }
 
@@ -182,17 +182,13 @@ func (a *AppConfig) GetRateLimitConfig() models.LimiterConfig {
 // It verifies that the configured directory exists, and if not, attempts to resolve an alternate path relative to the executable.
 // Logs a warning if neither path exists.
 func (a *AppConfig) GetStaticDir() string {
-	// Get the value from the configuration
 	staticDir := a.config.GetString("STATIC_DIR")
 
-	// If empty, use a default value
 	if staticDir == "" {
 		staticDir = "./../frontend"
 	}
 
-	// Check if the directory exists
 	if _, err := os.Stat(staticDir); os.IsNotExist(err) {
-		// Fallback: resolve relative to executable location
 		execPath, err := os.Executable()
 		if err == nil {
 			execDir := filepath.Dir(execPath)
