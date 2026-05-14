@@ -60,8 +60,6 @@ services:
       REDIS_WRITE_TIMEOUT: "3s"
       SECURITY_JWT_JWT_SECRET: ${SECURITY_JWT_JWT_SECRET}
       STATIC_DIR: /frontend
-    volumes:
-      - ./frontend:/frontend:ro
     depends_on:
       mysql:
         condition: service_healthy
