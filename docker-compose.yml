@@ -3,6 +3,8 @@ services:
     image: mysql:8.0
     container_name: ecommerce-mysql
     restart: unless-stopped
+    mem_limit: 612m
+    cpus: "0.5"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: store_watches
@@ -24,6 +26,8 @@ services:
     image: redis:7-alpine
     container_name: ecommerce-redis
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.3"
     ports:
       - "6380:6379"
     command: redis-server --requirepass ${REDIS_PASSWORD}
@@ -41,6 +45,8 @@ services:
       dockerfile: backend/Dockerfile
     container_name: ecommerce-backend
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.5"
     ports:
       - "8080:8080"
     environment:
