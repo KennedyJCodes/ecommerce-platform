@@ -18,6 +18,7 @@
 - [API HTTP](#api-http)
 - [Desarrollo local sin Docker](#desarrollo-local-sin-docker)
 - [Tests](#tests)
+- [CI en GitHub Actions](#ci-en-github-actions)
 - [Seguridad y secretos](#seguridad-y-secretos)
 - [Solución de problemas](#solución-de-problemas)
 
@@ -105,7 +106,7 @@ Además de `docker-compose.yml` en la raíz del repositorio hay dos ficheros opc
 
 | Fichero | Rol |
 |---------|-----|
-| `docker-compose.yml` | Definición principal: MySQL, Redis, backend, red y volúmenes. |
+| `docker-compose.yml` | Definición principal: MySQL, Redis, backend, red `app-network`, volúmenes, límites opcionales de CPU/memoria y **healthcheck del backend** (HTTP vía `wget`). |
 | `docker-compose.override.yml` | Si existe en la raíz, **Docker Compose lo fusiona automáticamente** con el fichero principal (no hace falta pasar `-f`). En este proyecto monta `./frontend` en el contenedor del backend para **editar estáticos sin reconstruir la imagen**. Si prefieres servir solo lo copiado en la imagen, renombra o elimina este fichero antes de levantar el stack. |
 | `docker-compose.prod.yml` | Fragmento con ajustes orientados a un despliegue más parecido a producción (reinicio, recursos, `ENV=production`, healthcheck del backend). **No** se aplica solo: indica ambos ficheros al ejecutar Compose, por ejemplo: |
 
@@ -113,7 +114,9 @@ Además de `docker-compose.yml` en la raíz del repositorio hay dos ficheros opc
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
-Con `docker-compose.prod.yml`, MySQL y Redis suelen publicarse en el host en los puertos **3306** y **6379** (no en 3307/6380). Comprueba que no choquen con instancias locales. El healthcheck del backend usa `wget`; si la imagen final no lo incluye, el servicio puede quedar en estado *unhealthy* hasta que añadas la herramienta al `Dockerfile` o cambies el `test` del healthcheck.
+Con `docker-compose.prod.yml`, MySQL y Redis suelen publicarse en el host en los puertos **3306** y **6379** (no en 3307/6380). Comprueba que no choquen con instancias locales.
+
+En el **compose base** y en **`docker-compose.prod.yml`**, el healthcheck del backend usa `wget`. La imagen final (`backend/Dockerfile`, etapa Alpine) **no** instala `wget` por defecto: el contenedor puede quedar *unhealthy* hasta que añadas la herramienta al `Dockerfile` o cambies el `test` del healthcheck (por ejemplo con un binario ya presente en la imagen).
 
 ## Variables de entorno
 
@@ -195,6 +198,15 @@ Cuando quieras ejecutar los que ya existan, desde `backend`:
 go test ./...
 ```
 
+### CI en GitHub Actions
+
+En [`.github/workflows/ci.yml`](.github/workflows/ci.yml) hay un workflow **CI** que, en **push y pull request hacia la rama `main`**, ejecuta en paralelo:
+
+- **Test**: `go build ./cmd/api` y `go test ./...` dentro de `backend/`.
+- **Docker Build**: `docker build -f backend/Dockerfile` desde la raíz del repositorio (respeta [`.dockerignore`](.dockerignore) para el contexto de build).
+
+Si trabajas sobre **`develop`** u otras ramas, ese workflow **no** se dispara hasta que abras un PR contra `main` (o amplíes la lista `branches` en el YAML para incluir `develop`).
+
 ## Seguridad y secretos
 
 - No subas **contraseñas, JWT secrets ni claves de PayPal** al repositorio. Los ficheros con secretos deben permanecer solo en tu máquina: revisa [`.gitignore`](.gitignore) (incluye `.env` y `backend/internal/config/.env`, entre otros).
@@ -202,6 +214,6 @@ go test ./...
 
 ## Solución de problemas
 
-- **El backend no arranca tras `docker compose up`**: espera a que los healthchecks de MySQL y Redis pasen a “healthy”; el servicio `backend` depende de ellos.
+- **El backend no arranca tras `docker compose up`**: espera a que los healthchecks de MySQL y Redis pasen a “healthy”; el servicio `backend` depende de ellos. Si el backend queda *unhealthy* pero responde en el navegador, revisa el healthcheck con `wget` (ver [Ficheros de Docker Compose](#ficheros-de-docker-compose)).
 - **MySQL vacío o sin tablas**: el script `init.sql` solo se aplica en la **primera** creación del volumen; si ya existía un volumen antiguo, usa `docker compose down -v` y vuelve a levantar (perderás datos).
 - **Error de conexión desde el host a la base**: recuerda usar el puerto **3307** (no 3306) cuando te conectes desde fuera de Docker Compose.
