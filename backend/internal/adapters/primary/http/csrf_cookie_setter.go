@@ -3,7 +3,6 @@ package http
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
@@ -12,16 +11,16 @@ import (
 // csrfCookieSetter implements output.CSRFCookieSetter interface.
 // It wraps an http.ResponseWriter to set CSRF token cookies.
 type csrfCookieSetter struct {
-	w http.ResponseWriter
+	w            http.ResponseWriter
+	isProduction bool
 }
 
 // NewCSRFCookieSetter creates a new CSRFCookieSetter implementation.
-func NewCSRFCookieSetter(w http.ResponseWriter) output.CSRFCookieSetter {
-	return &csrfCookieSetter{w: w}
+func NewCSRFCookieSetter(w http.ResponseWriter, isProduction bool) output.CSRFCookieSetter {
+	return &csrfCookieSetter{w: w, isProduction: isProduction}
 }
 
 // SetCSRFCookie sets a CSRF token cookie using the wrapped ResponseWriter.
 func (c *csrfCookieSetter) SetCSRFCookie(token string) {
-	isProduction := os.Getenv("ENV") == "production"
-	cookies.SetCSRFCookie(c.w, token, isProduction)
+	cookies.SetCSRFCookie(c.w, token, c.isProduction)
 }

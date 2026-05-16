@@ -5,7 +5,6 @@ package http
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
@@ -21,15 +20,17 @@ import (
 type RegisterHandler struct {
 	userServiceRegister input.UserServiceRegister
 	csrfService         input.CSRFService
+	isProduction        bool
 }
 
 // NewRegisterHandler creates a new instance of RegisterHandler.
 
 // It receives an implementation of the UserServiceRegister interface that encapsulates the business logic for user registration.
-func NewRegisterHandler(userServiceRegister input.UserServiceRegister, csrfService input.CSRFService) *RegisterHandler {
+func NewRegisterHandler(userServiceRegister input.UserServiceRegister, csrfService input.CSRFService, isProduction bool) *RegisterHandler {
 	return &RegisterHandler{
 		userServiceRegister: userServiceRegister,
 		csrfService:         csrfService,
+		isProduction:        isProduction,
 	}
 }
 
@@ -52,7 +53,7 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create CSRF cookie setter for this request and inject into service
-	csrfCookieSetter := NewCSRFCookieSetter(w)
+	csrfCookieSetter := NewCSRFCookieSetter(w, h.isProduction)
 	if registerSvc, ok := h.userServiceRegister.(*service_auth.UserRegisterService); ok {
 		registerSvc.BaseAuthService.CSRFCookieSetter = csrfCookieSetter
 		registerSvc.BaseAuthService.CSRFService = h.csrfService
@@ -65,9 +66,7 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine if the environment is production to set secure cookie flags.
-	isProduction := os.Getenv("ENV") == "production"
-	cookies.SetAuthCookie(w, token, isProduction)
+	cookies.SetAuthCookie(w, token, h.isProduction)
 
 	// Send a JSON response indicating successful registration.
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{

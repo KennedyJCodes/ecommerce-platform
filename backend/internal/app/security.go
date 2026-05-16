@@ -28,9 +28,10 @@ var sensitivePaths = map[string]bool{
 //  - Referrer-Policy: Protects privacy by limiting the referrer information sent.
 // Parameters:
 //   - router: The primary http.Handler (usually the mux router) to be wrapped.
+//   - isDevelopment: Whether the app runs in development mode (relaxes some protections).
 // Returns:
 //   - http.Handler: A new handler protected by the security layer.
-func WrapWithSecurityMiddleware(router http.Handler) http.Handler {
+func WrapWithSecurityMiddleware(router http.Handler, isDevelopment bool) http.Handler {
 
 	secureMiddleware := secure.New(secure.Options{
 		FrameDeny:             true,
@@ -39,7 +40,7 @@ func WrapWithSecurityMiddleware(router http.Handler) http.Handler {
 		STSSeconds:            31536000,
 		STSIncludeSubdomains:  true,
 		SSLRedirect:           false, // Handled by proxy/infrastructure in production
-		IsDevelopment:         true, // Toggle this via config for production deployments
+		IsDevelopment:         isDevelopment,
 		ContentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';",
 	})
 

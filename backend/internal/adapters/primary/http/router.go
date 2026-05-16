@@ -114,13 +114,14 @@ func NewRouter(
 	productsGetService input.ProductsGetService,
 	csrfMiddleware *middleware.CSRFMiddleware,
 	csrfService input.CSRFService,
+	isProduction bool,
 ) *mux.Router {
 	// 1. Initialize a new router
 	router := mux.NewRouter()
 
 	// 2. Instantiate HTTP handlers with injected domain services
-	loginHandler := NewLoginHandler(userServiceLogin, csrfService)
-	registerHandler := NewRegisterHandler(userServiceRegister, csrfService)
+	loginHandler := NewLoginHandler(userServiceLogin, csrfService, isProduction)
+	registerHandler := NewRegisterHandler(userServiceRegister, csrfService, isProduction)
 	commentsGetHandler := NewCommentsGetHandler(commentGetService)
 	commentsAddHandler := NewCommentAddsHandler(commentAddService)
 	mainPageHandler := NewMainPageHandler()

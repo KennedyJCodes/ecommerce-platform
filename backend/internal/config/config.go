@@ -46,6 +46,9 @@ func NewAppConfig() *AppConfig {
 	config.SetDefault("REDIS_POOL_SIZE", 10)
 	config.SetDefault("REDIS_MIN_IDLE_CONNS", 5)
 	config.SetDefault("REDIS_MAX_RETRIES", 3)
+	config.SetDefault("SSL_ENABLED", false)
+	config.SetDefault("SSL_CERT_FILE", "")
+	config.SetDefault("SSL_KEY_FILE", "")
 
 	// Attempt to read the .env file; log a warning if it fails
 	if file, err := os.Open("./internal/config/.env"); err == nil {
@@ -206,4 +209,19 @@ func (a *AppConfig) GetStaticDir() string {
 // IsProduction returns true if the ENV environment variable equals "production".
 func (a *AppConfig) IsProduction() bool {
 	return a.config.GetString("ENV") == "production"
+}
+
+// IsSSLEnabled returns whether SSL/TLS should be used.
+func (a *AppConfig) IsSSLEnabled() bool {
+	return a.config.GetBool("SSL_ENABLED")
+}
+
+// GetSSLCertFile returns the path to the SSL certificate file.
+func (a *AppConfig) GetSSLCertFile() string {
+	return a.config.GetString("SSL_CERT_FILE")
+}
+
+// GetSSLKeyFile returns the path to the SSL private key file.
+func (a *AppConfig) GetSSLKeyFile() string {
+	return a.config.GetString("SSL_KEY_FILE")
 }

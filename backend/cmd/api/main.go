@@ -74,9 +74,10 @@ func main() {
 	router := application.BuildRouter()
 	log.Println("Router built")
 
-	// Apply security middleware (CORS, rate limiting, etc.)v
+	// Apply security middleware (CORS, rate limiting, etc.)
 	log.Println("Applying security middleware...")
-	securedHandler := app.WrapWithSecurityMiddleware(router)
+	isDevelopment := !application.IsProduction()
+	securedHandler := app.WrapWithSecurityMiddleware(router, isDevelopment)
 	log.Println("Security middleware applied")
 
 	port := application.GetPort()
@@ -97,12 +98,20 @@ func main() {
 
 	// Start server in separate goroutine
 	go func() {
-		log.Printf("Server started on http://localhost:%s", port)
-		log.Println("Press Ctrl+C to stop")
-
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %v", err)
+		if application.IsSSLEnabled() {
+			log.Printf("Server started on https://localhost:%s", port)
+			certFile := application.GetSSLCertFile()
+			keyFile := application.GetSSLKeyFile()
+			if err := server.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Server failed: %v", err)
+			}
+		} else {
+			log.Printf("Server started on http://localhost:%s", port)
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Server failed: %v", err)
+			}
 		}
+		log.Println("Press Ctrl+C to stop")
 	}()
 
 	// Wait for interrupt signal

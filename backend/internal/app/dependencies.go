@@ -76,5 +76,6 @@ func (a *Application) BuildRouter() http.Handler {
 		deps.ProductsGetService,
 		deps.CSRFMiddleware,
 		deps.CSRFService,
+		a.config.IsProduction(),
 	)
 }

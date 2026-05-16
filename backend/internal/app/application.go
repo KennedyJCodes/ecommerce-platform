@@ -91,6 +91,26 @@ func (a *Application) GetPort() string {
 	return a.config.GetPort()
 }
 
+// IsProduction returns true if the application is running in production mode.
+func (a *Application) IsProduction() bool {
+	return a.config.IsProduction()
+}
+
+// IsSSLEnabled returns whether SSL/TLS should be used.
+func (a *Application) IsSSLEnabled() bool {
+	return a.config.IsSSLEnabled()
+}
+
+// GetSSLCertFile returns the path to the SSL certificate file.
+func (a *Application) GetSSLCertFile() string {
+	return a.config.GetSSLCertFile()
+}
+
+// GetSSLKeyFile returns the path to the SSL private key file.
+func (a *Application) GetSSLKeyFile() string {
+	return a.config.GetSSLKeyFile()
+}
+
 // Close releases external resources opened by the application, such as the
 // database connection and the Redis client. It is idempotent in that it checks for nil before closing each resource.
 // You must call Close in the shutdown flow to prevent resource leaks.
