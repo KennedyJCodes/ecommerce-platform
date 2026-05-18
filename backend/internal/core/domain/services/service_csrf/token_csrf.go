@@ -58,6 +58,7 @@ func (uc *CSRFUseCase) GenerateToken(userID string) (string, error) {
 
 // ValidateToken verifies if the provided token matches the stored value for the user.
 // It also checks for expiration; if the token is expired, it is removed from the repository.
+// On success, the token is consumed (deleted) to enforce single-use policy.
 func (uc *CSRFUseCase) ValidateToken(tokenValue string, userID string) error {
 	token, err := uc.repository.Find(userID)
 	if err != nil {
@@ -73,6 +74,9 @@ func (uc *CSRFUseCase) ValidateToken(tokenValue string, userID string) error {
 		uc.repository.Delete(userID) // Cleanup expired token
 		return errors.NewNotFoundError(errors.ErrCSRFTokenExpired)
 	}
+
+	// Consume the token (single-use policy)
+	uc.repository.Delete(userID)
 
 	return nil
 }

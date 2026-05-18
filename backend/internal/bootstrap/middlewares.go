@@ -47,13 +47,14 @@ func SetupCSRFService(redisClient *redis.Client) input.CSRFService {
 
 // Parameters:
 //   - csrfService: the CSRF service instance (input port).
+//   - isProduction: whether the app runs in production (sets Secure flag on cookies).
 //
 // Returns:
 //   - *middleware.CSRFMiddleware: the configured middleware, or nil if the type assertion fails.
-func SetupCSRFMiddleware(csrfService input.CSRFService) *middleware.CSRFMiddleware {
+func SetupCSRFMiddleware(csrfService input.CSRFService, isProduction bool) *middleware.CSRFMiddleware {
 	// Type assertion to bridge the input port with the specific middleware implementation.
 	if csrfUseCase, ok := csrfService.(*service_csrf.CSRFUseCase); ok {
-		return middleware.NewCSRFMiddleware(csrfUseCase)
+		return middleware.NewCSRFMiddleware(csrfUseCase, isProduction)
 	}
 	return nil
 }

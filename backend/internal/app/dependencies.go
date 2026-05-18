@@ -54,7 +54,7 @@ func (a *Application) BuildDependencies() *Dependencies {
 		RateHandler:         bootstrap.SetupRateLimiter(a.config),
 		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
 		ProductsGetService:  bootstrap.SetupProductsService(a.db),
-		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService),
+		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
 		CSRFService:         csrfService,
 		BlacklistRepo:       blacklistRepo,
 	}
