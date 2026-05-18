@@ -60,7 +60,7 @@ func (l *UserLoginService) Login(account models.Account) (string, error) {
 		return "", err
 	}
 	if !exists {
-		return "", errors.NewNotFoundError(errors.ErrUserNotFound)
+		return "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
 
 	// 3. Retrieve security credentials
