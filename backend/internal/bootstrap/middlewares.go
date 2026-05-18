@@ -1,5 +1,5 @@
 // Package bootstrap provides high-level factory functions to initialize and wire the application's infrastructure components.
-// This file specifically handles the setup of security-related services, including rate limiting and CSRF protection mechanisms.
+// This file specifically handles the setup of security-related services, including rate limiting, CSRF protection, and token blacklisting.
 package bootstrap
 
 import (
@@ -10,6 +10,7 @@ import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_csrf"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
 	"github.com/redis/go-redis/v9"
 )
@@ -55,4 +56,10 @@ func SetupCSRFMiddleware(csrfService input.CSRFService) *middleware.CSRFMiddlewa
 		return middleware.NewCSRFMiddleware(csrfUseCase)
 	}
 	return nil
+}
+
+// SetupTokenBlacklistRepository initializes the Redis-backed token blacklist repository.
+// It is used to revoke JWT tokens on logout.
+func SetupTokenBlacklistRepository(redisClient *redis.Client) output.TokenBlacklistPort {
+	return repository_redis.NewRedisBlacklistRepository(redisClient)
 }

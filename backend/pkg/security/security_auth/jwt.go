@@ -2,6 +2,8 @@
 package security_auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -24,12 +26,20 @@ func NewJWTService(secretKey string) *JWTService {
 }
 
 // GenerateJWT generates a signed JWT for the specified userName.
-// The token embeds the username and an expiration set to one hour from now.
+// The token embeds a unique ID (jti), issued-at timestamp, username,
+// and an expiration set to five hours from now.
 func (j *JWTService) GenerateJWT(userId int, userName string) (string, error) {
+	jtiBytes := make([]byte, 16)
+	if _, err := rand.Read(jtiBytes); err != nil {
+		return "", fmt.Errorf("error generating token ID: %w", err)
+	}
+
 	var claims = models.Claims{
 		UserID:   userId,
 		UserName: userName,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        hex.EncodeToString(jtiBytes),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Hour)),
 		},
 	}
@@ -56,6 +66,17 @@ func GenerateJWT(userId int, userName string) (string, error) {
 	return defaultJWTService.GenerateJWT(userId, userName)
 }
 
+// ParseTokenWithClaims validates a JWT string and extracts its custom claims.
+// It verifies the token signature using the HS256 signing method and the
+// configured secret key. On success, it returns a fully populated Claims
+// struct containing the user's ID, username, jti, and expiration metadata.
+//
+// Parameters:
+//   - tokenString: the raw JWT string to parse and validate.
+//
+// Returns:
+//   - *models.Claims: the extracted claims if the token is valid.
+//   - error: an error if the token is invalid, expired, or the service is uninitialized.
 func ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
 	if defaultJWTService == nil {
 		return nil, fmt.Errorf("JWT service not initialized")

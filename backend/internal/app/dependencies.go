@@ -25,6 +25,7 @@ type Dependencies struct {
 	ProductsGetService  input.ProductsGetService
 	CSRFMiddleware      *middleware.CSRFMiddleware
 	CSRFService         input.CSRFService
+	BlacklistRepo       output.TokenBlacklistPort
 }
 
 // BuildDependencies orchestrates the initialization of all internal services and repositories.
@@ -39,6 +40,7 @@ func (a *Application) BuildDependencies() *Dependencies {
 	// Initialize core repositories and services using shared database connections.
 	userRepo := bootstrap.SetupUserRepository(a.db)
 	csrfService := bootstrap.SetupCSRFService(a.redisClient)
+	blacklistRepo := bootstrap.SetupTokenBlacklistRepository(a.redisClient)
 
 	// Inject repositories and services into their respective application logic layers.
 	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, csrfService)
@@ -54,6 +56,7 @@ func (a *Application) BuildDependencies() *Dependencies {
 		ProductsGetService:  bootstrap.SetupProductsService(a.db),
 		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService),
 		CSRFService:         csrfService,
+		BlacklistRepo:       blacklistRepo,
 	}
 }
 
@@ -77,5 +80,6 @@ func (a *Application) BuildRouter() http.Handler {
 		deps.CSRFMiddleware,
 		deps.CSRFService,
 		a.config.IsProduction(),
+		deps.BlacklistRepo,
 	)
 }

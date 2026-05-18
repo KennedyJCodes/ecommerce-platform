@@ -27,9 +27,11 @@ type RouterConfiguration interface {
 //   - RegisterHandler: processes user registration requests.
 //   - CommentsGetHandler: handles retrieval of comments.
 //   - CommentsAddHandler: handles creation of new comments.
+//   - LogoutHandler: handles user logout and token revocation.
 //   - MainPageHandler: serves the application's main page.
 //   - StaticFileHandler: serves static assets like CSS/JS/images.
 //   - MiddlewareManager: orchestrates application of global and route-specific middleware.
+//   - BlacklistRepo: repository for checking revoked JWT tokens.
 type RouterConfig struct {
 	IPExtractor        ratelimiter.IPExtractor
 	RateLimiter        ratelimiter.RateLimiterHandler
@@ -37,18 +39,20 @@ type RouterConfig struct {
 	RegisterHandler    *RegisterHandler
 	CommentsGetHandler *CommentsGetHandler
 	CommentsAddHandler *CommentsAddHandler
+	LogoutHandler      *LogoutHandler
 	MainPageHandler    *MainPageHandler
 	StaticFileHandler  *StaticFileHandler
 	MiddlewareManager  *middleware.MiddlewareManager
 	ProductsHandler    *ProductsHandler
 	CSRFMiddleware     *middleware.CSRFMiddleware
+	BlacklistRepo      output.TokenBlacklistPort
 }
 
 // SetupRoutes registers all application endpoints on the given router and applies route-specific middleware for authentication and rate limiting.
 // Routes include:
 //   - Static files (CSS, JS, images)
 //   - Public endpoints: GET /, POST /register, POST /login
-//   - Protected endpoints: GET /comments, POST /comments/newComments
+//   - Protected endpoints: GET /comments, POST /comments/newComments, POST /logout
 
 // Each route is wrapped with authentication and rate limiting via the MiddlewareManager.Apply method.
 
@@ -58,7 +62,9 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 	c.StaticFileHandler.RegisterRoutes(router)
 
 	rateLimitMW := middleware.RateLimitMiddleware(c.IPExtractor, c.RateLimiter)
-	authMW := middleware.AuthMiddleware(middleware.DefaultAuthOptions())
+	authOpts := middleware.DefaultAuthOptions()
+	authOpts.BlacklistRepo = c.BlacklistRepo
+	authMW := middleware.AuthMiddleware(authOpts)
 	csrfMW := c.CSRFMiddleware.ProtectCR
 
 	public := router.PathPrefix("").Subrouter()
@@ -78,6 +84,7 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 	private.Use(mux.MiddlewareFunc(csrfMW))
 
 	private.Handle("/comments/newComments", http.HandlerFunc(c.CommentsAddHandler.Handle)).Methods("POST", "OPTIONS")
+	private.Handle("/logout", http.HandlerFunc(c.LogoutHandler.Handle)).Methods("POST", "OPTIONS")
 
 	loginRouter := router.PathPrefix("").Subrouter()
 	loginRouter.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PrivateCORSConfig())))
@@ -101,6 +108,11 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 //   - commentAddService: service for adding new comments.
 //   - rateHandler: rate limiting handler middleware for DoS protection.
 //   - staticFileService: adapter for serving static files from disk.
+//   - productsGetService: service for retrieving product catalog data.
+//   - csrfMiddleware: middleware for Cross-Site Request Forgery protection.
+//   - csrfService: service for CSRF token generation and validation.
+//   - isProduction: flag indicating whether the app runs in production mode.
+//   - blacklistRepo: repository for persisting and checking revoked JWT tokens.
 
 // Returns:
 //   - *mux.Router: fully configured router ready to be passed to http.ListenAndServe.
@@ -115,6 +127,7 @@ func NewRouter(
 	csrfMiddleware *middleware.CSRFMiddleware,
 	csrfService input.CSRFService,
 	isProduction bool,
+	blacklistRepo output.TokenBlacklistPort,
 ) *mux.Router {
 	// 1. Initialize a new router
 	router := mux.NewRouter()
@@ -124,6 +137,7 @@ func NewRouter(
 	registerHandler := NewRegisterHandler(userServiceRegister, csrfService, isProduction)
 	commentsGetHandler := NewCommentsGetHandler(commentGetService)
 	commentsAddHandler := NewCommentAddsHandler(commentAddService)
+	logoutHandler := NewLogoutHandler(blacklistRepo)
 	mainPageHandler := NewMainPageHandler()
 	staticFileHandler := NewStaticFileHandler(staticFileService)
 	productsHandler := NewProductsHandler(productsGetService)
@@ -149,6 +163,8 @@ func NewRouter(
 		RegisterHandler:    registerHandler,
 		CommentsGetHandler: commentsGetHandler,
 		CommentsAddHandler: commentsAddHandler,
+		LogoutHandler:      logoutHandler,
+		BlacklistRepo:      blacklistRepo,
 		MainPageHandler:    mainPageHandler,
 		StaticFileHandler:  staticFileHandler,
 		MiddlewareManager:  middlewareManager,

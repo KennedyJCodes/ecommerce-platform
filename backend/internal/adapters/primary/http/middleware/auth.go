@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
@@ -20,6 +21,9 @@ type contextKey string
 // in the request context. It is unexported to prevent misuse.
 const userIDContextKey contextKey = "userID"
 
+// claimsContextKey is the key under which the parsed JWT claims are stored.
+const claimsContextKey contextKey = "claims"
+
 // GetUserIDContextKey returns the context key used to retrieve the user ID
 // from an HTTP request's context. This allows handlers to extract the
 // authenticated user's ID from context:
@@ -29,6 +33,12 @@ func GetUserIDContextKey() contextKey {
 	return userIDContextKey
 }
 
+// GetClaimsContextKey returns the context key used to retrieve the full JWT claims
+// from an HTTP request's context.
+func GetClaimsContextKey() contextKey {
+	return claimsContextKey
+}
+
 // AuthOptions contains configuration options for the authentication middleware.
 // It allows for customization of authentication behavior, particularly which
 // paths should be excluded from authentication requirements.
@@ -36,6 +46,8 @@ type AuthOptions struct {
 	// ExcludedPaths is a slice of URL patterns that will not require authentication.
 	// Both exact matches and directory prefixes (ending with '/') are supported.
 	ExcludedPaths []string
+	// BlacklistRepo is used to check whether a JWT has been revoked.
+	BlacklistRepo output.TokenBlacklistPort
 }
 
 // DefaultAuthOptions creates and returns a new AuthOptions instance with default values.
@@ -63,7 +75,8 @@ func DefaultAuthOptions() *AuthOptions {
 // 3. If the cookie is missing or empty, responds with 401 Unauthorized.
 // 4. Parses and validates the JWT token using the security_auth package.
 // 5. If token parsing fails (invalid or expired), responds with 401 Unauthorized.
-// 6. On successful validation, extracts the UserId from token claims, stores it in the request context under userIDContextKey, and calls the next handler.
+// 6. Checks if the token has been revoked via the blacklist repository.
+// 7. On successful validation, extracts the claims and stores them in the request context.
 
 // Parameters:
 //   - opts: pointer to AuthOptions specifying paths to exclude from auth.
@@ -104,10 +117,20 @@ func AuthMiddleware(options *AuthOptions) Middleware {
 				return
 			}
 
+			// Check if token has been revoked
+			if options.BlacklistRepo != nil {
+				blacklisted, err := options.BlacklistRepo.IsBlacklisted(claims.ID)
+				if err != nil || blacklisted {
+					http.Error(w, "Token revoked", http.StatusUnauthorized)
+					return
+				}
+			}
+
 			ctx := r.Context()
 			contextWithUser := context.WithValue(ctx, userIDContextKey, claims.UserID)
+			contextWithClaims := context.WithValue(contextWithUser, claimsContextKey, claims)
 
-			next.ServeHTTP(w, r.WithContext(contextWithUser))
+			next.ServeHTTP(w, r.WithContext(contextWithClaims))
 		})
 	}
 }
