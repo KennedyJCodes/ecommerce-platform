@@ -157,7 +157,7 @@ func NewRouter(
 
 	// 5. Build RouterConfig with dependencies
 	config := &RouterConfig{
-		IPExtractor:        &ratelimiter.DefaultIPExtractor{},
+		IPExtractor:        ratelimiter.NewDefaultIPExtractor("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/32"),
 		RateLimiter:        rateHandler,
 		LoginHandler:       loginHandler,
 		RegisterHandler:    registerHandler,
