@@ -43,6 +43,11 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("Content-Type") != "application/json" {
+		httpUtil.HandleError(w, errors.NewUnsupportedMediaTypeError(errors.ErrUnsupportedMediaType))
+		return
+	}
+
 	var account models.Account
 	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
 		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))

@@ -102,6 +102,14 @@ func NewForbiddenError(message string) *AppError {
 	}
 }
 
+// NewUnsupportedMediaTypeError creates 415 Unsupported Media Type for invalid Content-Type.
+func NewUnsupportedMediaTypeError(message string) *AppError {
+	return &AppError{
+		Code:    http.StatusUnsupportedMediaType,
+		Message: message,
+	}
+}
+
 // NewValidationError creates 422 Unprocessable Entity for validation failures
 func NewValidationError(message string) *AppError {
 	return &AppError{
