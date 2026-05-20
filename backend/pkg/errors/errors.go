@@ -14,18 +14,23 @@ import (
 // AppError represents an application error with HTTP metadata and optional cause.
 // Use constructor functions (NewBadRequestError, etc.) to create properly initialized instances.
 type AppError struct {
-	Code    int
-	Message string
-	Err     error
+	Code           int
+	Message        string // Safe message sent to the client
+	InternalMessage string // Detailed message for internal logging (never sent to client)
+	Err            error
 }
 
-// Error implements the error interface, formatting the error with code and message.
-// Includes wrapped error details if present in the error chain.
+// Error implements the error interface, formatting the error with code and internal details.
+// Includes InternalMessage and wrapped error for server-side logging.
 func (e *AppError) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("(%d) %s: %v", e.Code, e.Message, e.Err)
+	msg := e.Message
+	if e.InternalMessage != "" {
+		msg = e.InternalMessage
 	}
-	return fmt.Sprintf("(%d) %s", e.Code, e.Message)
+	if e.Err != nil {
+		return fmt.Sprintf("(%d) %s: %v", e.Code, msg, e.Err)
+	}
+	return fmt.Sprintf("(%d) %s", e.Code, msg)
 }
 
 // Unwrap implements the error unwrapping interface for error chain inspection.
@@ -62,11 +67,15 @@ func NewConflictError(message string) *AppError {
 	}
 }
 
-// NewInternalError creates 500 Internal Server Error for unexpected failures
+// NewInternalError creates 500 Internal Server Error for unexpected failures.
+// The message parameter is stored as InternalMessage for logging purposes.
+// The client-facing Message is always "Internal Server Error" to avoid leaking
+// implementation details.
 func NewInternalError(message string) *AppError {
 	return &AppError{
-		Code:    http.StatusInternalServerError,
-		Message: message,
+		Code:            http.StatusInternalServerError,
+		Message:         "Internal Server Error",
+		InternalMessage: message,
 	}
 }
 
