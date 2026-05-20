@@ -21,15 +21,18 @@ import (
 type LogoutHandler struct {
 	// blacklistRepo: output port for persisting revoked JWT identifiers.
 	blacklistRepo output.TokenBlacklistPort
+	// isProduction: controls the Secure flag on the cleared cookie.
+	isProduction bool
 }
 
 // NewLogoutHandler creates and returns a new LogoutHandler instance.
 // Parameters:
 //   - blacklistRepo: an implementation of the TokenBlacklistPort for token revocation.
+//   - isProduction: whether the app runs in production (sets Secure flag on cleared cookie).
 // Returns:
 //   - *LogoutHandler: ready-to-use handler for the logout endpoint.
-func NewLogoutHandler(blacklistRepo output.TokenBlacklistPort) *LogoutHandler {
-	return &LogoutHandler{blacklistRepo: blacklistRepo}
+func NewLogoutHandler(blacklistRepo output.TokenBlacklistPort, isProduction bool) *LogoutHandler {
+	return &LogoutHandler{blacklistRepo: blacklistRepo, isProduction: isProduction}
 }
 
 // Handle processes HTTP POST requests for user logout.
@@ -70,7 +73,7 @@ func (h *LogoutHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cookies.ClearCookie(w, "token")
+	cookies.ClearCookie(w, "token", h.isProduction)
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
 		"message": "Logged out successfully",
 	})

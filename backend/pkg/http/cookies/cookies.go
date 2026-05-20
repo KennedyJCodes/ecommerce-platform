@@ -152,13 +152,16 @@ func SetAuthCookie(w http.ResponseWriter, token string, isProduction bool, optio
 
 // ClearCookie invalidates a cookie by setting empty value and immediate expiration.
 // Uses path "/" to ensure proper invalidation across all paths.
-func ClearCookie(w http.ResponseWriter, name string) {
+// The isProduction flag controls the Secure flag to match the original auth cookie.
+func ClearCookie(w http.ResponseWriter, name string, isProduction bool) {
 	config := CookieConfig{
 		Name:     name,
 		Value:    "",
 		MaxAge:   -1,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   isProduction,
+		SameSite: http.SameSiteLaxMode,
 	}
 	SetCookie(w, config)
 }

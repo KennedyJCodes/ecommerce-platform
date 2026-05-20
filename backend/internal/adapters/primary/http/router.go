@@ -137,7 +137,7 @@ func NewRouter(
 	registerHandler := NewRegisterHandler(userServiceRegister, csrfService, isProduction)
 	commentsGetHandler := NewCommentsGetHandler(commentGetService)
 	commentsAddHandler := NewCommentAddsHandler(commentAddService)
-	logoutHandler := NewLogoutHandler(blacklistRepo)
+	logoutHandler := NewLogoutHandler(blacklistRepo, isProduction)
 	mainPageHandler := NewMainPageHandler()
 	staticFileHandler := NewStaticFileHandler(staticFileService)
 	productsHandler := NewProductsHandler(productsGetService)
