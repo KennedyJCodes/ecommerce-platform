@@ -166,6 +166,20 @@ func ClearCookie(w http.ResponseWriter, name string, isProduction bool) {
 	SetCookie(w, config)
 }
 
+// SetRefreshCookie sets a refresh token cookie with secure defaults.
+// The cookie is HttpOnly, SameSite=Strict, has a 7-day expiration, and
+// Secure flag based on production environment.
+func SetRefreshCookie(w http.ResponseWriter, token string, isProduction bool) {
+	config := NewCookieConfig("refresh_token",
+		WithValue(token),
+		WithMaxAge(7*24*time.Hour),
+		WithHttpOnly(true),
+		WithSecure(isProduction),
+		WithSameSite(http.SameSiteStrictMode),
+	)
+	SetCookie(w, config)
+}
+
 // SetCSRFCookie sets a CSRF token cookie with secure defaults.
 // The cookie is HttpOnly, has SameSite=Strict, and Secure flag based on production environment.
 func SetCSRFCookie(w http.ResponseWriter, token string, isProduction bool) {

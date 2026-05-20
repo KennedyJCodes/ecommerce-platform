@@ -13,6 +13,7 @@ import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
+	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // LogoutHandler handles HTTP requests for user logout.
@@ -74,6 +75,24 @@ func (h *LogoutHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookies.ClearCookie(w, "token", h.isProduction)
+
+	// Revoke refresh token if present
+	if refreshCookie, err := r.Cookie("refresh_token"); err == nil && refreshCookie.Value != "" {
+		if refreshClaims, parseErr := securityAuth.ValidateRefreshToken(refreshCookie.Value); parseErr == nil {
+			refreshTTL := 7 * 24 * time.Hour
+			if refreshClaims.ExpiresAt != nil {
+				refreshTTL = time.Until(refreshClaims.ExpiresAt.Time)
+				if refreshTTL < 0 {
+					refreshTTL = 0
+				}
+			}
+			if refreshClaims.ID != "" {
+				_ = h.blacklistRepo.Add(refreshClaims.ID, refreshTTL)
+			}
+		}
+	}
+	cookies.ClearCookie(w, "refresh_token", h.isProduction)
+
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
 		"message": "Logged out successfully",
 	})

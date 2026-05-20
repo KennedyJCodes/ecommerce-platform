@@ -61,13 +61,15 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		loginSvc.BaseAuthService.CSRFService = h.csrfService
 	}
 
-	token, err := h.userServiceLogin.Login(account)
+	tokens, err := h.userServiceLogin.Login(account)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return
 	}
 
-	cookies.SetAuthCookie(w, token, h.isProduction)
+	cookies.SetAuthCookie(w, tokens.AccessToken, h.isProduction)
+	cookies.SetRefreshCookie(w, tokens.RefreshToken, h.isProduction)
+
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
 		"message": "Successful login",
 	})

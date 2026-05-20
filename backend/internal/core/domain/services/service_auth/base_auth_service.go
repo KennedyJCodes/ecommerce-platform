@@ -3,6 +3,7 @@
 package service_auth
 
 import (
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
@@ -59,15 +60,23 @@ func (b *BaseAuthService) CheckUserExists(username string) (bool, error) {
 	return exists, nil
 }
 
-// GenerateToken wraps the security package logic to create an identity JWT.
-// It maps technical token generation errors into domain-understandable InternalErrors.
-func (b *BaseAuthService) GenerateToken(userId int, username string) (string, error) {
-	token, err := securityAuth.GenerateJWT(userId, username)
+// GenerateTokenPair wraps the security package logic to create an access JWT
+// and a refresh JWT. Returns a TokenPair or an InternalError on failure.
+func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*models.TokenPair, error) {
+	accessToken, err := securityAuth.GenerateJWT(userId, username)
 	if err != nil {
-		return "", errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
+		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	return token, nil
+	refreshToken, err := securityAuth.GenerateRefreshToken(userId, username)
+	if err != nil {
+		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
+	}
+
+	return &models.TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 // GenerateAndSetCSRFToken orchestrates the creation of a CSRF token and its subsequent delivery to the client via a cookie setter.

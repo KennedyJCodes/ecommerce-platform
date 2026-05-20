@@ -25,6 +25,7 @@ type RouterConfiguration interface {
 //   - RateLimiter: handles request rate limiting based on extracted IP.
 //   - LoginHandler: processes user login requests.
 //   - RegisterHandler: processes user registration requests.
+//   - RefreshHandler: processes token refresh requests.
 //   - CommentsGetHandler: handles retrieval of comments.
 //   - CommentsAddHandler: handles creation of new comments.
 //   - LogoutHandler: handles user logout and token revocation.
@@ -37,6 +38,7 @@ type RouterConfig struct {
 	RateLimiter        ratelimiter.RateLimiterHandler
 	LoginHandler       *LoginHandler
 	RegisterHandler    *RegisterHandler
+	RefreshHandler     *RefreshHandler
 	CommentsGetHandler *CommentsGetHandler
 	CommentsAddHandler *CommentsAddHandler
 	LogoutHandler      *LogoutHandler
@@ -76,6 +78,7 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 	public.Handle("/products", http.HandlerFunc(c.ProductsHandler.Handle)).Methods("GET", "OPTIONS")
 	public.Handle("/product-id/{id}", http.HandlerFunc(c.ProductsHandler.HandleGetByID)).Methods("GET", "OPTIONS")
 	public.Handle("/products-brand/{brand}", http.HandlerFunc(c.ProductsHandler.HandleGetByBrand)).Methods("GET", "OPTIONS")
+	public.Handle("/refresh", http.HandlerFunc(c.RefreshHandler.Handle)).Methods("POST", "OPTIONS")
 
 	private := router.PathPrefix("").Subrouter()
 	private.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PrivateCORSConfig())))
@@ -138,6 +141,7 @@ func NewRouter(
 	commentsGetHandler := NewCommentsGetHandler(commentGetService)
 	commentsAddHandler := NewCommentAddsHandler(commentAddService)
 	logoutHandler := NewLogoutHandler(blacklistRepo, isProduction)
+	refreshHandler := NewRefreshHandler(blacklistRepo, isProduction)
 	mainPageHandler := NewMainPageHandler()
 	staticFileHandler := NewStaticFileHandler(staticFileService)
 	productsHandler := NewProductsHandler(productsGetService)
@@ -161,6 +165,7 @@ func NewRouter(
 		RateLimiter:        rateHandler,
 		LoginHandler:       loginHandler,
 		RegisterHandler:    registerHandler,
+		RefreshHandler:     refreshHandler,
 		CommentsGetHandler: commentsGetHandler,
 		CommentsAddHandler: commentsAddHandler,
 		LogoutHandler:      logoutHandler,

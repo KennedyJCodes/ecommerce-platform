@@ -64,14 +64,15 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		registerSvc.BaseAuthService.CSRFService = h.csrfService
 	}
 
-	// Attempt to register the user and generate an authentication token.
-	token, err := h.userServiceRegister.Register(account)
+	// Attempt to register the user and generate authentication tokens.
+	tokens, err := h.userServiceRegister.Register(account)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return
 	}
 
-	cookies.SetAuthCookie(w, token, h.isProduction)
+	cookies.SetAuthCookie(w, tokens.AccessToken, h.isProduction)
+	cookies.SetRefreshCookie(w, tokens.RefreshToken, h.isProduction)
 
 	// Send a JSON response indicating successful registration.
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
