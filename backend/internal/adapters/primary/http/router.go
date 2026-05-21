@@ -85,6 +85,7 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 	private.Use(mux.MiddlewareFunc(rateLimitMW))
 	private.Use(mux.MiddlewareFunc(authMW))
 	private.Use(mux.MiddlewareFunc(csrfMW))
+	private.Use(mux.MiddlewareFunc(middleware.NoCacheMiddleware()))
 
 	private.Handle("/comments/newComments", http.HandlerFunc(c.CommentsAddHandler.Handle)).Methods("POST", "OPTIONS")
 	private.Handle("/logout", http.HandlerFunc(c.LogoutHandler.Handle)).Methods("POST", "OPTIONS")
@@ -92,6 +93,7 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 	loginRouter := router.PathPrefix("").Subrouter()
 	loginRouter.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PrivateCORSConfig())))
 	loginRouter.Use(mux.MiddlewareFunc(rateLimitMW))
+	loginRouter.Use(mux.MiddlewareFunc(middleware.NoCacheMiddleware()))
 	loginRouter.Handle("/login", http.HandlerFunc(c.LoginHandler.Handle)).Methods("POST", "OPTIONS")
 	loginRouter.Handle("/register", http.HandlerFunc(c.RegisterHandler.Handle)).Methods("POST", "OPTIONS")
 }

@@ -9,14 +9,6 @@ import (
 	"github.com/unrolled/secure"
 )
 
-// sensitivePaths defines a whitelist of routes that handle private or credential-based data.
-// Requests to these paths will trigger strict cache-control headers to prevent sensitive information from being stored in browser or intermediary caches.
-var sensitivePaths = map[string]bool{
-	"/login":                true,
-	"/register":             true,
-	"/comments/newComments": true,
-}
-
 // WrapWithSecurityMiddleware applies a robust layer of security headers to the provided router.
 // It uses the 'secure' package to set standard headers (CSP, HSTS, etc.) and supplements them with manual headers for Permissions Policy and Cache Control.
 
@@ -58,14 +50,6 @@ func WrapWithSecurityMiddleware(router http.Handler, isDevelopment bool) http.Ha
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), usb=(), payment=(), accelerometer=(), gyroscope=(), magnetometer=(), clipboard-read=(), clipboard-write=(), fullscreen=(self)")
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
-
-		// Anti-Caching for Sensitive Routes:
-		// Ensures that browsers do not store pages containing login forms or user private actions.
-		if sensitivePaths[r.URL.Path] {
-			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
-			w.Header().Set("Pragma", "no-cache")
-			w.Header().Set("Expires", "0")
-		}
 
 		// Pass control to the next handler in the chain.
 		router.ServeHTTP(w, r)
