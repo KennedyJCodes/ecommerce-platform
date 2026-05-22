@@ -5,7 +5,7 @@ package http
 import (
 	"net/http"
 	"path/filepath"
-	"text/template"
+	"html/template"
 )
 
 // MainPageHandler handles HTTP requests to the main page.

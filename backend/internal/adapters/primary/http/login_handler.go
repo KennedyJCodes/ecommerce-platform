@@ -5,7 +5,6 @@ package http
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
@@ -21,15 +20,17 @@ import (
 type LoginHandler struct {
 	userServiceLogin input.UserServiceLogin
 	csrfService      input.CSRFService
+	isProduction     bool
 }
 
 // NewLoginHandler creates a new instance of LoginHandler.
 
 // It receives an implementation of the UserServiceLogin interface, which encapsulates the business logic for authenticating users.
-func NewLoginHandler(userServiceLogin input.UserServiceLogin, csrfService input.CSRFService) *LoginHandler {
+func NewLoginHandler(userServiceLogin input.UserServiceLogin, csrfService input.CSRFService, isProduction bool) *LoginHandler {
 	return &LoginHandler{
 		userServiceLogin: userServiceLogin,
 		csrfService:      csrfService,
+		isProduction:     isProduction,
 	}
 }
 
@@ -42,6 +43,11 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("Content-Type") != "application/json" {
+		httpUtil.HandleError(w, errors.NewUnsupportedMediaTypeError(errors.ErrUnsupportedMediaType))
+		return
+	}
+
 	var account models.Account
 	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
 		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))
@@ -49,20 +55,21 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create CSRF cookie setter for this request and inject into service
-	csrfCookieSetter := NewCSRFCookieSetter(w)
+	csrfCookieSetter := NewCSRFCookieSetter(w, h.isProduction)
 	if loginSvc, ok := h.userServiceLogin.(*service_auth.UserLoginService); ok {
 		loginSvc.BaseAuthService.CSRFCookieSetter = csrfCookieSetter
 		loginSvc.BaseAuthService.CSRFService = h.csrfService
 	}
 
-	token, err := h.userServiceLogin.Login(account)
+	tokens, err := h.userServiceLogin.Login(account)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return
 	}
 
-	isProduction := os.Getenv("ENV") == "production"
-	cookies.SetAuthCookie(w, token, isProduction)
+	cookies.SetAuthCookie(w, tokens.AccessToken, h.isProduction)
+	cookies.SetRefreshCookie(w, tokens.RefreshToken, h.isProduction)
+
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
 		"message": "Successful login",
 	})

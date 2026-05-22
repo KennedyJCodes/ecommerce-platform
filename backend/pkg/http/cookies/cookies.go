@@ -7,6 +7,28 @@ import (
 	"time"
 )
 
+// cookiePrefix is prepended to all cookie names to avoid collisions when
+// multiple applications share the same parent domain. Configured once at
+// startup via SetCookiePrefix.
+var cookiePrefix string
+
+// SetCookiePrefix configures the global prefix for all cookie names.
+// Should be called once at application startup. An empty prefix is valid.
+func SetCookiePrefix(prefix string) {
+	cookiePrefix = prefix
+}
+
+// prefixedName returns the cookie name with the global prefix prepended.
+func prefixedName(name string) string {
+	return cookiePrefix + name
+}
+
+// CookieName returns the full cookie name including the configured prefix.
+// Useful for middlewares and handlers that need to read cookies by name.
+func CookieName(name string) string {
+	return prefixedName(name)
+}
+
 // CookieConfig defines the complete configuration for HTTP cookie properties.
 // Used as a template for creating standardized http.Cookie instances.
 type CookieConfig struct {
@@ -117,7 +139,7 @@ func NewAuthCookieConfig(token string, isProduction bool, options ...CookieOptio
 
 	allOptions := append(defaultOptions, options...)
 
-	return NewCookieConfig("token", allOptions...)
+	return NewCookieConfig(prefixedName("token"), allOptions...)
 }
 
 // SetCookie writes a cookie to the HTTP response using configuration.
@@ -152,21 +174,38 @@ func SetAuthCookie(w http.ResponseWriter, token string, isProduction bool, optio
 
 // ClearCookie invalidates a cookie by setting empty value and immediate expiration.
 // Uses path "/" to ensure proper invalidation across all paths.
-func ClearCookie(w http.ResponseWriter, name string) {
+// The isProduction flag controls the Secure flag to match the original auth cookie.
+func ClearCookie(w http.ResponseWriter, name string, isProduction bool) {
 	config := CookieConfig{
-		Name:     name,
+		Name:     prefixedName(name),
 		Value:    "",
 		MaxAge:   -1,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   isProduction,
+		SameSite: http.SameSiteLaxMode,
 	}
+	SetCookie(w, config)
+}
+
+// SetRefreshCookie sets a refresh token cookie with secure defaults.
+// The cookie is HttpOnly, SameSite=Strict, has a 7-day expiration, and
+// Secure flag based on production environment.
+func SetRefreshCookie(w http.ResponseWriter, token string, isProduction bool) {
+	config := NewCookieConfig(prefixedName("refresh_token"),
+		WithValue(token),
+		WithMaxAge(7*24*time.Hour),
+		WithHttpOnly(true),
+		WithSecure(isProduction),
+		WithSameSite(http.SameSiteStrictMode),
+	)
 	SetCookie(w, config)
 }
 
 // SetCSRFCookie sets a CSRF token cookie with secure defaults.
 // The cookie is HttpOnly, has SameSite=Strict, and Secure flag based on production environment.
 func SetCSRFCookie(w http.ResponseWriter, token string, isProduction bool) {
-	config := NewCookieConfig("csrf_token",
+	config := NewCookieConfig(prefixedName("csrf_token"),
 		WithValue(token),
 		WithMaxAge(24*time.Hour),
 		WithHttpOnly(true),

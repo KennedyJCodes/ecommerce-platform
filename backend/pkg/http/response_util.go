@@ -4,6 +4,7 @@ package http
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
@@ -19,12 +20,18 @@ func SendJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 }
 
 // HandleError processes application errors and sends appropriate HTTP responses.
-// Recognizes errors of type *errors.AppError to send structured responses with proper status codes and messages. Falls back to 500 Internal Server Error for unexpected error types.
-// Usage note: Should typically be used as the final error handler in request chains.
+// Recognizes errors of type *errors.AppError to send structured responses with
+// proper status codes and safe messages. Falls back to 500 Internal Server Error
+// for unexpected error types. Internal error details are logged server-side and
+// never exposed to the client.
 func HandleError(w http.ResponseWriter, err error) {
 	if appErr, ok := err.(*errors.AppError); ok {
+		if appErr.Code == http.StatusInternalServerError {
+			log.Printf("[INTERNAL ERROR] %s", appErr.Error())
+		}
 		http.Error(w, appErr.Message, appErr.Code)
 	} else {
+		log.Printf("[UNEXPECTED ERROR] %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

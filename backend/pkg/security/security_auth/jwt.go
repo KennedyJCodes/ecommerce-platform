@@ -2,6 +2,8 @@
 package security_auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -24,18 +26,77 @@ func NewJWTService(secretKey string) *JWTService {
 }
 
 // GenerateJWT generates a signed JWT for the specified userName.
-// The token embeds the username and an expiration set to one hour from now.
+// The token embeds a unique ID (jti), issued-at timestamp, username,
+// and an expiration set to 15 minutes from now.
 func (j *JWTService) GenerateJWT(userId int, userName string) (string, error) {
+	jtiBytes := make([]byte, 16)
+	if _, err := rand.Read(jtiBytes); err != nil {
+		return "", fmt.Errorf("error generating token ID: %w", err)
+	}
+
 	var claims = models.Claims{
 		UserID:   userId,
 		UserName: userName,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Hour)),
+			ID:        hex.EncodeToString(jtiBytes),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			Subject:   "access",
 		},
 	}
 
 	var token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(j.secretKey)
+}
+
+// GenerateRefreshToken generates a signed JWT used as a refresh token.
+// The token has a 7-day expiration and is identified by Subject "refresh".
+// Refresh tokens are only accepted by the /refresh endpoint.
+func (j *JWTService) GenerateRefreshToken(userID int, userName string) (string, error) {
+	jtiBytes := make([]byte, 16)
+	if _, err := rand.Read(jtiBytes); err != nil {
+		return "", fmt.Errorf("error generating refresh token ID: %w", err)
+	}
+
+	var claims = models.Claims{
+		UserID:   userID,
+		UserName: userName,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        hex.EncodeToString(jtiBytes),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
+			Subject:   "refresh",
+		},
+	}
+
+	var token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(j.secretKey)
+}
+
+// ValidateRefreshToken validates a refresh token string and returns its claims.
+// It verifies the signature, checks that the Subject is "refresh", and ensures
+// the token has not expired.
+func (j *JWTService) ValidateRefreshToken(tokenString string) (*models.Claims, error) {
+	claims := &models.Claims{}
+
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return j.secretKey, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid refresh token")
+	}
+	if claims.Subject != "refresh" {
+		return nil, fmt.Errorf("token is not a refresh token")
+	}
+
+	return claims, nil
 }
 
 // defaultJWTService holds the globally configured JWTService for convenience.
@@ -56,6 +117,34 @@ func GenerateJWT(userId int, userName string) (string, error) {
 	return defaultJWTService.GenerateJWT(userId, userName)
 }
 
+// GenerateRefreshToken signs a refresh token for userName using the default service.
+// Returns an error if the service has not been initialized.
+func GenerateRefreshToken(userId int, userName string) (string, error) {
+	if defaultJWTService == nil {
+		return "", fmt.Errorf("JWT service not initialized")
+	}
+	return defaultJWTService.GenerateRefreshToken(userId, userName)
+}
+
+// ValidateRefreshToken parses and validates a refresh token using the default service.
+func ValidateRefreshToken(tokenString string) (*models.Claims, error) {
+	if defaultJWTService == nil {
+		return nil, fmt.Errorf("JWT service not initialized")
+	}
+	return defaultJWTService.ValidateRefreshToken(tokenString)
+}
+
+// ParseTokenWithClaims validates a JWT string and extracts its custom claims.
+// It verifies the token signature using the HS256 signing method and the
+// configured secret key. On success, it returns a fully populated Claims
+// struct containing the user's ID, username, jti, and expiration metadata.
+//
+// Parameters:
+//   - tokenString: the raw JWT string to parse and validate.
+//
+// Returns:
+//   - *models.Claims: the extracted claims if the token is valid.
+//   - error: an error if the token is invalid, expired, or the service is uninitialized.
 func ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
 	if defaultJWTService == nil {
 		return nil, fmt.Errorf("JWT service not initialized")

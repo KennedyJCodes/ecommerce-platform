@@ -45,9 +45,10 @@ const (
 	ErrRateLimitExceeded = "Rate limit exceeded"
 
 	// General API errors
-	ErrInternalServer   = "Internal Server Error"
-	ErrMethodNotAllowed = "Disallowed method"
-	ErrInvalidRequest   = "Invalid request"
-	ErrUnauthorized     = "Unauthorized"
-	ErrForbidden        = "Prohibited access"
+	ErrInternalServer         = "Internal Server Error"
+	ErrMethodNotAllowed       = "Disallowed method"
+	ErrInvalidRequest         = "Invalid request"
+	ErrUnsupportedMediaType   = "Content-Type must be application/json"
+	ErrUnauthorized           = "Unauthorized"
+	ErrForbidden              = "Prohibited access"
 )

@@ -10,6 +10,7 @@ import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
 )
 
@@ -25,6 +26,7 @@ type Dependencies struct {
 	ProductsGetService  input.ProductsGetService
 	CSRFMiddleware      *middleware.CSRFMiddleware
 	CSRFService         input.CSRFService
+	BlacklistRepo       output.TokenBlacklistPort
 }
 
 // BuildDependencies orchestrates the initialization of all internal services and repositories.
@@ -36,9 +38,13 @@ type Dependencies struct {
 // Returns:
 //   - *Dependencies: a pointer to the fully populated Dependencies struct.
 func (a *Application) BuildDependencies() *Dependencies {
+	// Configure cookie prefix to avoid collisions on shared domains.
+	cookies.SetCookiePrefix(a.config.GetCookiePrefix())
+
 	// Initialize core repositories and services using shared database connections.
 	userRepo := bootstrap.SetupUserRepository(a.db)
 	csrfService := bootstrap.SetupCSRFService(a.redisClient)
+	blacklistRepo := bootstrap.SetupTokenBlacklistRepository(a.redisClient)
 
 	// Inject repositories and services into their respective application logic layers.
 	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, csrfService)
@@ -52,8 +58,9 @@ func (a *Application) BuildDependencies() *Dependencies {
 		RateHandler:         bootstrap.SetupRateLimiter(a.config),
 		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
 		ProductsGetService:  bootstrap.SetupProductsService(a.db),
-		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService),
+		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
 		CSRFService:         csrfService,
+		BlacklistRepo:       blacklistRepo,
 	}
 }
 
@@ -76,5 +83,7 @@ func (a *Application) BuildRouter() http.Handler {
 		deps.ProductsGetService,
 		deps.CSRFMiddleware,
 		deps.CSRFService,
+		a.config.IsProduction(),
+		deps.BlacklistRepo,
 	)
 }
