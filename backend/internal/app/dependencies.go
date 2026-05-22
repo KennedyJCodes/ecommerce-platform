@@ -10,6 +10,7 @@ import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
 )
 
@@ -37,6 +38,9 @@ type Dependencies struct {
 // Returns:
 //   - *Dependencies: a pointer to the fully populated Dependencies struct.
 func (a *Application) BuildDependencies() *Dependencies {
+	// Configure cookie prefix to avoid collisions on shared domains.
+	cookies.SetCookiePrefix(a.config.GetCookiePrefix())
+
 	// Initialize core repositories and services using shared database connections.
 	userRepo := bootstrap.SetupUserRepository(a.db)
 	csrfService := bootstrap.SetupCSRFService(a.redisClient)
