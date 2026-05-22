@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
@@ -104,7 +105,7 @@ func AuthMiddleware(options *AuthOptions) Middleware {
 					return
 				}
 			}
-			cookie, err := r.Cookie("token")
+			cookie, err := r.Cookie(cookies.CookieName("token"))
 			if err != nil || cookie.Value == "" {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return

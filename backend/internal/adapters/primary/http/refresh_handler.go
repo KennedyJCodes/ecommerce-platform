@@ -49,7 +49,7 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := r.Cookie("refresh_token")
+	cookie, err := r.Cookie(cookies.CookieName("refresh_token"))
 	if err != nil || cookie.Value == "" {
 		httpUtil.HandleError(w, errors.NewAuthError("Refresh token missing"))
 		return

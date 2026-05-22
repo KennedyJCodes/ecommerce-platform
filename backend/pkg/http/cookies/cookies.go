@@ -23,6 +23,12 @@ func prefixedName(name string) string {
 	return cookiePrefix + name
 }
 
+// CookieName returns the full cookie name including the configured prefix.
+// Useful for middlewares and handlers that need to read cookies by name.
+func CookieName(name string) string {
+	return prefixedName(name)
+}
+
 // CookieConfig defines the complete configuration for HTTP cookie properties.
 // Used as a template for creating standardized http.Cookie instances.
 type CookieConfig struct {

@@ -77,7 +77,7 @@ func (h *LogoutHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	cookies.ClearCookie(w, "token", h.isProduction)
 
 	// Revoke refresh token if present
-	if refreshCookie, err := r.Cookie("refresh_token"); err == nil && refreshCookie.Value != "" {
+	if refreshCookie, err := r.Cookie(cookies.CookieName("refresh_token")); err == nil && refreshCookie.Value != "" {
 		if refreshClaims, parseErr := securityAuth.ValidateRefreshToken(refreshCookie.Value); parseErr == nil {
 			refreshTTL := 7 * 24 * time.Hour
 			if refreshClaims.ExpiresAt != nil {

@@ -64,7 +64,7 @@ func (m *CSRFMiddleware) ProtectCR(next http.Handler) http.Handler {
 		userID := fmt.Sprintf("%d", userIDInt)
 
 		// 1. Get the token from the cookie
-		cookie, err := r.Cookie("csrf_token")
+		cookie, err := r.Cookie(cookies.CookieName("csrf_token"))
 		if err != nil {
 			http.Error(w, "CSRF token not found", http.StatusForbidden)
 			return
