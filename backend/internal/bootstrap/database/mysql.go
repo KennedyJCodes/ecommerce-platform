@@ -36,6 +36,10 @@ func SetupDatabaseMySQL(appConfig *config.AppConfig) (*sqlx.DB, error) {
 	// parseTime=true is critical for handling time-based domain models.
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", user, password, host, port, dbName)
 
+	if appConfig.IsDatabaseTLSEnabled() {
+		dsn += "&tls=true"
+	}
+
 	// Connect and ping the database to ensure it's reachable.
 	return sqlx.Connect("mysql", dsn)
 }
