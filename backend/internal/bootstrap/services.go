@@ -40,21 +40,22 @@ func SetupProductsService(db *sqlx.DB) input.ProductsGetService {
 }
 
 // SetupUserService initializes the authentication and registration services.
-// This function wires the user repository with the necessary validators for usernames and passwords. It also injects the CSRFService to handle security token generation during the authentication lifecycle.
+// This function wires the user repository with the necessary validators for usernames and passwords. It also injects the TokenService and CSRFService to handle security token generation during the authentication lifecycle.
 
 // Parameters:
 //   - userRepo: the user persistence adapter (output port).
+//   - tokenService: the service for JWT generation and validation (input port).
 //   - csrfService: the service for managing CSRF tokens (input port).
 //
 // Returns:
 //   - input.UserServiceLogin: the service handling user authentication.
 //   - input.UserServiceRegister: the service handling new user creation.
-func SetupUserService(userRepo output.UserRepository, csrfService input.CSRFService) (input.UserServiceLogin, input.UserServiceRegister) {
+func SetupUserService(userRepo output.UserRepository, tokenService input.TokenService, csrfService input.CSRFService) (input.UserServiceLogin, input.UserServiceRegister) {
 	// Initialize specific domain validators.
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}
 
 	// Create services with shared dependencies.
 	// The 'nil' parameter is reserved for future extensions (e.g., specific cookie setters).
-	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, csrfService, nil), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, csrfService, nil)
+	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService, nil), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService, nil)
 }

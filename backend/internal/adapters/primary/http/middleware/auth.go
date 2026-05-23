@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
-	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // contextKey is a private type used to define keys for context values.
@@ -47,6 +47,8 @@ type AuthOptions struct {
 	// ExcludedPaths is a slice of URL patterns that will not require authentication.
 	// Both exact matches and directory prefixes (ending with '/') are supported.
 	ExcludedPaths []string
+	// TokenService is used to parse and validate JWT tokens.
+	TokenService input.TokenService
 	// BlacklistRepo is used to check whether a JWT has been revoked.
 	BlacklistRepo output.TokenBlacklistPort
 }
@@ -112,7 +114,7 @@ func AuthMiddleware(options *AuthOptions) Middleware {
 			}
 
 			tokenString := cookie.Value
-			claims, err := securityAuth.ParseTokenWithClaims(tokenString)
+			claims, err := options.TokenService.ParseTokenWithClaims(tokenString)
 			if err != nil {
 				http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 				return

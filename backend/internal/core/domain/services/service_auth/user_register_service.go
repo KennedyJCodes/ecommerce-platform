@@ -25,12 +25,13 @@ type UserRegisterService struct {
 //
 // Returns:
 //   - input.UserServiceRegister: the registration service interface.
-func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceRegister {
+func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService input.TokenService, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceRegister {
 	return &UserRegisterService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,
 			UserNameValidator: userNameValidator,
 			PasswordValidator: passwordValidator,
+			TokenService:      tokenService,
 			CSRFService:       csrfService,
 			CSRFCookieSetter:  csrfCookieSetter,
 		},

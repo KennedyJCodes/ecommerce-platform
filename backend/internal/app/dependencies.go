@@ -25,6 +25,7 @@ type Dependencies struct {
 	StaticFileAdapter   output.StaticFilePort
 	ProductsGetService  input.ProductsGetService
 	CSRFMiddleware      *middleware.CSRFMiddleware
+	TokenService        input.TokenService
 	CSRFService         input.CSRFService
 	BlacklistRepo       output.TokenBlacklistPort
 }
@@ -43,11 +44,12 @@ func (a *Application) BuildDependencies() *Dependencies {
 
 	// Initialize core repositories and services using shared database connections.
 	userRepo := bootstrap.SetupUserRepository(a.db)
+	tokenService := bootstrap.SetupTokenService(a.config)
 	csrfService := bootstrap.SetupCSRFService(a.redisClient)
 	blacklistRepo := bootstrap.SetupTokenBlacklistRepository(a.redisClient)
 
 	// Inject repositories and services into their respective application logic layers.
-	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, csrfService)
+	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, tokenService, csrfService)
 	commentGetService, commentAddService := bootstrap.SetupCommentService(a.db)
 
 	return &Dependencies{
@@ -58,6 +60,7 @@ func (a *Application) BuildDependencies() *Dependencies {
 		RateHandler:         bootstrap.SetupRateLimiter(a.config),
 		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
 		ProductsGetService:  bootstrap.SetupProductsService(a.db),
+		TokenService:        tokenService,
 		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
 		CSRFService:         csrfService,
 		BlacklistRepo:       blacklistRepo,
@@ -85,5 +88,6 @@ func (a *Application) BuildRouter() http.Handler {
 		deps.CSRFService,
 		a.config.IsProduction(),
 		deps.BlacklistRepo,
+		deps.TokenService,
 	)
 }

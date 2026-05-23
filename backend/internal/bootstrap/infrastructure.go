@@ -39,6 +39,11 @@ func SetupUserRepository(db *sqlx.DB) output.UserRepository {
 	return repository_mysql.NewSQLUserRepository(db, hasher)
 }
 
+// SetupTokenService creates a new JWTService instance with the secret key from config.
+func SetupTokenService(appConfig *config.AppConfig) *security_auth.JWTService {
+	return security_auth.NewJWTService(appConfig.GetJWTSecret())
+}
+
 // SetupCommonServices configures global shared services that do not require per-instance state, such as the JWT authentication service.
 // It sets the default secret key used for signing and validating authentication tokens across the entire application.
 

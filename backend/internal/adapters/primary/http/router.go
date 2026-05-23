@@ -47,6 +47,7 @@ type RouterConfig struct {
 	MiddlewareManager  *middleware.MiddlewareManager
 	ProductsHandler    *ProductsHandler
 	CSRFMiddleware     *middleware.CSRFMiddleware
+	TokenService       input.TokenService
 	BlacklistRepo      output.TokenBlacklistPort
 }
 
@@ -65,6 +66,7 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 
 	rateLimitMW := middleware.RateLimitMiddleware(c.IPExtractor, c.RateLimiter)
 	authOpts := middleware.DefaultAuthOptions()
+	authOpts.TokenService = c.TokenService
 	authOpts.BlacklistRepo = c.BlacklistRepo
 	authMW := middleware.AuthMiddleware(authOpts)
 	csrfMW := c.CSRFMiddleware.ProtectCR
@@ -133,6 +135,7 @@ func NewRouter(
 	csrfService input.CSRFService,
 	isProduction bool,
 	blacklistRepo output.TokenBlacklistPort,
+	tokenService input.TokenService,
 ) *mux.Router {
 	// 1. Initialize a new router
 	router := mux.NewRouter()
@@ -142,8 +145,8 @@ func NewRouter(
 	registerHandler := NewRegisterHandler(userServiceRegister, csrfService, isProduction)
 	commentsGetHandler := NewCommentsGetHandler(commentGetService)
 	commentsAddHandler := NewCommentAddsHandler(commentAddService)
-	logoutHandler := NewLogoutHandler(blacklistRepo, isProduction)
-	refreshHandler := NewRefreshHandler(blacklistRepo, isProduction)
+	logoutHandler := NewLogoutHandler(tokenService, blacklistRepo, isProduction)
+	refreshHandler := NewRefreshHandler(tokenService, blacklistRepo, isProduction)
 	mainPageHandler := NewMainPageHandler()
 	staticFileHandler := NewStaticFileHandler(staticFileService)
 	productsHandler := NewProductsHandler(productsGetService)
@@ -177,6 +180,7 @@ func NewRouter(
 		MiddlewareManager:  middlewareManager,
 		ProductsHandler:    productsHandler,
 		CSRFMiddleware:     csrfMiddleware,
+		TokenService:       tokenService,
 	}
 
 	// 6. Register routes on router

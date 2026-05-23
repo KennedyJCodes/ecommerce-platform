@@ -135,28 +135,14 @@ func ValidateRefreshToken(tokenString string) (*models.Claims, error) {
 }
 
 // ParseTokenWithClaims validates a JWT string and extracts its custom claims.
-// It verifies the token signature using the HS256 signing method and the
-// configured secret key. On success, it returns a fully populated Claims
-// struct containing the user's ID, username, jti, and expiration metadata.
-//
-// Parameters:
-//   - tokenString: the raw JWT string to parse and validate.
-//
-// Returns:
-//   - *models.Claims: the extracted claims if the token is valid.
-//   - error: an error if the token is invalid, expired, or the service is uninitialized.
-func ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
-	if defaultJWTService == nil {
-		return nil, fmt.Errorf("JWT service not initialized")
-	}
-
+func (j *JWTService) ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
 	claims := &models.Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if token.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return defaultJWTService.secretKey, nil
+		return j.secretKey, nil
 	})
 
 	if err != nil {
@@ -167,4 +153,12 @@ func ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
 	}
 
 	return claims, nil
+}
+
+// ParseTokenWithClaims validates a JWT string using the default service.
+func ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
+	if defaultJWTService == nil {
+		return nil, fmt.Errorf("JWT service not initialized")
+	}
+	return defaultJWTService.ParseTokenWithClaims(tokenString)
 }
