@@ -21,13 +21,12 @@ import (
 // Performs the following operations in order:
 //  1. Creates the application instance
 //  2. Loads the configuration from environment variables or files
-//  3. Configures common services (logging, validation, etc.)
-//  4. Establishes a connection to the MySQL database
-//  5. Establishes a connection to Redis for caching
-//  6. Builds the HTTP router with all routes
-//  7. Applies security middleware
-//  8. Starts the HTTP server
-//  9. Waits for an interrupt signal for a graceful shutdown
+//  3. Establishes a connection to the MySQL database
+//  4. Establishes a connection to Redis for caching
+//  5. Builds the HTTP router with all routes
+//  6. Applies security middleware
+//  7. Starts the HTTP server
+//  8. Waits for an interrupt signal for a graceful shutdown
 
 // The function terminates program execution if any initialization step fails.
 // The server gracefully stops upon receiving a SIGINT or SIGTERM,
@@ -46,13 +45,6 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 	log.Println("Configuration loaded")
-
-	// Configure common services such as validators, loggers, etc.
-	log.Println("Setting up common services...")
-	if err := application.SetupCommonServices(); err != nil {
-		log.Fatalf("Failed to setup common services: %v", err)
-	}
-	log.Println("Common services setup complete")
 
 	// Establish a connection to a MySQL database
 	log.Println("Connecting to database...")

@@ -99,41 +99,6 @@ func (j *JWTService) ValidateRefreshToken(tokenString string) (*models.Claims, e
 	return claims, nil
 }
 
-// defaultJWTService holds the globally configured JWTService for convenience.
-var defaultJWTService *JWTService
-
-// SetDefaultJWTService configures the package‑level JWTService.
-// It should be called once at application startup with the secret key.
-func SetDefaultJWTService(secretKey string) {
-	defaultJWTService = NewJWTService(secretKey)
-}
-
-// GenerateJWT signs a token for userName using the default service.
-// Returns an error if the service has not been initialized.
-func GenerateJWT(userId int, userName string) (string, error) {
-	if defaultJWTService == nil {
-		return "", fmt.Errorf("JWT service not initialized")
-	}
-	return defaultJWTService.GenerateJWT(userId, userName)
-}
-
-// GenerateRefreshToken signs a refresh token for userName using the default service.
-// Returns an error if the service has not been initialized.
-func GenerateRefreshToken(userId int, userName string) (string, error) {
-	if defaultJWTService == nil {
-		return "", fmt.Errorf("JWT service not initialized")
-	}
-	return defaultJWTService.GenerateRefreshToken(userId, userName)
-}
-
-// ValidateRefreshToken parses and validates a refresh token using the default service.
-func ValidateRefreshToken(tokenString string) (*models.Claims, error) {
-	if defaultJWTService == nil {
-		return nil, fmt.Errorf("JWT service not initialized")
-	}
-	return defaultJWTService.ValidateRefreshToken(tokenString)
-}
-
 // ParseTokenWithClaims validates a JWT string and extracts its custom claims.
 func (j *JWTService) ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
 	claims := &models.Claims{}
@@ -153,12 +118,4 @@ func (j *JWTService) ParseTokenWithClaims(tokenString string) (*models.Claims, e
 	}
 
 	return claims, nil
-}
-
-// ParseTokenWithClaims validates a JWT string using the default service.
-func ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
-	if defaultJWTService == nil {
-		return nil, fmt.Errorf("JWT service not initialized")
-	}
-	return defaultJWTService.ParseTokenWithClaims(tokenString)
 }

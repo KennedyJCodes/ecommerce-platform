@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap"
 	bootstrap_database "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap/database"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
 	"github.com/jmoiron/sqlx"
@@ -18,9 +17,8 @@ import (
 
 // The idea is that the startup order is:
 // 1. Load configuration
-// 2. Configure common services
-// 3. Configure the database
-// 4. Configure Redis
+// 2. Configure the database
+// 3. Configure Redis
 // and upon completion or during shutdown, call Close.
 type Application struct {
 	config      *config.AppConfig // app configuration (e.g. port, DSNs, flags)
@@ -47,13 +45,6 @@ func NewConfigApplication() *Application {
 func (a *Application) LoadConfig() error {
 	a.config = config.NewAppConfig()
 	config.ValidateRequiredConfig(a.config.GetConfig())
-	return nil
-}
-
-// SetupCommonServices registers or configures shared services at the application level (for example: global loggers, dependency providers, common HTTP clients, etc.). It depends on LoadConfig having already been executed.
-// It does not return an error in the current deployment, but if the services you register can fail, consider propagating errors to abort the startup.
-func (a *Application) SetupCommonServices() error {
-	bootstrap.SetupCommonServices(a.config)
 	return nil
 }
 
