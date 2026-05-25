@@ -25,7 +25,7 @@ type UserRegisterService struct {
 //
 // Returns:
 //   - input.UserServiceRegister: the registration service interface.
-func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService input.TokenService, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceRegister {
+func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService input.TokenService, csrfService input.CSRFService) input.UserServiceRegister {
 	return &UserRegisterService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,
@@ -33,7 +33,6 @@ func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, p
 			PasswordValidator: passwordValidator,
 			TokenService:      tokenService,
 			CSRFService:       csrfService,
-			CSRFCookieSetter:  csrfCookieSetter,
 		},
 	}
 }
@@ -49,7 +48,7 @@ func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, p
 //  6. Session Issuance: Signs access and refresh JWTs for immediate authentication.
 //
 // Returns a TokenPair containing both tokens on success, or an error.
-func (r *UserRegisterService) Register(account models.Account) (*models.TokenPair, error) {
+func (r *UserRegisterService) Register(account models.Account, csrfCookieSetter output.CSRFCookieSetter) (*models.TokenPair, error) {
 	// 1. Validate input integrity (Format and Strength)
 	if err := r.ValidateUserName(account.UserName); err != nil {
 		return nil, errors.NewValidationError(errors.ErrInvalidUsername)
@@ -82,7 +81,7 @@ func (r *UserRegisterService) Register(account models.Account) (*models.TokenPai
 
 	// 5. Establish immediate security session (CSRF)
 	userIDStr := fmt.Sprintf("%d", userId)
-	if err := r.GenerateAndSetCSRFToken(userIDStr); err != nil {
+	if err := r.GenerateAndSetCSRFToken(userIDStr, csrfCookieSetter); err != nil {
 		return nil, err
 	}
 

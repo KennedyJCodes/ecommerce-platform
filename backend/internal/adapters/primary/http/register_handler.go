@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
@@ -57,15 +56,8 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create CSRF cookie setter for this request and inject into service
 	csrfCookieSetter := NewCSRFCookieSetter(w, h.isProduction)
-	if registerSvc, ok := h.userServiceRegister.(*service_auth.UserRegisterService); ok {
-		registerSvc.BaseAuthService.CSRFCookieSetter = csrfCookieSetter
-		registerSvc.BaseAuthService.CSRFService = h.csrfService
-	}
-
-	// Attempt to register the user and generate authentication tokens.
-	tokens, err := h.userServiceRegister.Register(account)
+	tokens, err := h.userServiceRegister.Register(account, csrfCookieSetter)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return

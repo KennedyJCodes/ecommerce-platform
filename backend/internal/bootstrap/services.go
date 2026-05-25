@@ -55,7 +55,5 @@ func SetupUserService(userRepo output.UserRepository, tokenService input.TokenSe
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}
 
-	// Create services with shared dependencies.
-	// The 'nil' parameter is reserved for future extensions (e.g., specific cookie setters).
-	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService, nil), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService, nil)
+	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService)
 }

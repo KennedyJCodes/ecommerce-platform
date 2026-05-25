@@ -27,7 +27,7 @@ type UserLoginService struct {
 //
 // Returns:
 //   - input.UserServiceLogin: the abstracted login service interface.
-func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService input.TokenService, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceLogin {
+func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService input.TokenService, csrfService input.CSRFService) input.UserServiceLogin {
 	return &UserLoginService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,
@@ -35,7 +35,6 @@ func NewUserLoginService(userRepo output.UserRepository, userNameValidator, pass
 			PasswordValidator: passwordValidator,
 			TokenService:      tokenService,
 			CSRFService:       csrfService,
-			CSRFCookieSetter:  csrfCookieSetter,
 		},
 	}
 }
@@ -49,7 +48,7 @@ func NewUserLoginService(userRepo output.UserRepository, userNameValidator, pass
 //  5. Token Issuance: Signs access and refresh JWTs for subsequent authorized requests.
 
 // Returns a TokenPair containing both tokens or a domain-specific error.
-func (l *UserLoginService) Login(account models.Account) (*models.TokenPair, error) {
+func (l *UserLoginService) Login(account models.Account, csrfCookieSetter output.CSRFCookieSetter) (*models.TokenPair, error) {
 	// 1. Validate format integrity
 	if err := l.ValidateUserName(account.UserName); err != nil {
 		return nil, errors.NewValidationError(errors.ErrInvalidUsername)
@@ -84,7 +83,7 @@ func (l *UserLoginService) Login(account models.Account) (*models.TokenPair, err
 
 	// 5. Establish CSRF Protection for the new session
 	userIDStr := fmt.Sprintf("%d", userId)
-	if err := l.GenerateAndSetCSRFToken(userIDStr); err != nil {
+	if err := l.GenerateAndSetCSRFToken(userIDStr, csrfCookieSetter); err != nil {
 		return nil, err
 	}
 

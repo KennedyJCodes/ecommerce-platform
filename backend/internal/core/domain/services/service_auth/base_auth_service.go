@@ -29,9 +29,6 @@ type BaseAuthService struct {
 
 	// CSRFService: domain service to manage the lifecycle of CSRF tokens.
 	CSRFService input.CSRFService
-
-	// CSRFCookieSetter: output port to bridge domain tokens with HTTP transport cookies.
-	CSRFCookieSetter output.CSRFCookieSetter
 }
 
 // ValidateUserName evaluates if the provided username meets business requirements.
@@ -82,9 +79,10 @@ func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*model
 }
 
 // GenerateAndSetCSRFToken orchestrates the creation of a CSRF token and its subsequent delivery to the client via a cookie setter.
-// It fails silently if services are not injected, allowing for optional CSRF flows.
-func (b *BaseAuthService) GenerateAndSetCSRFToken(userID string) error {
-	if b.CSRFService == nil || b.CSRFCookieSetter == nil {
+// The csrfCookieSetter is request-scoped and must be provided at call time.
+// It fails silently if CSRFService is not configured, allowing for optional CSRF flows.
+func (b *BaseAuthService) GenerateAndSetCSRFToken(userID string, csrfCookieSetter output.CSRFCookieSetter) error {
+	if b.CSRFService == nil || csrfCookieSetter == nil {
 		return nil
 	}
 
@@ -93,6 +91,6 @@ func (b *BaseAuthService) GenerateAndSetCSRFToken(userID string) error {
 		return errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	b.CSRFCookieSetter.SetCSRFCookie(csrfToken)
+	csrfCookieSetter.SetCSRFCookie(csrfToken)
 	return nil
 }
