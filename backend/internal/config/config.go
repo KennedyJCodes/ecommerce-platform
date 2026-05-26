@@ -37,6 +37,7 @@ func NewAppConfig() *AppConfig {
 	config.SetDefault("RATE_LIMITING_REQUESTS", 10.0)
 	config.SetDefault("RATE_LIMITING_BURST", 5)
 	config.SetDefault("RATE_LIMITING_CLEANUP_MINUTES", 5)
+	config.SetDefault("RATE_LIMITING_EXPIRATION_MINUTES", 30)
 	config.SetDefault("DATABASE_HOST", "localhost")
 	config.SetDefault("DATABASE_PORT", 3306)
 	config.SetDefault("DATABASE_NAME", "store_watches")
@@ -178,8 +179,10 @@ func (a *AppConfig) GetRedisConfig() models.RedisConfig {
 // GetRateLimitConfig returns a LimiterConfig populated from RATE_LIMITING_* configuration keys.
 func (a *AppConfig) GetRateLimitConfig() models.LimiterConfig {
 	return models.LimiterConfig{
-		RequestPerSecond: a.config.GetFloat64("RATE_LIMITING_REQUESTS"),
-		Burst:            a.config.GetInt("RATE_LIMITING_BURST"),
+		RequestPerSecond:   a.config.GetFloat64("RATE_LIMITING_REQUESTS"),
+		Burst:              a.config.GetInt("RATE_LIMITING_BURST"),
+		CleanupInterval:    time.Duration(a.config.GetInt("RATE_LIMITING_CLEANUP_MINUTES")) * time.Minute,
+		ExpirationDuration: time.Duration(a.config.GetInt("RATE_LIMITING_EXPIRATION_MINUTES")) * time.Minute,
 	}
 }
 

@@ -1,6 +1,8 @@
 // Package models defines core domain entities and configuration structs for the sale‑watches application.
 package models
 
+import "time"
+
 // LimiterConfig holds the settings for rate‑limiting behavior.
 
 // The fields are decoded via mapstructure tags when unmarshalling configuration (e.g., with Viper) into this struct. :contentReference[oaicite:0]{index=0}
@@ -12,5 +14,11 @@ type LimiterConfig struct {
 	RequestPerSecond float64 `mapstructure:"request_rate"`
 
 	// Burst specifies the maximum burst size over the steady request rate.
-	Burst            int     `mapstructure:"burst"`
+	Burst int `mapstructure:"burst"`
+
+	// CleanupInterval specifies how often inactive limiter entries are purged.
+	CleanupInterval time.Duration `mapstructure:"cleanup_interval"`
+
+	// ExpirationDuration specifies how long an IP limiter can stay idle before removal.
+	ExpirationDuration time.Duration `mapstructure:"expiration_duration"`
 }

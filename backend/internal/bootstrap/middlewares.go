@@ -25,7 +25,7 @@ import (
 //   - ratelimiter.RateLimiterHandler: a configured rate limiter ready for middleware injection.
 func SetupRateLimiter(appConfig *config.AppConfig) ratelimiter.RateLimiterHandler {
 	limiterConfig := appConfig.GetRateLimitConfig()
-	return ratelimiter.NewDefaultRateLimiter(limiterConfig.RequestPerSecond, limiterConfig.Burst)
+	return ratelimiter.NewDefaultRateLimiterWithCleanup(limiterConfig)
 }
 
 // SetupCSRFService initializes the CSRF domain service using Redis for token persistence.
