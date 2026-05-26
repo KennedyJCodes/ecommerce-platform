@@ -22,6 +22,7 @@ type CSRFMiddleware struct {
 // Parameters:
 //   - service: the CSRF service for token generation and validation (input port).
 //   - isProduction: whether the app runs in production (sets Secure flag on cookies).
+//
 // Returns:
 //   - *CSRFMiddleware: ready-to-use middleware.
 func NewCSRFMiddleware(service input.CSRFService, isProduction bool) *CSRFMiddleware {
@@ -92,6 +93,7 @@ func (m *CSRFMiddleware) ProtectCR(next http.Handler) http.Handler {
 		newToken, err := m.service.GenerateToken(userID)
 		if err == nil {
 			cookies.SetCSRFCookie(w, newToken, m.isProduction)
+			w.Header().Set("X-CSRF-Token", newToken)
 		}
 
 		next.ServeHTTP(w, r)

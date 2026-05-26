@@ -56,8 +56,7 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	csrfCookieSetter := NewCSRFCookieSetter(w, h.isProduction)
-	tokens, err := h.userServiceRegister.Register(account, csrfCookieSetter)
+	tokens, csrfToken, err := h.userServiceRegister.Register(account)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return
@@ -65,9 +64,11 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	cookies.SetAuthCookie(w, tokens.AccessToken, h.isProduction)
 	cookies.SetRefreshCookie(w, tokens.RefreshToken, h.isProduction)
+	cookies.SetCSRFCookie(w, csrfToken, h.isProduction)
 
 	// Send a JSON response indicating successful registration.
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
-		"message": "Successfully registered user",
+		"message":    "Successfully registered user",
+		"csrf_token": csrfToken,
 	})
 }

@@ -53,8 +53,7 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	csrfCookieSetter := NewCSRFCookieSetter(w, h.isProduction)
-	tokens, err := h.userServiceLogin.Login(account, csrfCookieSetter)
+	tokens, csrfToken, err := h.userServiceLogin.Login(account)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return
@@ -62,8 +61,10 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	cookies.SetAuthCookie(w, tokens.AccessToken, h.isProduction)
 	cookies.SetRefreshCookie(w, tokens.RefreshToken, h.isProduction)
+	cookies.SetCSRFCookie(w, csrfToken, h.isProduction)
 
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
-		"message": "Successful login",
+		"message":    "Successful login",
+		"csrf_token": csrfToken,
 	})
 }

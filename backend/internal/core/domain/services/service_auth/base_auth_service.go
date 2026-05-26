@@ -78,19 +78,18 @@ func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*model
 	}, nil
 }
 
-// GenerateAndSetCSRFToken orchestrates the creation of a CSRF token and its subsequent delivery to the client via a cookie setter.
-// The csrfCookieSetter is request-scoped and must be provided at call time.
+// GenerateCSRFToken creates a CSRF token for the given userID.
 // It fails silently if CSRFService is not configured, allowing for optional CSRF flows.
-func (b *BaseAuthService) GenerateAndSetCSRFToken(userID string, csrfCookieSetter output.CSRFCookieSetter) error {
-	if b.CSRFService == nil || csrfCookieSetter == nil {
-		return nil
+// Returns the generated token string, or an empty string and nil if CSRF is disabled.
+func (b *BaseAuthService) GenerateCSRFToken(userID string) (string, error) {
+	if b.CSRFService == nil {
+		return "", nil
 	}
 
 	csrfToken, err := b.CSRFService.GenerateToken(userID)
 	if err != nil {
-		return errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
+		return "", errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	csrfCookieSetter.SetCSRFCookie(csrfToken)
-	return nil
+	return csrfToken, nil
 }

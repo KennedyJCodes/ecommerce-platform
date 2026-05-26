@@ -4,25 +4,22 @@ package input
 
 import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 )
 
 // UserServiceLogin defines the interface for user authentication operations.
 // Implementations should verify user credentials and provide JWT tokens for authenticated sessions.
 type UserServiceLogin interface {
 	// Login authenticates a user using account credentials.
-	// The csrfCookieSetter is used to set the CSRF cookie on the HTTP response
-	// and is request-scoped (requires http.ResponseWriter).
-	// Returns a TokenPair containing access and refresh tokens, or an error if verification fails.
-	Login(account models.Account, csrfCookieSetter output.CSRFCookieSetter) (*models.TokenPair, error)
+	// Returns a TokenPair containing access and refresh tokens, the CSRF token,
+	// or an error if verification fails.
+	Login(account models.Account) (*models.TokenPair, string, error)
 }
 
 // UserServiceRegister defines the interface for user registration operations.
 // Implementations should handle new user account creation and provide JWT tokens upon successful registration.
 type UserServiceRegister interface {
 	// Register creates a new user account with provided credentials.
-	// The csrfCookieSetter is used to set the CSRF cookie on the HTTP response
-	// and is request-scoped (requires http.ResponseWriter).
-	// Returns a TokenPair containing access and refresh tokens, or an error if registration fails.
-	Register(account models.Account, csrfCookieSetter output.CSRFCookieSetter) (*models.TokenPair, error)
+	// Returns a TokenPair containing access and refresh tokens, the CSRF token,
+	// or an error if registration fails.
+	Register(account models.Account) (*models.TokenPair, string, error)
 }

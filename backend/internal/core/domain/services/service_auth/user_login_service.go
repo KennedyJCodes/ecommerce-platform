@@ -47,50 +47,51 @@ func NewUserLoginService(userRepo output.UserRepository, userNameValidator, pass
 //  4. Security Upgrading: Generates a new CSRF context for the authenticated session.
 //  5. Token Issuance: Signs access and refresh JWTs for subsequent authorized requests.
 
-// Returns a TokenPair containing both tokens or a domain-specific error.
-func (l *UserLoginService) Login(account models.Account, csrfCookieSetter output.CSRFCookieSetter) (*models.TokenPair, error) {
+// Returns a TokenPair containing both tokens and a CSRF token, or a domain-specific error.
+func (l *UserLoginService) Login(account models.Account) (*models.TokenPair, string, error) {
 	// 1. Validate format integrity
 	if err := l.ValidateUserName(account.UserName); err != nil {
-		return nil, errors.NewValidationError(errors.ErrInvalidUsername)
+		return nil, "", errors.NewValidationError(errors.ErrInvalidUsername)
 	}
 
 	// 2. Identify user in persistence
 	exists, err := l.CheckUserExists(account.UserName)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if !exists {
-		return nil, errors.NewAuthError(errors.ErrInvalidCredentials)
+		return nil, "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
 
 	// 3. Retrieve security credentials
 	storedHash, err := l.UserRepo.GetHashPassword(account.UserName)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	userId, err := l.UserRepo.GetID(account.UserName)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// 4. Cryptographic verification
 	// CompareHashAndPassword handles the complexity of constant-time comparisons to prevent timing attacks.
 	err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(account.Password))
 	if err != nil {
-		return nil, errors.NewAuthError(errors.ErrInvalidCredentials)
+		return nil, "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
 
 	// 5. Establish CSRF Protection for the new session
 	userIDStr := fmt.Sprintf("%d", userId)
-	if err := l.GenerateAndSetCSRFToken(userIDStr, csrfCookieSetter); err != nil {
-		return nil, err
+	csrfToken, err := l.GenerateCSRFToken(userIDStr)
+	if err != nil {
+		return nil, "", err
 	}
 
 	// 6. Finalize session via JWT
 	tokens, err := l.GenerateTokenPair(userId, account.UserName)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return tokens, nil
+	return tokens, csrfToken, nil
 }
