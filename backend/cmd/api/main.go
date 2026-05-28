@@ -33,7 +33,7 @@ import (
 // allowing up to 30 seconds to complete ongoing requests.
 
 func main() {
-    log.Println("Starting application...")
+	log.Println("Starting application...")
 
 	// Create application instance.
 	application := app.NewConfigApplication()
@@ -63,7 +63,10 @@ func main() {
 
 	// Build router with all routes and handlers
 	log.Println("Building router...")
-	router := application.BuildRouter()
+	router, err := application.BuildRouter()
+	if err != nil {
+		log.Fatalf("Failed to build router: %v", err)
+	}
 	log.Println("Router built")
 
 	// Apply security middleware (CORS, rate limiting, etc.)

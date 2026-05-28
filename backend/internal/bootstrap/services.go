@@ -3,6 +3,8 @@
 package bootstrap
 
 import (
+	"fmt"
+
 	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_comments"
@@ -21,10 +23,14 @@ import (
 // Returns:
 //   - input.CommentGetService: service for fetching comments.
 //   - input.CommentAddService: service for adding new comments.
-func SetupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService) {
-	commentRepo := repository_mysql.NewSqlCommentRepository(db)
+func SetupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService, error) {
+	commentRepo, err := repository_mysql.NewSqlCommentRepository(db)
+	if err != nil {
+		return nil, nil, fmt.Errorf("setup comment repository: %w", err)
+	}
+
 	commentValidator := &service_comments.CommentValidator{}
-	return service_comments.NewCommentGetService(commentRepo), service_comments.NewCommentAddService(commentRepo, commentValidator)
+	return service_comments.NewCommentGetService(commentRepo), service_comments.NewCommentAddService(commentRepo, commentValidator), nil
 }
 
 // SetupProductsService initializes the product catalog service.
@@ -34,9 +40,13 @@ func SetupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAdd
 //
 // Returns:
 //   - input.ProductsGetService: the service implementing the product retrieval port.
-func SetupProductsService(db *sqlx.DB) input.ProductsGetService {
-	productsRepo := repository_mysql.NewSqlProductsRepository(db)
-	return service_products.NewProductsGetService(productsRepo)
+func SetupProductsService(db *sqlx.DB) (input.ProductsGetService, error) {
+	productsRepo, err := repository_mysql.NewSqlProductsRepository(db)
+	if err != nil {
+		return nil, fmt.Errorf("setup products repository: %w", err)
+	}
+
+	return service_products.NewProductsGetService(productsRepo), nil
 }
 
 // SetupUserService initializes the authentication and registration services.

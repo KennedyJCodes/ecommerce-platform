@@ -3,6 +3,8 @@
 package bootstrap
 
 import (
+	"fmt"
+
 	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/static"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
@@ -33,15 +35,17 @@ func SetupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
 //
 // Returns:
 //   - output.UserRepository: a repository ready to handle user-related database operations.
-func SetupUserRepository(db *sqlx.DB) output.UserRepository {
+func SetupUserRepository(db *sqlx.DB) (output.UserRepository, error) {
 	// Define the hashing strategy to be used by the repository.
 	hasher := security_auth.BcryptHasher{}
-	return repository_mysql.NewSQLUserRepository(db, hasher)
+	userRepo, err := repository_mysql.NewSQLUserRepository(db, hasher)
+	if err != nil {
+		return nil, fmt.Errorf("setup user repository: %w", err)
+	}
+	return userRepo, nil
 }
 
 // SetupTokenService creates a new JWTService instance with the secret key from config.
 func SetupTokenService(appConfig *config.AppConfig) *security_auth.JWTService {
 	return security_auth.NewJWTService(appConfig.GetJWTSecret())
 }
-
-

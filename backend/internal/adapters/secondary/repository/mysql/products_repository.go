@@ -5,7 +5,6 @@ package repository_mysql
 import (
 	"database/sql"
 	"errors"
-	"log"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
@@ -21,15 +20,16 @@ type SqlProductsRepository struct {
 }
 
 // NewSqlProductsRepository creates and returns a new instance of SqlProductsRepository.
-// It ensures the database connection is valid; otherwise, it triggers a fatal log.
-func NewSqlProductsRepository(db *sqlx.DB) output.ProductsRepository {
+// It validates the database dependency and returns errors to the caller so
+// application startup can decide how to handle initialization failures.
+func NewSqlProductsRepository(db *sqlx.DB) (output.ProductsRepository, error) {
 	if db == nil {
-		log.Fatal(Custom_errors.NewInternalError(Custom_errors.ErrDatabaseConnection).Error())
+		return nil, Custom_errors.NewInternalError(Custom_errors.ErrDatabaseConnection)
 	}
 
 	return &SqlProductsRepository{
 		db: db,
-	}
+	}, nil
 }
 
 // GetProducts retrieves the complete list of products from the database.
