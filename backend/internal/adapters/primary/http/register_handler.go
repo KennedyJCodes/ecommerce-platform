@@ -3,7 +3,6 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
@@ -44,15 +43,10 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("Content-Type") != "application/json" {
-		httpUtil.HandleError(w, errors.NewUnsupportedMediaTypeError(errors.ErrUnsupportedMediaType))
-		return
-	}
-
 	// Decode the JSON request body into an Account instance.
 	var account models.Account
-	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
-		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))
+	if err := httpUtil.DecodeJSONBody(w, r, &account, httpUtil.MaxAuthBodySize); err != nil {
+		httpUtil.HandleError(w, err)
 		return
 	}
 
