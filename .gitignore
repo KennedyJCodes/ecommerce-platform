@@ -8,6 +8,9 @@
 # Ignore Go compiled binaries
 *.exe
 
+# Ignore Go coverage/profile output files
+/backend/cp.out
+
 # Ignore temporary build folders
 /backend/tmp
 /tmp/
