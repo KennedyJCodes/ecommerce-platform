@@ -7,7 +7,6 @@ import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
-	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // BaseAuthService serves as a foundational structure for authentication use cases.
@@ -25,11 +24,11 @@ type BaseAuthService struct {
 	// PasswordValidator: strategy to enforce password security requirements.
 	PasswordValidator input.Validator
 
+	// TokenService: domain service for JWT generation and validation.
+	TokenService input.TokenService
+
 	// CSRFService: domain service to manage the lifecycle of CSRF tokens.
 	CSRFService input.CSRFService
-
-	// CSRFCookieSetter: output port to bridge domain tokens with HTTP transport cookies.
-	CSRFCookieSetter output.CSRFCookieSetter
 }
 
 // ValidateUserName evaluates if the provided username meets business requirements.
@@ -63,12 +62,12 @@ func (b *BaseAuthService) CheckUserExists(username string) (bool, error) {
 // GenerateTokenPair wraps the security package logic to create an access JWT
 // and a refresh JWT. Returns a TokenPair or an InternalError on failure.
 func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*models.TokenPair, error) {
-	accessToken, err := securityAuth.GenerateJWT(userId, username)
+	accessToken, err := b.TokenService.GenerateJWT(userId, username)
 	if err != nil {
 		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	refreshToken, err := securityAuth.GenerateRefreshToken(userId, username)
+	refreshToken, err := b.TokenService.GenerateRefreshToken(userId, username)
 	if err != nil {
 		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
@@ -79,18 +78,18 @@ func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*model
 	}, nil
 }
 
-// GenerateAndSetCSRFToken orchestrates the creation of a CSRF token and its subsequent delivery to the client via a cookie setter.
-// It fails silently if services are not injected, allowing for optional CSRF flows.
-func (b *BaseAuthService) GenerateAndSetCSRFToken(userID string) error {
-	if b.CSRFService == nil || b.CSRFCookieSetter == nil {
-		return nil
+// GenerateCSRFToken creates a CSRF token for the given userID.
+// It fails silently if CSRFService is not configured, allowing for optional CSRF flows.
+// Returns the generated token string, or an empty string and nil if CSRF is disabled.
+func (b *BaseAuthService) GenerateCSRFToken(userID string) (string, error) {
+	if b.CSRFService == nil {
+		return "", nil
 	}
 
 	csrfToken, err := b.CSRFService.GenerateToken(userID)
 	if err != nil {
-		return errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
+		return "", errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	b.CSRFCookieSetter.SetCSRFCookie(csrfToken)
-	return nil
+	return csrfToken, nil
 }

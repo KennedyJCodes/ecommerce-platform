@@ -25,7 +25,7 @@ import (
 //   - ratelimiter.RateLimiterHandler: a configured rate limiter ready for middleware injection.
 func SetupRateLimiter(appConfig *config.AppConfig) ratelimiter.RateLimiterHandler {
 	limiterConfig := appConfig.GetRateLimitConfig()
-	return ratelimiter.NewDefaultRateLimiter(limiterConfig.RequestPerSecond, limiterConfig.Burst)
+	return ratelimiter.NewDefaultRateLimiterWithCleanup(limiterConfig)
 }
 
 // SetupCSRFService initializes the CSRF domain service using Redis for token persistence.
@@ -43,20 +43,14 @@ func SetupCSRFService(redisClient *redis.Client) input.CSRFService {
 }
 
 // SetupCSRFMiddleware creates the HTTP middleware responsible for CSRF validation.
-// It performs a type assertion to ensure the provided CSRF service is compatible with the middleware requirements.
-
 // Parameters:
 //   - csrfService: the CSRF service instance (input port).
 //   - isProduction: whether the app runs in production (sets Secure flag on cookies).
 //
 // Returns:
-//   - *middleware.CSRFMiddleware: the configured middleware, or nil if the type assertion fails.
+//   - *middleware.CSRFMiddleware: the configured middleware.
 func SetupCSRFMiddleware(csrfService input.CSRFService, isProduction bool) *middleware.CSRFMiddleware {
-	// Type assertion to bridge the input port with the specific middleware implementation.
-	if csrfUseCase, ok := csrfService.(*service_csrf.CSRFUseCase); ok {
-		return middleware.NewCSRFMiddleware(csrfUseCase, isProduction)
-	}
-	return nil
+	return middleware.NewCSRFMiddleware(csrfService, isProduction)
 }
 
 // SetupTokenBlacklistRepository initializes the Redis-backed token blacklist repository.

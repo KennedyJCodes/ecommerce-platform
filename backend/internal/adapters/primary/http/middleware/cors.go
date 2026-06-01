@@ -53,6 +53,7 @@ func PrivateCORSConfig() *CORSConfig {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: true,
+		ExposedHeaders:   []string{"X-CSRF-Token"},
 		MaxAge:           86400,
 	}
 }
@@ -118,24 +119,24 @@ func CORSMiddleware(config *CORSConfig) Middleware {
 				return
 			}
 
-				// For OPTIONS requests (preflight)
-				if r.Method == "OPTIONS" {
-					w.Header().Set("Access-Control-Allow-Methods", strings.Join(config.AllowedMethods, ", "))
-					w.Header().Set("Access-Control-Allow-Headers", strings.Join(config.AllowedHeaders, ", "))
+			// For OPTIONS requests (preflight)
+			if r.Method == "OPTIONS" {
+				w.Header().Set("Access-Control-Allow-Methods", strings.Join(config.AllowedMethods, ", "))
+				w.Header().Set("Access-Control-Allow-Headers", strings.Join(config.AllowedHeaders, ", "))
 
-					if config.MaxAge > 0 {
-						w.Header().Set("Access-Control-Max-Age", strconv.Itoa(config.MaxAge))
-					}
-
-					// Respond immediately to preflight requests
-					w.WriteHeader(http.StatusNoContent) 
-					return
+				if config.MaxAge > 0 {
+					w.Header().Set("Access-Control-Max-Age", strconv.Itoa(config.MaxAge))
 				}
 
-				// Expose headers if configured
-				if len(config.ExposedHeaders) > 0 {
-					w.Header().Set("Access-Control-Expose-Headers", strings.Join(config.ExposedHeaders, ", "))
-				}
+				// Respond immediately to preflight requests
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+
+			// Expose headers if configured
+			if len(config.ExposedHeaders) > 0 {
+				w.Header().Set("Access-Control-Expose-Headers", strings.Join(config.ExposedHeaders, ", "))
+			}
 
 			// Continue to the next middleware function
 			next.ServeHTTP(w, r)

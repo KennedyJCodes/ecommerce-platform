@@ -3,8 +3,6 @@
 package repository_mysql
 
 import (
-	"log"
-
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
@@ -21,21 +19,22 @@ type SqlCommentRepository struct {
 }
 
 // NewSqlCommentRepository creates a new SqlCommentRepository.
-// It fatally logs and exits if the provided db is nil, indicating a critical configuration error.
+// It validates the required database dependency and reports configuration
+// errors to the caller instead of exiting the process.
 
 // Parameters:
 //   - db: *sqlx.DB connection to the comments database.
 
 // Returns:
 //   - output.CommentRepository: initialized repository instance.
-func NewSqlCommentRepository(db *sqlx.DB) output.CommentRepository {
+func NewSqlCommentRepository(db *sqlx.DB) (output.CommentRepository, error) {
 	if db == nil {
-		log.Fatal(errors.NewInternalError(errors.ErrDatabaseConnection).Error())
+		return nil, errors.NewInternalError(errors.ErrDatabaseConnection)
 	}
 
 	return &SqlCommentRepository{
 		db: db,
-	}
+	}, nil
 }
 
 // GetComments retrieves all comments from the database, ordered by date descending.

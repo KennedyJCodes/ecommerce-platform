@@ -25,14 +25,14 @@ type UserRegisterService struct {
 //
 // Returns:
 //   - input.UserServiceRegister: the registration service interface.
-func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, csrfService input.CSRFService, csrfCookieSetter output.CSRFCookieSetter) input.UserServiceRegister {
+func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService input.TokenService, csrfService input.CSRFService) input.UserServiceRegister {
 	return &UserRegisterService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,
 			UserNameValidator: userNameValidator,
 			PasswordValidator: passwordValidator,
+			TokenService:      tokenService,
 			CSRFService:       csrfService,
-			CSRFCookieSetter:  csrfCookieSetter,
 		},
 	}
 }
@@ -47,44 +47,49 @@ func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, p
 //  5. Security Context: Initializes the CSRF state for the new user.
 //  6. Session Issuance: Signs access and refresh JWTs for immediate authentication.
 //
-// Returns a TokenPair containing both tokens on success, or an error.
-func (r *UserRegisterService) Register(account models.Account) (*models.TokenPair, error) {
+// Returns a TokenPair, a CSRF token on success, or an error.
+func (r *UserRegisterService) Register(account models.Account) (*models.TokenPair, string, error) {
 	// 1. Validate input integrity (Format and Strength)
 	if err := r.ValidateUserName(account.UserName); err != nil {
-		return nil, errors.NewValidationError(errors.ErrInvalidUsername)
+		return nil, "", errors.NewValidationError(errors.ErrInvalidUsername)
 	}
 
 	if err := r.ValidatePassword(account.Password); err != nil {
-		return nil, errors.NewValidationError(errors.ErrInvalidPassword)
+		return nil, "", errors.NewValidationError(errors.ErrInvalidPassword)
 	}
 
 	// 2. Ensure username uniqueness (Conflict Check)
 	exists, err := r.CheckUserExists(account.UserName)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if exists {
-		return nil, errors.NewConflictError(errors.ErrUserAlreadyExists)
+		return nil, "", errors.NewConflictError(errors.ErrUserAlreadyExists)
 	}
 
 	// 3. Persist the new identity
 	// The repository is expected to handle the cryptographic hashing before storage.
 	if err := r.UserRepo.SaveUser(account.UserName, account.Password); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// 4. Resolve the persistent ID
 	userId, err := r.UserRepo.GetID(account.UserName)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// 5. Establish immediate security session (CSRF)
 	userIDStr := fmt.Sprintf("%d", userId)
-	if err := r.GenerateAndSetCSRFToken(userIDStr); err != nil {
-		return nil, err
+	csrfToken, err := r.GenerateCSRFToken(userIDStr)
+	if err != nil {
+		return nil, "", err
 	}
 
 	// 6. Generate token pair
-	return r.GenerateTokenPair(userId, account.UserName)
+	tokens, err := r.GenerateTokenPair(userId, account.UserName)
+	if err != nil {
+		return nil, "", err
+	}
+	return tokens, csrfToken, nil
 }

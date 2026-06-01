@@ -3,6 +3,8 @@
 package bootstrap
 
 import (
+	"fmt"
+
 	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/static"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
@@ -33,18 +35,17 @@ func SetupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
 //
 // Returns:
 //   - output.UserRepository: a repository ready to handle user-related database operations.
-func SetupUserRepository(db *sqlx.DB) output.UserRepository {
+func SetupUserRepository(db *sqlx.DB) (output.UserRepository, error) {
 	// Define the hashing strategy to be used by the repository.
 	hasher := security_auth.BcryptHasher{}
-	return repository_mysql.NewSQLUserRepository(db, hasher)
+	userRepo, err := repository_mysql.NewSQLUserRepository(db, hasher)
+	if err != nil {
+		return nil, fmt.Errorf("setup user repository: %w", err)
+	}
+	return userRepo, nil
 }
 
-// SetupCommonServices configures global shared services that do not require per-instance state, such as the JWT authentication service.
-// It sets the default secret key used for signing and validating authentication tokens across the entire application.
-
-// Parameters:
-//   - appConfig: the global application configuration manager.
-func SetupCommonServices(appConfig *config.AppConfig) {
-	// Initialize the global JWT service with the secret key from config.
-	security_auth.SetDefaultJWTService(appConfig.GetJWTSecret())
+// SetupTokenService creates a new JWTService instance with the secret key from config.
+func SetupTokenService(appConfig *config.AppConfig) *security_auth.JWTService {
+	return security_auth.NewJWTService(appConfig.GetJWTSecret())
 }

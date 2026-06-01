@@ -3,6 +3,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 
 	primaryHttp "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http"
@@ -25,6 +26,7 @@ type Dependencies struct {
 	StaticFileAdapter   output.StaticFilePort
 	ProductsGetService  input.ProductsGetService
 	CSRFMiddleware      *middleware.CSRFMiddleware
+	TokenService        input.TokenService
 	CSRFService         input.CSRFService
 	BlacklistRepo       output.TokenBlacklistPort
 }
@@ -37,18 +39,31 @@ type Dependencies struct {
 //
 // Returns:
 //   - *Dependencies: a pointer to the fully populated Dependencies struct.
-func (a *Application) BuildDependencies() *Dependencies {
+func (a *Application) BuildDependencies() (*Dependencies, error) {
 	// Configure cookie prefix to avoid collisions on shared domains.
 	cookies.SetCookiePrefix(a.config.GetCookiePrefix())
 
 	// Initialize core repositories and services using shared database connections.
-	userRepo := bootstrap.SetupUserRepository(a.db)
+	userRepo, err := bootstrap.SetupUserRepository(a.db)
+	if err != nil {
+		return nil, fmt.Errorf("build dependencies: %w", err)
+	}
+
+	tokenService := bootstrap.SetupTokenService(a.config)
 	csrfService := bootstrap.SetupCSRFService(a.redisClient)
 	blacklistRepo := bootstrap.SetupTokenBlacklistRepository(a.redisClient)
 
 	// Inject repositories and services into their respective application logic layers.
-	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, csrfService)
-	commentGetService, commentAddService := bootstrap.SetupCommentService(a.db)
+	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, tokenService, csrfService)
+	commentGetService, commentAddService, err := bootstrap.SetupCommentService(a.db)
+	if err != nil {
+		return nil, fmt.Errorf("build dependencies: %w", err)
+	}
+
+	productsGetService, err := bootstrap.SetupProductsService(a.db)
+	if err != nil {
+		return nil, fmt.Errorf("build dependencies: %w", err)
+	}
 
 	return &Dependencies{
 		UserServiceLogin:    userServiceLogin,
@@ -57,20 +72,24 @@ func (a *Application) BuildDependencies() *Dependencies {
 		CommentAddService:   commentAddService,
 		RateHandler:         bootstrap.SetupRateLimiter(a.config),
 		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
-		ProductsGetService:  bootstrap.SetupProductsService(a.db),
+		ProductsGetService:  productsGetService,
+		TokenService:        tokenService,
 		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
 		CSRFService:         csrfService,
 		BlacklistRepo:       blacklistRepo,
-	}
+	}, nil
 }
 
 // BuildRouter constructs the final HTTP handler for the application.
 // This method serves as the Composition Root, where dependencies are resolved and passed into the primary HTTP adapter (NewRouter).
 // Returns:
 //   - http.Handler: a fully configured router ready to serve requests.
-func (a *Application) BuildRouter() http.Handler {
+func (a *Application) BuildRouter() (http.Handler, error) {
 	// Step 1: Resolve all dependencies.
-	deps := a.BuildDependencies()
+	deps, err := a.BuildDependencies()
+	if err != nil {
+		return nil, err
+	}
 
 	// Step 2: Inject dependencies into the HTTP router factory.
 	return primaryHttp.NewRouter(
@@ -85,5 +104,6 @@ func (a *Application) BuildRouter() http.Handler {
 		deps.CSRFService,
 		a.config.IsProduction(),
 		deps.BlacklistRepo,
-	)
+		deps.TokenService,
+	), nil
 }

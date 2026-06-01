@@ -99,64 +99,15 @@ func (j *JWTService) ValidateRefreshToken(tokenString string) (*models.Claims, e
 	return claims, nil
 }
 
-// defaultJWTService holds the globally configured JWTService for convenience.
-var defaultJWTService *JWTService
-
-// SetDefaultJWTService configures the package‑level JWTService.
-// It should be called once at application startup with the secret key.
-func SetDefaultJWTService(secretKey string) {
-	defaultJWTService = NewJWTService(secretKey)
-}
-
-// GenerateJWT signs a token for userName using the default service.
-// Returns an error if the service has not been initialized.
-func GenerateJWT(userId int, userName string) (string, error) {
-	if defaultJWTService == nil {
-		return "", fmt.Errorf("JWT service not initialized")
-	}
-	return defaultJWTService.GenerateJWT(userId, userName)
-}
-
-// GenerateRefreshToken signs a refresh token for userName using the default service.
-// Returns an error if the service has not been initialized.
-func GenerateRefreshToken(userId int, userName string) (string, error) {
-	if defaultJWTService == nil {
-		return "", fmt.Errorf("JWT service not initialized")
-	}
-	return defaultJWTService.GenerateRefreshToken(userId, userName)
-}
-
-// ValidateRefreshToken parses and validates a refresh token using the default service.
-func ValidateRefreshToken(tokenString string) (*models.Claims, error) {
-	if defaultJWTService == nil {
-		return nil, fmt.Errorf("JWT service not initialized")
-	}
-	return defaultJWTService.ValidateRefreshToken(tokenString)
-}
-
 // ParseTokenWithClaims validates a JWT string and extracts its custom claims.
-// It verifies the token signature using the HS256 signing method and the
-// configured secret key. On success, it returns a fully populated Claims
-// struct containing the user's ID, username, jti, and expiration metadata.
-//
-// Parameters:
-//   - tokenString: the raw JWT string to parse and validate.
-//
-// Returns:
-//   - *models.Claims: the extracted claims if the token is valid.
-//   - error: an error if the token is invalid, expired, or the service is uninitialized.
-func ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
-	if defaultJWTService == nil {
-		return nil, fmt.Errorf("JWT service not initialized")
-	}
-
+func (j *JWTService) ParseTokenWithClaims(tokenString string) (*models.Claims, error) {
 	claims := &models.Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if token.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return defaultJWTService.secretKey, nil
+		return j.secretKey, nil
 	})
 
 	if err != nil {

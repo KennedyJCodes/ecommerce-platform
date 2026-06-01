@@ -8,30 +8,32 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
-	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // RefreshHandler handles HTTP requests for token renewal.
 // It validates the refresh token stored in a cookie, checks it against the
 // blacklist, revokes the old token (rotation), and issues a fresh token pair.
 type RefreshHandler struct {
+	tokenService  input.TokenService
 	blacklistRepo output.TokenBlacklistPort
 	isProduction  bool
 }
 
 // NewRefreshHandler creates and returns a new RefreshHandler instance.
 // Parameters:
+//   - tokenService: the service for JWT generation and validation.
 //   - blacklistRepo: an implementation of the TokenBlacklistPort for token revocation.
 //   - isProduction: whether the app runs in production (sets Secure flag on cookies).
 //
 // Returns:
 //   - *RefreshHandler: ready-to-use handler for the /refresh endpoint.
-func NewRefreshHandler(blacklistRepo output.TokenBlacklistPort, isProduction bool) *RefreshHandler {
-	return &RefreshHandler{blacklistRepo: blacklistRepo, isProduction: isProduction}
+func NewRefreshHandler(tokenService input.TokenService, blacklistRepo output.TokenBlacklistPort, isProduction bool) *RefreshHandler {
+	return &RefreshHandler{tokenService: tokenService, blacklistRepo: blacklistRepo, isProduction: isProduction}
 }
 
 // Handle processes HTTP POST requests for token refresh.
@@ -55,7 +57,7 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := securityAuth.ValidateRefreshToken(cookie.Value)
+	claims, err := h.tokenService.ValidateRefreshToken(cookie.Value)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewAuthError("Invalid or expired refresh token"))
 		return
@@ -76,13 +78,13 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		_ = h.blacklistRepo.Add(claims.ID, ttl)
 	}
 
-	newAccessToken, err := securityAuth.GenerateJWT(claims.UserID, claims.UserName)
+	newAccessToken, err := h.tokenService.GenerateJWT(claims.UserID, claims.UserName)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error generating access token"))
 		return
 	}
 
-	newRefreshToken, err := securityAuth.GenerateRefreshToken(claims.UserID, claims.UserName)
+	newRefreshToken, err := h.tokenService.GenerateRefreshToken(claims.UserID, claims.UserName)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error generating refresh token"))
 		return

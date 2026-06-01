@@ -3,7 +3,6 @@ package repository_mysql
 
 import (
 	"database/sql"
-	"log"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
@@ -21,23 +20,21 @@ type SQLUserRepository struct {
 
 // NewSQLUserRepository creates a new SQLUserRepository instance.
 
-// It logs a fatal error if any dependency is nil, ensuring that the repository always has a valid database connection, salt generator, and hasher.
-// Returns an output.UserRepository ready for use.
-func NewSQLUserRepository(db *sqlx.DB, hasher securityAuth.Hasher) output.UserRepository {
+// It validates constructor dependencies and returns an error instead of
+// terminating the process, leaving startup decisions to the composition root.
+func NewSQLUserRepository(db *sqlx.DB, hasher securityAuth.Hasher) (output.UserRepository, error) {
 	if db == nil {
-		log.Fatal(errors.NewInternalError(errors.ErrDatabaseConnection).Error())
+		return nil, errors.NewInternalError(errors.ErrDatabaseConnection)
 	}
 
 	if hasher == nil {
-		log.Fatal(errors.NewInternalError("Hasher not initialized").Error())
+		return nil, errors.NewInternalError("Hasher not initialized")
 	}
-
-	log.Println("NewSQLUserRepository() is running successfully")
 
 	return &SQLUserRepository{
 		db:     db,
 		hasher: hasher,
-	}
+	}, nil
 }
 
 // UserExists checks whether a user with the given username exists in the database.

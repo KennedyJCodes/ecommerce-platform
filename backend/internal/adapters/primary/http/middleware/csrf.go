@@ -6,26 +6,27 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_csrf"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	cookies "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 )
 
 // CSRFMiddleware coordinates CSRF protection by validating tokens against a dedicated CSRF service. It uses a Double Submit Cookie pattern coupled with server-side validation and rotates tokens after each use.
 type CSRFMiddleware struct {
-	// service_csrf provides the business logic for token validation and lifecycle.
-	service_csrf *service_csrf.CSRFUseCase
+	// service provides the business logic for token validation and lifecycle.
+	service input.CSRFService
 	// isProduction determines whether the Secure flag is set on CSRF cookies.
 	isProduction bool
 }
 
 // NewCSRFMiddleware creates a new instance of CSRFMiddleware with the provided CSRF service and environment flag.
 // Parameters:
-//   - service_csrf: the CSRF use case for token generation and validation.
+//   - service: the CSRF service for token generation and validation (input port).
 //   - isProduction: whether the app runs in production (sets Secure flag on cookies).
+//
 // Returns:
 //   - *CSRFMiddleware: ready-to-use middleware.
-func NewCSRFMiddleware(service_csrf *service_csrf.CSRFUseCase, isProduction bool) *CSRFMiddleware {
-	return &CSRFMiddleware{service_csrf: service_csrf, isProduction: isProduction}
+func NewCSRFMiddleware(service input.CSRFService, isProduction bool) *CSRFMiddleware {
+	return &CSRFMiddleware{service: service, isProduction: isProduction}
 }
 
 // ProtectCR (Protect Collaborative Resources) is a middleware that enforces CSRF  validation for state-changing HTTP methods.
@@ -83,15 +84,16 @@ func (m *CSRFMiddleware) ProtectCR(next http.Handler) http.Handler {
 		}
 
 		// 4. Cryptographic/Logical validation via service (consumes the old token)
-		if err := m.service_csrf.ValidateToken(cookie.Value, userID); err != nil {
+		if err := m.service.ValidateToken(cookie.Value, userID); err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
 		// 5. Generate a new CSRF token for the next request (token rotation)
-		newToken, err := m.service_csrf.GenerateToken(userID)
+		newToken, err := m.service.GenerateToken(userID)
 		if err == nil {
 			cookies.SetCSRFCookie(w, newToken, m.isProduction)
+			w.Header().Set("X-CSRF-Token", newToken)
 		}
 
 		next.ServeHTTP(w, r)

@@ -9,6 +9,7 @@ package ratelimiter
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
@@ -55,6 +56,20 @@ func NewDefaultRateLimiter(requestPerSecond float64, burst int) RateLimiterHandl
 	}
 }
 
+// NewDefaultRateLimiterWithCleanup creates a rate limiter and starts background cleanup
+// for inactive IP entries.
+func NewDefaultRateLimiterWithCleanup(config models.LimiterConfig) RateLimiterHandler {
+	manager := NewRateLimiterManager()
+	manager.SetDefaultLimiterConfig(config)
+
+	cleaner := NewRateLimiterCleaner(manager)
+	cleaner.Start(config.ExpirationDuration, config.CleanupInterval)
+
+	return &DefaultRateLimiter{
+		manager: manager,
+	}
+}
+
 // Allow implements rate limiting check for the specified IP address.
 // Consumes one token from the IP's rate limiter bucket.
 func (d *DefaultRateLimiter) Allow(ipAddress string) bool {
@@ -94,19 +109,21 @@ func (m *DefaultRateLimiterManager) GetRateLimiterForIP(ipAddress string) *rate.
 	record, exists := m.ipLimiterCache.Load(ipAddress)
 	if exists {
 		limiterRecord := record.(*LimiterEntry)
-		limiterRecord.lastSeen = currentTime
+		limiterRecord.touch(currentTime)
 		return limiterRecord.limiter
 	}
 
 	newLimiter := rate.NewLimiter(rate.Limit(m.defaultConfig.RequestPerSecond), m.defaultConfig.Burst)
 	newRecord := &LimiterEntry{
-		limiter:  newLimiter,
-		lastSeen: currentTime,
+		limiter: newLimiter,
 	}
+	newRecord.touch(currentTime)
 
 	actualRecord, loaded := m.ipLimiterCache.LoadOrStore(ipAddress, newRecord)
 	if loaded {
-		return actualRecord.(*LimiterEntry).limiter
+		limiterRecord := actualRecord.(*LimiterEntry)
+		limiterRecord.touch(currentTime)
+		return limiterRecord.limiter
 	}
 	return newLimiter
 }
@@ -117,7 +134,7 @@ func (m *DefaultRateLimiterManager) CleanupInactiveLimiters(expirationDuration t
 	currentTime := time.Now()
 	m.ipLimiterCache.Range(func(key, value interface{}) bool {
 		limiterRecord := value.(*LimiterEntry)
-		if currentTime.Sub(limiterRecord.lastSeen) > expirationDuration {
+		if currentTime.Sub(limiterRecord.lastSeen()) > expirationDuration {
 			m.ipLimiterCache.Delete(key)
 		}
 		return true
@@ -126,6 +143,14 @@ func (m *DefaultRateLimiterManager) CleanupInactiveLimiters(expirationDuration t
 
 // LimiterEntry represents a rate limiter instance with last access timestamp.
 type LimiterEntry struct {
-	limiter  *rate.Limiter // Token bucket rate limiter instance
-	lastSeen time.Time     // Last access time for cleanup tracking
+	limiter          *rate.Limiter // Token bucket rate limiter instance
+	lastSeenUnixNano atomic.Int64  // Last access time for cleanup tracking
+}
+
+func (e *LimiterEntry) touch(t time.Time) {
+	e.lastSeenUnixNano.Store(t.UnixNano())
+}
+
+func (e *LimiterEntry) lastSeen() time.Time {
+	return time.Unix(0, e.lastSeenUnixNano.Load())
 }

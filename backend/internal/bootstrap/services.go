@@ -3,6 +3,8 @@
 package bootstrap
 
 import (
+	"fmt"
+
 	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_comments"
@@ -21,10 +23,14 @@ import (
 // Returns:
 //   - input.CommentGetService: service for fetching comments.
 //   - input.CommentAddService: service for adding new comments.
-func SetupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService) {
-	commentRepo := repository_mysql.NewSqlCommentRepository(db)
+func SetupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService, error) {
+	commentRepo, err := repository_mysql.NewSqlCommentRepository(db)
+	if err != nil {
+		return nil, nil, fmt.Errorf("setup comment repository: %w", err)
+	}
+
 	commentValidator := &service_comments.CommentValidator{}
-	return service_comments.NewCommentGetService(commentRepo), service_comments.NewCommentAddService(commentRepo, commentValidator)
+	return service_comments.NewCommentGetService(commentRepo), service_comments.NewCommentAddService(commentRepo, commentValidator), nil
 }
 
 // SetupProductsService initializes the product catalog service.
@@ -34,27 +40,30 @@ func SetupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAdd
 //
 // Returns:
 //   - input.ProductsGetService: the service implementing the product retrieval port.
-func SetupProductsService(db *sqlx.DB) input.ProductsGetService {
-	productsRepo := repository_mysql.NewSqlProductsRepository(db)
-	return service_products.NewProductsGetService(productsRepo)
+func SetupProductsService(db *sqlx.DB) (input.ProductsGetService, error) {
+	productsRepo, err := repository_mysql.NewSqlProductsRepository(db)
+	if err != nil {
+		return nil, fmt.Errorf("setup products repository: %w", err)
+	}
+
+	return service_products.NewProductsGetService(productsRepo), nil
 }
 
 // SetupUserService initializes the authentication and registration services.
-// This function wires the user repository with the necessary validators for usernames and passwords. It also injects the CSRFService to handle security token generation during the authentication lifecycle.
+// This function wires the user repository with the necessary validators for usernames and passwords. It also injects the TokenService and CSRFService to handle security token generation during the authentication lifecycle.
 
 // Parameters:
 //   - userRepo: the user persistence adapter (output port).
+//   - tokenService: the service for JWT generation and validation (input port).
 //   - csrfService: the service for managing CSRF tokens (input port).
 //
 // Returns:
 //   - input.UserServiceLogin: the service handling user authentication.
 //   - input.UserServiceRegister: the service handling new user creation.
-func SetupUserService(userRepo output.UserRepository, csrfService input.CSRFService) (input.UserServiceLogin, input.UserServiceRegister) {
+func SetupUserService(userRepo output.UserRepository, tokenService input.TokenService, csrfService input.CSRFService) (input.UserServiceLogin, input.UserServiceRegister) {
 	// Initialize specific domain validators.
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}
 
-	// Create services with shared dependencies.
-	// The 'nil' parameter is reserved for future extensions (e.g., specific cookie setters).
-	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, csrfService, nil), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, csrfService, nil)
+	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService)
 }

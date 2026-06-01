@@ -3,11 +3,9 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
@@ -45,27 +43,14 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("Content-Type") != "application/json" {
-		httpUtil.HandleError(w, errors.NewUnsupportedMediaTypeError(errors.ErrUnsupportedMediaType))
-		return
-	}
-
 	// Decode the JSON request body into an Account instance.
 	var account models.Account
-	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
-		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))
+	if err := httpUtil.DecodeJSONBody(w, r, &account, httpUtil.MaxAuthBodySize); err != nil {
+		httpUtil.HandleError(w, err)
 		return
 	}
 
-	// Create CSRF cookie setter for this request and inject into service
-	csrfCookieSetter := NewCSRFCookieSetter(w, h.isProduction)
-	if registerSvc, ok := h.userServiceRegister.(*service_auth.UserRegisterService); ok {
-		registerSvc.BaseAuthService.CSRFCookieSetter = csrfCookieSetter
-		registerSvc.BaseAuthService.CSRFService = h.csrfService
-	}
-
-	// Attempt to register the user and generate authentication tokens.
-	tokens, err := h.userServiceRegister.Register(account)
+	tokens, csrfToken, err := h.userServiceRegister.Register(account)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return
@@ -73,9 +58,11 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	cookies.SetAuthCookie(w, tokens.AccessToken, h.isProduction)
 	cookies.SetRefreshCookie(w, tokens.RefreshToken, h.isProduction)
+	cookies.SetCSRFCookie(w, csrfToken, h.isProduction)
 
 	// Send a JSON response indicating successful registration.
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
-		"message": "Successfully registered user",
+		"message":    "Successfully registered user",
+		"csrf_token": csrfToken,
 	})
 }

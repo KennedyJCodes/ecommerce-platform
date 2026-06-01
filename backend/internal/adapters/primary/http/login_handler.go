@@ -3,11 +3,9 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
@@ -43,25 +41,13 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("Content-Type") != "application/json" {
-		httpUtil.HandleError(w, errors.NewUnsupportedMediaTypeError(errors.ErrUnsupportedMediaType))
-		return
-	}
-
 	var account models.Account
-	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
-		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))
+	if err := httpUtil.DecodeJSONBody(w, r, &account, httpUtil.MaxAuthBodySize); err != nil {
+		httpUtil.HandleError(w, err)
 		return
 	}
 
-	// Create CSRF cookie setter for this request and inject into service
-	csrfCookieSetter := NewCSRFCookieSetter(w, h.isProduction)
-	if loginSvc, ok := h.userServiceLogin.(*service_auth.UserLoginService); ok {
-		loginSvc.BaseAuthService.CSRFCookieSetter = csrfCookieSetter
-		loginSvc.BaseAuthService.CSRFService = h.csrfService
-	}
-
-	tokens, err := h.userServiceLogin.Login(account)
+	tokens, csrfToken, err := h.userServiceLogin.Login(account)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return
@@ -69,8 +55,10 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	cookies.SetAuthCookie(w, tokens.AccessToken, h.isProduction)
 	cookies.SetRefreshCookie(w, tokens.RefreshToken, h.isProduction)
+	cookies.SetCSRFCookie(w, csrfToken, h.isProduction)
 
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
-		"message": "Successful login",
+		"message":    "Successful login",
+		"csrf_token": csrfToken,
 	})
 }

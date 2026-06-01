@@ -168,6 +168,11 @@ Todas las rutas bajo el mismo origen que sirve el backend (por defecto `http://l
 | POST | `/login` | No | Inicio de sesión. |
 | POST | `/comments/newComments` | Sí (JWT) + CSRF | Alta de comentario. |
 
+Las rutas `POST` que reciben JSON validan `Content-Type: application/json`
+(también con parámetros como `charset=utf-8`), rechazan campos desconocidos,
+aceptan un solo valor JSON por request y limitan el tamaño del cuerpo para
+evitar payloads excesivos: autenticación usa 8 KiB y comentarios usa 16 KiB.
+
 Los ficheros estáticos (CSS, imágenes, etc.) se sirven bajo rutas registradas por `StaticFileHandler` (mismo servidor).
 
 ## Desarrollo local sin Docker

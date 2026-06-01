@@ -14,10 +14,10 @@ import (
 // AppError represents an application error with HTTP metadata and optional cause.
 // Use constructor functions (NewBadRequestError, etc.) to create properly initialized instances.
 type AppError struct {
-	Code           int
-	Message        string // Safe message sent to the client
+	Code            int
+	Message         string // Safe message sent to the client
 	InternalMessage string // Detailed message for internal logging (never sent to client)
-	Err            error
+	Err             error
 }
 
 // Error implements the error interface, formatting the error with code and internal details.
@@ -42,7 +42,7 @@ func (e *AppError) Unwrap() error {
 // WithError attaches a root cause error to the AppError instance.
 // Enables error chain tracking while maintaining the original AppError context.
 // Returns the modified AppError to enable method chaining.
-	
+
 // NewConflictError creates 409 Conflict error for resource state conflicts
 func (e *AppError) WithError(err error) *AppError {
 	e.Err = err
@@ -115,6 +115,14 @@ func NewForbiddenError(message string) *AppError {
 func NewUnsupportedMediaTypeError(message string) *AppError {
 	return &AppError{
 		Code:    http.StatusUnsupportedMediaType,
+		Message: message,
+	}
+}
+
+// NewRequestEntityTooLargeError creates 413 Payload Too Large for oversized request bodies.
+func NewRequestEntityTooLargeError(message string) *AppError {
+	return &AppError{
+		Code:    http.StatusRequestEntityTooLarge,
 		Message: message,
 	}
 }

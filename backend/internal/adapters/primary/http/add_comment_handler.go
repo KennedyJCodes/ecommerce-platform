@@ -3,7 +3,6 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
@@ -61,14 +60,9 @@ func (h *CommentsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Step 2: Decode JSON body
-	if r.Header.Get("Content-Type") != "application/json" {
-		httpUtil.HandleError(w, errors.NewUnsupportedMediaTypeError(errors.ErrUnsupportedMediaType))
-		return
-	}
-
 	var account models.Review
-	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
-		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))
+	if err := httpUtil.DecodeJSONBody(w, r, &account, httpUtil.MaxCommentBodySize); err != nil {
+		httpUtil.HandleError(w, err)
 		return
 	}
 
