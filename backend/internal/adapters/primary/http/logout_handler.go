@@ -9,7 +9,6 @@ import (
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
@@ -21,7 +20,7 @@ import (
 // preventing further use of the same token even before its natural expiration.
 type LogoutHandler struct {
 	// tokenService: service for JWT token validation.
-	tokenService input.TokenService
+	tokenService output.TokenService
 	// blacklistRepo: output port for persisting revoked JWT identifiers.
 	blacklistRepo output.TokenBlacklistPort
 	// isProduction: controls the Secure flag on the cleared cookie.
@@ -35,7 +34,7 @@ type LogoutHandler struct {
 //   - isProduction: whether the app runs in production (sets Secure flag on cleared cookie).
 // Returns:
 //   - *LogoutHandler: ready-to-use handler for the logout endpoint.
-func NewLogoutHandler(tokenService input.TokenService, blacklistRepo output.TokenBlacklistPort, isProduction bool) *LogoutHandler {
+func NewLogoutHandler(tokenService output.TokenService, blacklistRepo output.TokenBlacklistPort, isProduction bool) *LogoutHandler {
 	return &LogoutHandler{tokenService: tokenService, blacklistRepo: blacklistRepo, isProduction: isProduction}
 }
 
@@ -81,7 +80,7 @@ func (h *LogoutHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// Revoke refresh token if present
 	if refreshCookie, err := r.Cookie(cookies.CookieName("refresh_token")); err == nil && refreshCookie.Value != "" {
-		if refreshClaims, parseErr := h.tokenService.ValidateRefreshToken(refreshCookie.Value); parseErr == nil {
+		if refreshClaims, parseErr := h.tokenService.ValidateToken(refreshCookie.Value); parseErr == nil {
 			refreshTTL := 7 * 24 * time.Hour
 			if refreshClaims.ExpiresAt != nil {
 				refreshTTL = time.Until(refreshClaims.ExpiresAt.Time)

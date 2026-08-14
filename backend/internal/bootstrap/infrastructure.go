@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/security/jwt"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/static"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
@@ -46,6 +47,6 @@ func SetupUserRepository(db *sqlx.DB) (output.UserRepository, error) {
 }
 
 // SetupTokenService creates a new JWTService instance with the secret key from config.
-func SetupTokenService(appConfig *config.AppConfig) *security_auth.JWTService {
-	return security_auth.NewJWTService(appConfig.GetJWTSecret())
+func SetupTokenService(appConfig *config.AppConfig) *jwt.JWTService {
+	return jwt.NewJWTService(appConfig.GetJWTSecret())
 }

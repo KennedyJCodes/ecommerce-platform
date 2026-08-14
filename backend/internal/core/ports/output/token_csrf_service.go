@@ -1,5 +1,5 @@
 // Package input defines service contracts for comment-related business logic, user operations, and input validation.
-package input
+package output
 
 // CSRFService defines the contract for Cross-Site Request Forgery protection.
 // Implementations must ensure the integrity and authenticity of requests by linking tokens to specific users.

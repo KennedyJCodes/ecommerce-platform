@@ -34,21 +34,21 @@ type RouterConfiguration interface {
 //   - MiddlewareManager: orchestrates application of global and route-specific middleware.
 //   - BlacklistRepo: repository for checking revoked JWT tokens.
 type RouterConfig struct {
-	IPExtractor        ratelimiter.IPExtractor
-	RateLimiter        ratelimiter.RateLimiterHandler
-	LoginHandler       *LoginHandler
-	RegisterHandler    *RegisterHandler
-	RefreshHandler     *RefreshHandler
-	CommentsGetHandler *CommentsGetHandler
-	CommentsAddHandler *CommentsAddHandler
-	LogoutHandler      *LogoutHandler
-	MainPageHandler    *MainPageHandler
-	StaticFileHandler  *StaticFileHandler
-	MiddlewareManager  *middleware.MiddlewareManager
-	ProductsHandler    *ProductsHandler
-	CSRFMiddleware     *middleware.CSRFMiddleware
-	TokenService       input.TokenService
-	BlacklistRepo      output.TokenBlacklistPort
+	IPExtractor            ratelimiter.IPExtractor
+	RateLimiter            ratelimiter.RateLimiterHandler
+	LoginHandler           *LoginHandler
+	RegisterHandler        *RegisterHandler
+	RefreshHandler         *RefreshHandler
+	CommentsGetHandler     *CommentsGetHandler
+	CommentsAddHandler     *CommentsAddHandler
+	LogoutHandler          *LogoutHandler
+	MainPageHandler        *MainPageHandler
+	StaticFileHandler      *StaticFileHandler
+	MiddlewareManager      *middleware.MiddlewareManager
+	ProductsHandler        *ProductsHandler
+	CSRFMiddleware         *middleware.CSRFMiddleware
+	TokenService           output.TokenService
+	BlacklistRepo          output.TokenBlacklistPort
 }
 
 // SetupRoutes registers all application endpoints on the given router and applies route-specific middleware for authentication and rate limiting.
@@ -132,10 +132,10 @@ func NewRouter(
 	staticFileService output.StaticFilePort,
 	productsGetService input.ProductsGetService,
 	csrfMiddleware *middleware.CSRFMiddleware,
-	csrfService input.CSRFService,
+	csrfService output.CSRFService,
 	isProduction bool,
 	blacklistRepo output.TokenBlacklistPort,
-	tokenService input.TokenService,
+	tokenService output.TokenService,
 ) *mux.Router {
 	// 1. Initialize a new router
 	router := mux.NewRouter()
@@ -166,21 +166,21 @@ func NewRouter(
 
 	// 5. Build RouterConfig with dependencies
 	config := &RouterConfig{
-		IPExtractor:        ratelimiter.NewDefaultIPExtractor("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/32"),
-		RateLimiter:        rateHandler,
-		LoginHandler:       loginHandler,
-		RegisterHandler:    registerHandler,
-		RefreshHandler:     refreshHandler,
-		CommentsGetHandler: commentsGetHandler,
-		CommentsAddHandler: commentsAddHandler,
-		LogoutHandler:      logoutHandler,
-		BlacklistRepo:      blacklistRepo,
-		MainPageHandler:    mainPageHandler,
-		StaticFileHandler:  staticFileHandler,
-		MiddlewareManager:  middlewareManager,
-		ProductsHandler:    productsHandler,
-		CSRFMiddleware:     csrfMiddleware,
-		TokenService:       tokenService,
+		IPExtractor:            ratelimiter.NewDefaultIPExtractor("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/32"),
+		RateLimiter:            rateHandler,
+		LoginHandler:           loginHandler,
+		RegisterHandler:        registerHandler,
+		RefreshHandler:         refreshHandler,
+		CommentsGetHandler:     commentsGetHandler,
+		CommentsAddHandler:     commentsAddHandler,
+		LogoutHandler:          logoutHandler,
+		BlacklistRepo:          blacklistRepo,
+		MainPageHandler:        mainPageHandler,
+		StaticFileHandler:      staticFileHandler,
+		MiddlewareManager:      middlewareManager,
+		ProductsHandler:        productsHandler,
+		CSRFMiddleware:         csrfMiddleware,
+		TokenService:           tokenService,
 	}
 
 	// 6. Register routes on router

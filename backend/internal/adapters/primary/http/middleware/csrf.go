@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	cookies "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 )
 
 // CSRFMiddleware coordinates CSRF protection by validating tokens against a dedicated CSRF service. It uses a Double Submit Cookie pattern coupled with server-side validation and rotates tokens after each use.
 type CSRFMiddleware struct {
 	// service provides the business logic for token validation and lifecycle.
-	service input.CSRFService
+	service output.CSRFService
 	// isProduction determines whether the Secure flag is set on CSRF cookies.
 	isProduction bool
 }
@@ -25,7 +25,7 @@ type CSRFMiddleware struct {
 //
 // Returns:
 //   - *CSRFMiddleware: ready-to-use middleware.
-func NewCSRFMiddleware(service input.CSRFService, isProduction bool) *CSRFMiddleware {
+func NewCSRFMiddleware(service output.CSRFService, isProduction bool) *CSRFMiddleware {
 	return &CSRFMiddleware{service: service, isProduction: isProduction}
 }
 
