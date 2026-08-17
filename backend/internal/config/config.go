@@ -53,15 +53,6 @@ func NewAppConfig() *AppConfig {
 	config.SetDefault("SSL_CERT_FILE", "")
 	config.SetDefault("SSL_KEY_FILE", "")
 
-	// Attempt to read the .env file; log a warning if it fails
-	if file, err := os.Open("./internal/config/.env"); err == nil {
-		config.ReadConfig(file)
-		file.Close()
-	} else {
-		log.Printf("Warning: Could not read .env file: %v", err)
-		log.Println("Using default values and OS environment variables")
-	}
-
 	return &AppConfig{
 		config: config,
 	}
