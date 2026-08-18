@@ -1,6 +1,6 @@
 // Package http implements HTTP handlers for the ecommerce-platform application.
 // This file, which contains the CommentsHandler, is planned to be further enhanced in a future development phase. Note that only this file's functionality will be completed later.
-package http
+package public_handlers
 
 import (
 	"net/http"

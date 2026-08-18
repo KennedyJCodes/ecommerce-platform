@@ -1,13 +1,13 @@
 // Package http implements HTTP handlers for the ecommerce-platform application.
 // This file contains the RegisterHandler, which is responsible for processing user registration requests. It decodes the registration payload, calls the user registration service to create a new account, sets the authentication cookie, and sends a JSON response indicating the result.
-package http
+package public_handlers
 
 import (
 	"net/http"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
