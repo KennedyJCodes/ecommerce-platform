@@ -60,7 +60,7 @@ func SetupProductsService(db *sqlx.DB) (input.ProductsGetService, error) {
 // Returns:
 //   - input.UserServiceLogin: the service handling user authentication.
 //   - input.UserServiceRegister: the service handling new user creation.
-func SetupUserService(userRepo output.UserRepository, tokenService input.TokenService, csrfService input.CSRFService) (input.UserServiceLogin, input.UserServiceRegister) {
+func SetupUserService(userRepo output.UserRepository, tokenService output.TokenService, csrfService output.CSRFService) (input.UserServiceLogin, input.UserServiceRegister) {
 	// Initialize specific domain validators.
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}

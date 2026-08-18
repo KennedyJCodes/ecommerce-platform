@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
@@ -19,7 +19,7 @@ import (
 // It validates the refresh token stored in a cookie, checks it against the
 // blacklist, revokes the old token (rotation), and issues a fresh token pair.
 type RefreshHandler struct {
-	tokenService  input.TokenService
+	tokenService  output.TokenService
 	blacklistRepo output.TokenBlacklistPort
 	isProduction  bool
 }
@@ -32,19 +32,20 @@ type RefreshHandler struct {
 //
 // Returns:
 //   - *RefreshHandler: ready-to-use handler for the /refresh endpoint.
-func NewRefreshHandler(tokenService input.TokenService, blacklistRepo output.TokenBlacklistPort, isProduction bool) *RefreshHandler {
+func NewRefreshHandler(tokenService output.TokenService, blacklistRepo output.TokenBlacklistPort, isProduction bool) *RefreshHandler {
 	return &RefreshHandler{tokenService: tokenService, blacklistRepo: blacklistRepo, isProduction: isProduction}
 }
 
 // Handle processes HTTP POST requests for token refresh.
 // The flow follows a strict security sequence:
 //  1. Read the refresh_token cookie from the request.
-//  2. Validate the refresh token signature and Subject claim.
-//  3. Check if the refresh token has been revoked in the blacklist.
-//  4. Blacklist the old refresh token (rotation to prevent replay).
-//  5. Generate a new access token and a new refresh token.
-//  6. Set both tokens as HttpOnly cookies on the response.
-//  7. Respond with a JSON success message.
+//  2. Validate the refresh token and its claims.
+//  3. Ensure the token is a refresh token.
+//  4. Check if the refresh token has been revoked.
+//  5. Generate a new access token and refresh token.
+//  6. Revoke the old refresh token as part of token rotation.
+//  7. Set both new tokens as HttpOnly cookies on the response.
+//  8. Respond with a JSON success message.
 func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrMethodNotAllowed))
@@ -57,11 +58,16 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := h.tokenService.ValidateRefreshToken(cookie.Value)
+	claims, err := h.tokenService.ValidateToken(cookie.Value)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewAuthError("Invalid or expired refresh token"))
 		return
 	}
+
+	if claims.Type != "refresh" {
+    	httpUtil.HandleError(w, errors.NewAuthError("Invalid token type"))
+    	return
+	}	
 
 	blacklisted, err := h.blacklistRepo.IsBlacklisted(claims.ID)
 	if err != nil || blacklisted {
@@ -69,24 +75,31 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Blacklist the old refresh token (rotation)
-	ttl := time.Until(claims.ExpiresAt.Time)
-	if ttl < 0 {
-		ttl = 0
-	}
-	if claims.ID != "" {
-		_ = h.blacklistRepo.Add(claims.ID, ttl)
-	}
-
-	newAccessToken, err := h.tokenService.GenerateJWT(claims.UserID, claims.UserName)
+	newAccessToken, err := h.tokenService.GenerateToken(claims.UserID, claims.UserName, models.TokenTypeAccess)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error generating access token"))
 		return
 	}
-
-	newRefreshToken, err := h.tokenService.GenerateRefreshToken(claims.UserID, claims.UserName)
+	
+	newRefreshToken, err := h.tokenService.GenerateToken(claims.UserID, claims.UserName, models.TokenTypeRefresh)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error generating refresh token"))
+		return
+	}
+
+	// Blacklist the old refresh token as part of token rotation.
+	ttl := time.Until(claims.ExpiresAt.Time)
+	if ttl < 0 {
+		ttl = 0
+	}
+
+	if claims.ID != "" {	
+		httpUtil.HandleError(w, errors.NewAuthError("Invalid refresh token"))
+		return
+	}
+
+	if err := h.blacklistRepo.Add(claims.ID, ttl); err != nil {
+		httpUtil.HandleError(w, errors.NewInternalError("Error revoking refresh token"))
 		return
 	}
 

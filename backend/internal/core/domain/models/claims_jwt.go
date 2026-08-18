@@ -11,5 +11,6 @@ import "github.com/golang-jwt/jwt/v5"
 type Claims struct {
 	UserID int `json:"UserID"` // Custom claim for user id
 	UserName string `json:"UserName"` // Custom claim for the user's username
+	Type string `json:"type"` // Custom claim for token type (e.g., "access" or "refresh")
 	jwt.RegisteredClaims // Standard JWT claims
 }

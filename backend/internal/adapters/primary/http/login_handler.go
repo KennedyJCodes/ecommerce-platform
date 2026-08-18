@@ -7,6 +7,7 @@ import (
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
@@ -17,14 +18,14 @@ import (
 // It acts as an adapter between HTTP requests and the core domain's login functionality, using the UserServiceLogin interface to process login operations.
 type LoginHandler struct {
 	userServiceLogin input.UserServiceLogin
-	csrfService      input.CSRFService
+	csrfService      output.CSRFService
 	isProduction     bool
 }
 
 // NewLoginHandler creates a new instance of LoginHandler.
 
 // It receives an implementation of the UserServiceLogin interface, which encapsulates the business logic for authenticating users.
-func NewLoginHandler(userServiceLogin input.UserServiceLogin, csrfService input.CSRFService, isProduction bool) *LoginHandler {
+func NewLoginHandler(userServiceLogin input.UserServiceLogin, csrfService output.CSRFService, isProduction bool) *LoginHandler {
 	return &LoginHandler{
 		userServiceLogin: userServiceLogin,
 		csrfService:      csrfService,

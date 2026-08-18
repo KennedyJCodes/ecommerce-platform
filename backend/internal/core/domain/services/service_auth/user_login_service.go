@@ -27,7 +27,7 @@ type UserLoginService struct {
 //
 // Returns:
 //   - input.UserServiceLogin: the abstracted login service interface.
-func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService input.TokenService, csrfService input.CSRFService) input.UserServiceLogin {
+func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService) input.UserServiceLogin {
 	return &UserLoginService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,

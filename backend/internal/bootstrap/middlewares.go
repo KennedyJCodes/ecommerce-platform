@@ -9,7 +9,6 @@ import (
 	repository_redis "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/redis"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_csrf"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
 	"github.com/redis/go-redis/v9"
@@ -36,7 +35,7 @@ func SetupRateLimiter(appConfig *config.AppConfig) ratelimiter.RateLimiterHandle
 //
 // Returns:
 //   - input.CSRFService: the initialized service implementing the CSRF input port.
-func SetupCSRFService(redisClient *redis.Client) input.CSRFService {
+func SetupCSRFService(redisClient *redis.Client) output.CSRFService {
 	csrfRepo := repository_redis.NewRedisCSRFRepository(redisClient)
 	// Initialize the Use Case with the repository and a 24-hour TTL for tokens.
 	return service_csrf.NewCSRFUseCase(csrfRepo, 24*time.Hour)
@@ -49,7 +48,7 @@ func SetupCSRFService(redisClient *redis.Client) input.CSRFService {
 //
 // Returns:
 //   - *middleware.CSRFMiddleware: the configured middleware.
-func SetupCSRFMiddleware(csrfService input.CSRFService, isProduction bool) *middleware.CSRFMiddleware {
+func SetupCSRFMiddleware(csrfService output.CSRFService, isProduction bool) *middleware.CSRFMiddleware {
 	return middleware.NewCSRFMiddleware(csrfService, isProduction)
 }
 

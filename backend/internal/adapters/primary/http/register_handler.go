@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
@@ -17,14 +18,14 @@ import (
 // It serves as an adapter between HTTP requests and the core business logic for registering users, utilizing the UserServiceRegister interface.
 type RegisterHandler struct {
 	userServiceRegister input.UserServiceRegister
-	csrfService         input.CSRFService
+	csrfService         output.CSRFService
 	isProduction        bool
 }
 
 // NewRegisterHandler creates a new instance of RegisterHandler.
 
 // It receives an implementation of the UserServiceRegister interface that encapsulates the business logic for user registration.
-func NewRegisterHandler(userServiceRegister input.UserServiceRegister, csrfService input.CSRFService, isProduction bool) *RegisterHandler {
+func NewRegisterHandler(userServiceRegister input.UserServiceRegister, csrfService output.CSRFService, isProduction bool) *RegisterHandler {
 	return &RegisterHandler{
 		userServiceRegister: userServiceRegister,
 		csrfService:         csrfService,

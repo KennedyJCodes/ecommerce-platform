@@ -25,10 +25,10 @@ type BaseAuthService struct {
 	PasswordValidator input.Validator
 
 	// TokenService: domain service for JWT generation and validation.
-	TokenService input.TokenService
+	TokenService output.TokenService
 
 	// CSRFService: domain service to manage the lifecycle of CSRF tokens.
-	CSRFService input.CSRFService
+	CSRFService output.CSRFService
 }
 
 // ValidateUserName evaluates if the provided username meets business requirements.
@@ -62,12 +62,12 @@ func (b *BaseAuthService) CheckUserExists(username string) (bool, error) {
 // GenerateTokenPair wraps the security package logic to create an access JWT
 // and a refresh JWT. Returns a TokenPair or an InternalError on failure.
 func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*models.TokenPair, error) {
-	accessToken, err := b.TokenService.GenerateJWT(userId, username)
+	accessToken, err := b.TokenService.GenerateToken(userId, username, models.TokenTypeAccess)
 	if err != nil {
 		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	refreshToken, err := b.TokenService.GenerateRefreshToken(userId, username)
+	refreshToken, err := b.TokenService.GenerateToken(userId, username, models.TokenTypeRefresh)
 	if err != nil {
 		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}

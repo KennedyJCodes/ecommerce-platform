@@ -18,17 +18,17 @@ import (
 // Dependencies holds all the initialized services, ports, and handlers required  to run the application.
 // By grouping these in a single struct, the application ensures that all required components are ready before starting the HTTP server.
 type Dependencies struct {
-	UserServiceLogin    input.UserServiceLogin
-	UserServiceRegister input.UserServiceRegister
-	CommentGetService   input.CommentGetService
-	CommentAddService   input.CommentAddService
-	RateHandler         ratelimiter.RateLimiterHandler
-	StaticFileAdapter   output.StaticFilePort
-	ProductsGetService  input.ProductsGetService
-	CSRFMiddleware      *middleware.CSRFMiddleware
-	TokenService        input.TokenService
-	CSRFService         input.CSRFService
-	BlacklistRepo       output.TokenBlacklistPort
+	UserServiceLogin       input.UserServiceLogin
+	UserServiceRegister    input.UserServiceRegister
+	CommentGetService      input.CommentGetService
+	CommentAddService      input.CommentAddService
+	RateHandler            ratelimiter.RateLimiterHandler
+	StaticFileAdapter      output.StaticFilePort
+	ProductsGetService     input.ProductsGetService
+	CSRFMiddleware         *middleware.CSRFMiddleware
+	TokenService           output.TokenService
+	CSRFService            output.CSRFService
+	BlacklistRepo          output.TokenBlacklistPort
 }
 
 // BuildDependencies orchestrates the initialization of all internal services and repositories.
@@ -66,17 +66,17 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 	}
 
 	return &Dependencies{
-		UserServiceLogin:    userServiceLogin,
-		UserServiceRegister: userServiceRegister,
-		CommentGetService:   commentGetService,
-		CommentAddService:   commentAddService,
-		RateHandler:         bootstrap.SetupRateLimiter(a.config),
-		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
-		ProductsGetService:  productsGetService,
-		TokenService:        tokenService,
-		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
-		CSRFService:         csrfService,
-		BlacklistRepo:       blacklistRepo,
+		UserServiceLogin:       userServiceLogin,
+		UserServiceRegister:    userServiceRegister,
+		CommentGetService:      commentGetService,
+		CommentAddService:      commentAddService,
+		RateHandler:            bootstrap.SetupRateLimiter(a.config),
+		StaticFileAdapter:      bootstrap.SetupStaticFileAdapter(a.config),
+		ProductsGetService:     productsGetService,
+		TokenService:           tokenService,
+		CSRFMiddleware:         bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
+		CSRFService:            csrfService,
+		BlacklistRepo:          blacklistRepo,
 	}, nil
 }
 
