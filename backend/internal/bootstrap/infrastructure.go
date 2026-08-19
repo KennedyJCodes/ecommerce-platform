@@ -1,0 +1,52 @@
+// Package bootstrap provides high-level factory functions to initialize and wire the application's infrastructure components.
+// It serves as an intermediary layer that connects secondary adapters (MySQL, Static Files) with the core ports defined in the domain.
+package bootstrap
+
+import (
+	"fmt"
+
+	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/security/jwt"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/static"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
+	"github.com/jmoiron/sqlx"
+)
+
+// SetupStaticFileAdapter initializes the static file service.
+// It retrieves the static directory path from the application configuration and
+// returns an implementation of the StaticFilePort.
+
+// Parameters:
+//   - appConfig: the global application configuration manager.
+//
+// Returns:
+//   - output.StaticFilePort: an adapter capable of serving and validating static assets.
+func SetupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
+	staticDir := appConfig.GetStaticDir()
+	return static.NewStaticFileAdapter(staticDir)
+}
+
+// SetupUserRepository initializes the user repository with its necessary security dependencies.
+// It explicitly injects a BcryptHasher into the SQLUserRepository, ensuring that all user persistence operations follow the defined security standards for password hashing.
+
+// Parameters:
+//   - db: an active *sqlx.DB connection pool.
+//
+// Returns:
+//   - output.UserRepository: a repository ready to handle user-related database operations.
+func SetupUserRepository(db *sqlx.DB) (output.UserRepository, error) {
+	// Define the hashing strategy to be used by the repository.
+	hasher := security_auth.BcryptHasher{}
+	userRepo, err := repository_mysql.NewSQLUserRepository(db, hasher)
+	if err != nil {
+		return nil, fmt.Errorf("setup user repository: %w", err)
+	}
+	return userRepo, nil
+}
+
+// SetupTokenService creates a new JWTService instance with the secret key from config.
+func SetupTokenService(appConfig *config.AppConfig) *jwt.JWTService {
+	return jwt.NewJWTService(appConfig.GetJWTSecret())
+}

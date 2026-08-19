@@ -1,9 +1,9 @@
 // Package securityAuth provides interfaces and implementations for password hashing
-// and salt generation, supporting secure authentication workflows in the sale-watches application.
-package securityAuth
+// and salt generation, supporting secure authentication workflows in the ecommerce-platform application.
+package security_auth
 
 import (
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -14,7 +14,7 @@ type Hasher interface {
 }
 
 // BcryptHasher implements the Hasher interface using bcrypt with the DefaultCost.
-type BcryptHasher struct {}
+type BcryptHasher struct{}
 
 // Hash generates a bcrypt hash of the provided password bytes using DefaultCost.
 // It returns the resulting hash as a string, or an InternalError if hashing fails.

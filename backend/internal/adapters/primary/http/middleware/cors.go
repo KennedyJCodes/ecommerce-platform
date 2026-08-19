@@ -37,28 +37,24 @@ type CORSConfig struct {
 	MaxAge int
 }
 
-// DefaultCORSConfig returns a new CORSConfig with default values suitable for development.
-//
-// Implementation details:
-//   - Creates a new CORSConfig with development-friendly defaults
-//   - Sets AllowedOrigins to ["*"] to allow all origins
-//   - Includes common HTTP methods in AllowedMethods
-//   - Includes standard headers in AllowedHeaders
-//   - Enables credentials by default
-//   - Sets a 24-hour cache for preflight requests
-//
-// Usage notes:
-//   - This configuration is suitable for development
-//   - For production, customize AllowedOrigins to specific domains
-//   - Consider restricting AllowedMethods to only those needed
-func DefaultCORSConfig() *CORSConfig {
+func PublicCORSConfig() *CORSConfig {
 	return &CORSConfig{
 		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type"},
+		AllowCredentials: false,
+		MaxAge:           3600,
+	}
+}
+
+func PrivateCORSConfig() *CORSConfig {
+	return &CORSConfig{
+		AllowedOrigins:   []string{"http://localhost:8080"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: true,
-		ExposedHeaders:   []string{},
-		MaxAge:           86400, // 24 horas
+		ExposedHeaders:   []string{"X-CSRF-Token"},
+		MaxAge:           86400,
 	}
 }
 
@@ -67,83 +63,83 @@ func DefaultCORSConfig() *CORSConfig {
 // to the response.
 //
 // Implementation details:
-//   1. Extracts the Origin header from the request
-//   2. Checks if the origin is in the allowed origins list
-//   3. If origin is allowed:
-//      - Sets Access-Control-Allow-Origin header
-//      - Sets Access-Control-Allow-Credentials if enabled
-//      - For OPTIONS requests (preflight):
-//        * Sets Access-Control-Allow-Methods
-//        * Sets Access-Control-Allow-Headers
-//        * Sets Access-Control-Max-Age
-//        * Returns 200 OK immediately
-//      - For regular requests:
-//        * Sets Access-Control-Expose-Headers if configured
-//   4. Passes control to the next handler
+//  1. Extracts the Origin header from the request
+//  2. Checks if the origin is in the allowed origins list
+//  3. If origin is allowed:
+//     - Sets Access-Control-Allow-Origin header
+//     - Sets Access-Control-Allow-Credentials if enabled
+//     - For OPTIONS requests (preflight):
+//     * Sets Access-Control-Allow-Methods
+//     * Sets Access-Control-Allow-Headers
+//     * Sets Access-Control-Max-Age
+//     * Returns 200 OK immediately
+//     - For regular requests:
+//     * Sets Access-Control-Expose-Headers if configured
+//  4. Passes control to the next handler
 //
 // Security considerations:
 //   - When AllowCredentials is true, "*" cannot be used for AllowedOrigins
 //   - Preflight requests are handled separately to optimize performance
 //   - Headers are set only for allowed origins
 func CORSMiddleware(config *CORSConfig) Middleware {
+	if config.AllowCredentials {
+		for _, origin := range config.AllowedOrigins {
+			if origin == "*" {
+				panic("CORS: no se puede usar AllowCredentials con comodín de origen '*'")
+			}
+		}
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
 
 			// Check if the origin is allowed
 			var allowedOrigin string
+			allowAll := false
 			for _, o := range config.AllowedOrigins {
-				if o == "*" || o == origin {
+				if o == "*" {
+					allowAll = true
+					break
+				}
+				if o == origin {
 					allowedOrigin = origin
 					break
 				}
 			}
 
-			// If there is an allowed origin, set CORS headers
-			if allowedOrigin != "" {
+			if allowAll && !config.AllowCredentials {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			} else if allowedOrigin != "" {
 				w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-
 				if config.AllowCredentials {
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 				}
+			} else {
+				next.ServeHTTP(w, r)
+				return
+			}
 
-				// For OPTIONS requests (preflight)
-				if r.Method == "OPTIONS" {
-					w.Header().Set("Access-Control-Allow-Methods", strings.Join(config.AllowedMethods, ", "))
-					w.Header().Set("Access-Control-Allow-Headers", strings.Join(config.AllowedHeaders, ", "))
+			// For OPTIONS requests (preflight)
+			if r.Method == "OPTIONS" {
+				w.Header().Set("Access-Control-Allow-Methods", strings.Join(config.AllowedMethods, ", "))
+				w.Header().Set("Access-Control-Allow-Headers", strings.Join(config.AllowedHeaders, ", "))
 
-					if config.MaxAge > 0 {
-						w.Header().Set("Access-Control-Max-Age", strconv.Itoa(config.MaxAge))
-					}
-
-					// Respond immediately to preflight requests
-					w.WriteHeader(http.StatusOK)
-					return
+				if config.MaxAge > 0 {
+					w.Header().Set("Access-Control-Max-Age", strconv.Itoa(config.MaxAge))
 				}
 
-				// Expose headers if configured
-				if len(config.ExposedHeaders) > 0 {
-					w.Header().Set("Access-Control-Expose-Headers", strings.Join(config.ExposedHeaders, ", "))
-				}
+				// Respond immediately to preflight requests
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+
+			// Expose headers if configured
+			if len(config.ExposedHeaders) > 0 {
+				w.Header().Set("Access-Control-Expose-Headers", strings.Join(config.ExposedHeaders, ", "))
 			}
 
 			// Continue to the next middleware function
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-// SimpleCORSMiddleware is a convenience function that creates a CORS middleware
-// with default configuration.
-//
-// Implementation details:
-//   - Internally calls CORSMiddleware with DefaultCORSConfig()
-//   - Provides a simpler API for basic CORS needs
-//   - Wraps the next handler with CORS functionality
-//
-// Performance considerations:
-//   - Creates a new DefaultCORSConfig on each call
-//   - For high-traffic applications, consider reusing a CORSConfig instance
-func SimpleCORSMiddleware(next http.Handler) http.Handler {
-	return CORSMiddleware(DefaultCORSConfig())(next)
 }

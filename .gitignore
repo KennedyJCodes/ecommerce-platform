@@ -1,1 +1,16 @@
+# Ignore credentials from databases, JWT, etc.
 /backend/internal/config/config.yaml
+/backend/internal/config/.env
+
+# Docker Compose environment variables (secrets)
+.env
+
+# Ignore Go compiled binaries
+*.exe
+
+# Ignore Go coverage/profile output files
+/backend/cp.out
+
+# Ignore temporary build folders
+/backend/tmp
+/tmp/

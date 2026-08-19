@@ -3,14 +3,13 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/primary/http/middleware"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
-	httpUtil "github.com/David-Alejandro-Jimenez/sale-watches/pkg/http"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
 )
 
 // CommentsAddHandler handles HTTP requests for adding new comments (reviews).
@@ -62,14 +61,14 @@ func (h *CommentsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// Step 2: Decode JSON body
 	var account models.Review
-	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
-		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))
+	if err := httpUtil.DecodeJSONBody(w, r, &account, httpUtil.MaxCommentBodySize); err != nil {
+		httpUtil.HandleError(w, err)
 		return
 	}
 
 	// Step 3: Extract authenticated user ID from context
 	ctx := r.Context()
-	userIDValue := ctx.Value(middleware.GetUserIdContextKey())
+	userIDValue := ctx.Value(middleware.GetUserIDContextKey())
 	userIdInt, ok := userIDValue.(int)
 	if !ok {
 		httpUtil.HandleError(w, errors.NewInternalError(errors.ErrInternalServer))

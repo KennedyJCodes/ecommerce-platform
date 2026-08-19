@@ -1,153 +1,126 @@
-// Package main provides the entry point for the Watch Store API server.
-
-// It is responsible for loading configuration, initializing all application components, and starting the HTTP server to handle incoming API requests.
-
-// The application follows a clean architecture pattern, separating concerns into adapters, domain services, ports, and infrastructure components.
+// The main package is the entry point for the sales application.
+// Configures and initializes all necessary services, including the database,
+// Redis, HTTP router, and signal handling for elegant shutdown.
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	primaryHttp "github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/primary/http"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/repository"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/secondary/static"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/config"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_auth"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/services/service_comments"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	ratelimiter "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/rate_limiter"
-	securityAuth "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/security_auth"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/app"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
 )
 
-// main is the application entry point.
-// It performs the following steps:
-// 1. Loads and validates application configuration.
-// 2. Initializes global security services (e.g., JWT).
-// 3. Establishes a database connection.
-// 4. Creates domain services and their dependencies (repositories, validators).
-// 5. Configures the HTTP router with endpoints and middleware.
-// 6. Starts listening on the configured port.
+// main initializes and runs the web application.
 
-// If any of these steps fails, main will log the error and exit the application.
+// Performs the following operations in order:
+//  1. Creates the application instance
+//  2. Loads the configuration from environment variables or files
+//  3. Establishes a connection to the MySQL database
+//  4. Establishes a connection to Redis for caching
+//  5. Builds the HTTP router with all routes
+//  6. Applies security middleware
+//  7. Starts the HTTP server
+//  8. Waits for an interrupt signal for a graceful shutdown
+
+// The function terminates program execution if any initialization step fails.
+// The server gracefully stops upon receiving a SIGINT or SIGTERM,
+// allowing up to 30 seconds to complete ongoing requests.
+
 func main() {
-	// Step 1: Load and validate configuration
-	appConfig := config.NewAppConfig()
-	appConfig.ValidateConfig()
+	log.Println("Starting application...")
 
-	// Step 2: Initialize global services (e.g., JWT auth)
-	initializeCommonServices(appConfig)
+	// Create application instance.
+	application := app.NewConfigApplication()
+	log.Println("Application instance created")
 
-	// Step 3: Database setup
-	db, err := setupDatabase(appConfig)
-	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
+	// Load configuration from environment variables or config files
+	log.Println("Loading configuration...")
+	if err := application.LoadConfig(); err != nil {
+		log.Fatalf("Failed to load config: %v", err)
 	}
-	defer db.Close()
+	log.Println("Configuration loaded")
 
-	// Step 4: Dependency injection for domain services
-	userRepo := setupUserRepository(db)
-	userServiceLogin := setupLoginService(userRepo)
-	userServiceRegister := setupRegisterService(userRepo)
-	commentGetService, commentAddService := setupCommentService(db)
-	rateHandler := setupRateLimiter(appConfig)
-	staticFileAdapter := setupStaticFileAdapter(appConfig)
+	// Establish a connection to a MySQL database
+	log.Println("Connecting to database...")
+	if err := application.SetupDatabase(); err != nil {
+		log.Fatalf("Failed to setup database: %v", err)
+	}
+	log.Println("Database connected")
+	defer application.Close()
 
-	// Step 5: Configure HTTP router with handlers and middleware
-	router := primaryHttp.NewRouter(
-		userServiceLogin,
-		userServiceRegister,
-		commentGetService,
-		commentAddService,
-		rateHandler,
-		staticFileAdapter,
-	)
+	// Establish a connection with Redis for caching and sessions
+	log.Println("Connecting to Redis...")
+	if err := application.SetupRedis(); err != nil {
+		log.Fatalf("Failed to setup Redis: %v", err)
+	}
+	log.Println("Redis connected")
 
-	// Step 6: Start HTTP server	
-	port := appConfig.GetPort()
-	log.Printf("Server started at http://localhost:%s", port)
-	log.Printf("Serving static files from: %s", staticFileAdapter.GetStaticDir())
-	log.Fatal(http.ListenAndServe(":"+port, router))
-}
+	// Build router with all routes and handlers
+	log.Println("Building router...")
+	router, err := application.BuildRouter()
+	if err != nil {
+		log.Fatalf("Failed to build router: %v", err)
+	}
+	log.Println("Router built")
 
-// initializeCommonServices sets up services that are shared globally across the application.
+	// Apply security middleware (CORS, rate limiting, etc.)
+	log.Println("Applying security middleware...")
+	isDevelopment := !application.IsProduction()
+	securedHandler := app.WrapWithSecurityMiddleware(router, isDevelopment)
+	log.Println("Security middleware applied")
 
-// Currently, this function initializes the default JWT authentication service using the secret key from configuration.
-func initializeCommonServices(appConfig *config.AppConfig) {
-	securityAuth.SetDefaultJWTService(appConfig.GetJWTSecret())
-}
+	port := application.GetPort()
 
-// setupDatabase establishes a connection to the MySQL database.
+	// Configure HTTP server with appropriate timeouts
+	server := &http.Server{
+		Addr:           ":" + port,
+		Handler:        securedHandler,
+		ReadTimeout:    15 * time.Second,
+		WriteTimeout:   15 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
 
-// It uses configuration values such as username, password, host, and database name to construct the DSN string and open the connection. It returns a *sqlx.DB instance and an error if the connection fails.
-func setupDatabase(appConfig *config.AppConfig) (*sqlx.DB, error) {
-	cfg := appConfig.GetConfig()
-	user := cfg.GetString("database.user")
-	password := cfg.GetString("database.password")
-	host := cfg.GetString("database.host")
-	port := cfg.GetInt("database.port")
-	dbName := cfg.GetString("database.name")
-	
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", user, password, host, port, dbName)
-	return sqlx.Connect("mysql", dsn)
-}
+	// Channel for receiving interruption signals
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-// setupUserRepository returns an implementation of the UserRepository interface.
+	// Start server in separate goroutine
+	go func() {
+		if application.IsSSLEnabled() {
+			log.Printf("Server started on https://localhost:%s", port)
+			certFile := application.GetSSLCertFile()
+			keyFile := application.GetSSLKeyFile()
+			if err := server.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Server failed: %v", err)
+			}
+		} else {
+			log.Printf("Server started on http://localhost:%s", port)
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Server failed: %v", err)
+			}
+		}
+		log.Println("Press Ctrl+C to stop")
+	}()
 
-// It sets up dependencies for user authentication such as salt generation and password hashing and injects them into the SQL-based repository.
-func setupUserRepository(db *sqlx.DB) output.UserRepository {
-	hasher := securityAuth.BcryptHasher{}
-	return repository.NewSQLUserRepository(db, hasher)
-}
+	// Wait for interrupt signal
+	<-quit
+	log.Println("Shutting down server gracefully...")
 
-// setupLoginService initializes and returns the user login service.
+	// Create context with 30-second timeout for graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-// This service validates credentials and authenticates users.
-// It relies on validators for username and password and uses the user repository to query user data.
-func setupLoginService(userRepo output.UserRepository) input.UserServiceLogin {
-	userNameValidator := &service_auth.UserNameValidator{}
-	passwordValidator := &service_auth.PasswordValidator{}
-	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator)
-}
+	// Attempt to shut down the server gracefully
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
 
-// setupRegisterService initializes and returns the user registration service.
-// It validates user input and stores new users in the database using the provided repository.
-func setupRegisterService(userRepo output.UserRepository) input.UserServiceRegister {
-	userNameValidator := &service_auth.UserNameValidator{}
-	passwordValidator := &service_auth.PasswordValidator{}
-	return service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator)
-}
-
-// setupCommentService initializes services for retrieving and creating user comments.
-// This binds the comment repository and validation rules into service implementations.
-// Parameters:
-//   - db: active *sqlx.DB connection
-
-// Returns:
-//   - input.CommentGetService: service interface to fetch comments
-//   - input.CommentAddService: service interface to add new comments
-func setupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService) {
-	commentRepo := repository.NewSqlCommentRepository(db)
-	commentValidator := &service_comments.CommentValidator{}
-	return  service_comments.NewCommentGetService(commentRepo, commentValidator), service_comments.NewCommentAddService(commentRepo, commentValidator)
-}
-
-// setupRateLimiter configures and returns a rate limiting handler.
-// It uses rate limit settings (requests per second and burst) defined in the application configuration to protect the API against abuse or DoS attacks.
-func setupRateLimiter(appConfig *config.AppConfig) ratelimiter.RateLimiterHandler {
-	limiterConfig := appConfig.GetRateLimitConfig()
-	return ratelimiter.NewDefaultRateLimiter(limiterConfig.RequestPerSecond, limiterConfig.Burst)
-}
-
-// setupStaticFileAdapter creates and returns an adapter for serving static files.
-
-// The adapter serves assets such as images, stylesheets, or JavaScript files
-// from a directory defined in the configuration.
-func setupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
-	staticDir := appConfig.GetStaticDir()
-	return static.NewStaticFileAdapter(staticDir)
+	log.Println("Server stopped gracefully")
 }

@@ -1,14 +1,14 @@
-// Package http implements HTTP handlers and the routing configuration for the sale-watches application.
+// Package http implements HTTP handlers and the routing configuration for the ecommerce-platform application.
 // It provides the RouterConfig type and NewRouter factory function, which wire up handlers, middlewares, rate limiters, and static file serving to produce a fully configured *mux.Router* ready to handle API requests.
 package http
 
 import (
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/adapters/primary/http/middleware"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	ratelimiter "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/rate_limiter"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
 	"github.com/gorilla/mux"
 )
 
@@ -25,67 +25,79 @@ type RouterConfiguration interface {
 //   - RateLimiter: handles request rate limiting based on extracted IP.
 //   - LoginHandler: processes user login requests.
 //   - RegisterHandler: processes user registration requests.
+//   - RefreshHandler: processes token refresh requests.
 //   - CommentsGetHandler: handles retrieval of comments.
 //   - CommentsAddHandler: handles creation of new comments.
+//   - LogoutHandler: handles user logout and token revocation.
 //   - MainPageHandler: serves the application's main page.
 //   - StaticFileHandler: serves static assets like CSS/JS/images.
 //   - MiddlewareManager: orchestrates application of global and route-specific middleware.
+//   - BlacklistRepo: repository for checking revoked JWT tokens.
 type RouterConfig struct {
-	IPExtractor        ratelimiter.IPExtractor
-	RateLimiter        ratelimiter.RateLimiterHandler
-	LoginHandler       *LoginHandler
-	RegisterHandler    *RegisterHandler
-	CommentsGetHandler *CommentsGetHandler
-	CommentsAddHandler *CommentsAddHandler
-	MainPageHandler    *MainPageHandler
-	StaticFileHandler  *StaticFileHandler
-	MiddlewareManager  *middleware.MiddlewareManager
+	IPExtractor            ratelimiter.IPExtractor
+	RateLimiter            ratelimiter.RateLimiterHandler
+	LoginHandler           *LoginHandler
+	RegisterHandler        *RegisterHandler
+	RefreshHandler         *RefreshHandler
+	CommentsGetHandler     *CommentsGetHandler
+	CommentsAddHandler     *CommentsAddHandler
+	LogoutHandler          *LogoutHandler
+	MainPageHandler        *MainPageHandler
+	StaticFileHandler      *StaticFileHandler
+	MiddlewareManager      *middleware.MiddlewareManager
+	ProductsHandler        *ProductsHandler
+	CSRFMiddleware         *middleware.CSRFMiddleware
+	TokenService           output.TokenService
+	BlacklistRepo          output.TokenBlacklistPort
 }
 
 // SetupRoutes registers all application endpoints on the given router and applies route-specific middleware for authentication and rate limiting.
 // Routes include:
 //   - Static files (CSS, JS, images)
 //   - Public endpoints: GET /, POST /register, POST /login
-//   - Protected endpoints: GET /comments, POST /comments/newComments
+//   - Protected endpoints: GET /comments, POST /comments/newComments, POST /logout
 
 // Each route is wrapped with authentication and rate limiting via the MiddlewareManager.Apply method.
 
 // Parameters:
 //   - router: *mux.Router instance to configure routes on.
 func (c *RouterConfig) SetupRoutes(router *mux.Router) {
-	// 1. Register static file serving routes
 	c.StaticFileHandler.RegisterRoutes(router)
 
-	// 2. Prepare middleware for rate limiting and authentication
 	rateLimitMW := middleware.RateLimitMiddleware(c.IPExtractor, c.RateLimiter)
-	authMW := middleware.AuthMiddleware(middleware.DefaultAuthOptions())
+	authOpts := middleware.DefaultAuthOptions()
+	authOpts.TokenService = c.TokenService
+	authOpts.BlacklistRepo = c.BlacklistRepo
+	authMW := middleware.AuthMiddleware(authOpts)
+	csrfMW := c.CSRFMiddleware.ProtectCR
 
-	// 3. Public routes
-	router.Handle("/", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.MainPageHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("GET")
+	public := router.PathPrefix("").Subrouter()
+	public.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PublicCORSConfig())))
+	public.Use(mux.MiddlewareFunc(rateLimitMW))
 
-	router.Handle("/register", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.RegisterHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("POST")
+	public.Handle("/", http.HandlerFunc(c.MainPageHandler.Handle)).Methods("GET", "OPTIONS")
+	public.Handle("/comments", http.HandlerFunc(c.CommentsGetHandler.Handle)).Methods("GET", "OPTIONS")
+	public.Handle("/products", http.HandlerFunc(c.ProductsHandler.Handle)).Methods("GET", "OPTIONS")
+	public.Handle("/product-id/{id}", http.HandlerFunc(c.ProductsHandler.HandleGetByID)).Methods("GET", "OPTIONS")
+	public.Handle("/products-brand/{brand}", http.HandlerFunc(c.ProductsHandler.HandleGetByBrand)).Methods("GET", "OPTIONS")
+	public.Handle("/refresh", http.HandlerFunc(c.RefreshHandler.Handle)).Methods("POST", "OPTIONS")
 
-	router.Handle("/login", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.LoginHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("POST")
+	private := router.PathPrefix("").Subrouter()
+	private.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PrivateCORSConfig())))
+	private.Use(mux.MiddlewareFunc(rateLimitMW))
+	private.Use(mux.MiddlewareFunc(authMW))
+	private.Use(mux.MiddlewareFunc(csrfMW))
+	private.Use(mux.MiddlewareFunc(middleware.NoCacheMiddleware()))
 
-	router.Handle("/comments", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.CommentsGetHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("GET")
+	private.Handle("/comments/newComments", http.HandlerFunc(c.CommentsAddHandler.Handle)).Methods("POST", "OPTIONS")
+	private.Handle("/logout", http.HandlerFunc(c.LogoutHandler.Handle)).Methods("POST", "OPTIONS")
 
-	// 4. Protected routes
-	router.Handle("/comments/newComments", c.MiddlewareManager.Apply(
-		http.HandlerFunc(c.CommentsAddHandler.Handle),
-		authMW, rateLimitMW,
-	)).Methods("POST")
+	loginRouter := router.PathPrefix("").Subrouter()
+	loginRouter.Use(mux.MiddlewareFunc(middleware.CORSMiddleware(middleware.PrivateCORSConfig())))
+	loginRouter.Use(mux.MiddlewareFunc(rateLimitMW))
+	loginRouter.Use(mux.MiddlewareFunc(middleware.NoCacheMiddleware()))
+	loginRouter.Handle("/login", http.HandlerFunc(c.LoginHandler.Handle)).Methods("POST", "OPTIONS")
+	loginRouter.Handle("/register", http.HandlerFunc(c.RegisterHandler.Handle)).Methods("POST", "OPTIONS")
 }
 
 // NewRouter constructs and returns a *mux.Router configured with all application routes, handlers, and global middleware.
@@ -103,6 +115,11 @@ func (c *RouterConfig) SetupRoutes(router *mux.Router) {
 //   - commentAddService: service for adding new comments.
 //   - rateHandler: rate limiting handler middleware for DoS protection.
 //   - staticFileService: adapter for serving static files from disk.
+//   - productsGetService: service for retrieving product catalog data.
+//   - csrfMiddleware: middleware for Cross-Site Request Forgery protection.
+//   - csrfService: service for CSRF token generation and validation.
+//   - isProduction: flag indicating whether the app runs in production mode.
+//   - blacklistRepo: repository for persisting and checking revoked JWT tokens.
 
 // Returns:
 //   - *mux.Router: fully configured router ready to be passed to http.ListenAndServe.
@@ -113,17 +130,26 @@ func NewRouter(
 	commentAddService input.CommentAddService,
 	rateHandler ratelimiter.RateLimiterHandler,
 	staticFileService output.StaticFilePort,
+	productsGetService input.ProductsGetService,
+	csrfMiddleware *middleware.CSRFMiddleware,
+	csrfService output.CSRFService,
+	isProduction bool,
+	blacklistRepo output.TokenBlacklistPort,
+	tokenService output.TokenService,
 ) *mux.Router {
 	// 1. Initialize a new router
 	router := mux.NewRouter()
 
 	// 2. Instantiate HTTP handlers with injected domain services
-	loginHandler := NewLoginHandler(userServiceLogin)
-	registerHandler := NewRegisterHandler(userServiceRegister)
+	loginHandler := NewLoginHandler(userServiceLogin, csrfService, isProduction)
+	registerHandler := NewRegisterHandler(userServiceRegister, csrfService, isProduction)
 	commentsGetHandler := NewCommentsGetHandler(commentGetService)
 	commentsAddHandler := NewCommentAddsHandler(commentAddService)
+	logoutHandler := NewLogoutHandler(tokenService, blacklistRepo, isProduction)
+	refreshHandler := NewRefreshHandler(tokenService, blacklistRepo, isProduction)
 	mainPageHandler := NewMainPageHandler()
 	staticFileHandler := NewStaticFileHandler(staticFileService)
+	productsHandler := NewProductsHandler(productsGetService)
 
 	// 3. Configure main page handler with static directory
 	mainPageHandler.SetStaticDir(staticFileService.GetStaticDir())
@@ -133,26 +159,28 @@ func NewRouter(
 	timingConfig := middleware.DefaultTimingConfig()
 	timingConfig.WarningThreshold = 200 * 1000 * 1000 // 200 milliseconds
 
-	corsConfig := middleware.DefaultCORSConfig()
-	// corsCfg.AllowedOrigins = []string{"https://example.com"} // customize as needed
-
 	// Add global middleware: logging, timing, CORS
 	middlewareManager.AddGlobal(middleware.LoggingMiddleware)
 	middlewareManager.AddGlobal(middleware.TimingMiddleware(timingConfig))
-	middlewareManager.AddGlobal(middleware.CORSMiddleware(corsConfig))
 	middlewareManager.ApplyToRouter(router)
 
 	// 5. Build RouterConfig with dependencies
 	config := &RouterConfig{
-		IPExtractor:        &ratelimiter.DefaultIPExtractor{},
-		RateLimiter:        rateHandler,
-		LoginHandler:       loginHandler,
-		RegisterHandler:    registerHandler,
-		CommentsGetHandler: commentsGetHandler,
-		CommentsAddHandler: commentsAddHandler,
-		MainPageHandler:    mainPageHandler,
-		StaticFileHandler:  staticFileHandler,
-		MiddlewareManager:  middlewareManager,
+		IPExtractor:            ratelimiter.NewDefaultIPExtractor("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/32"),
+		RateLimiter:            rateHandler,
+		LoginHandler:           loginHandler,
+		RegisterHandler:        registerHandler,
+		RefreshHandler:         refreshHandler,
+		CommentsGetHandler:     commentsGetHandler,
+		CommentsAddHandler:     commentsAddHandler,
+		LogoutHandler:          logoutHandler,
+		BlacklistRepo:          blacklistRepo,
+		MainPageHandler:        mainPageHandler,
+		StaticFileHandler:      staticFileHandler,
+		MiddlewareManager:      middlewareManager,
+		ProductsHandler:        productsHandler,
+		CSRFMiddleware:         csrfMiddleware,
+		TokenService:           tokenService,
 	}
 
 	// 6. Register routes on router

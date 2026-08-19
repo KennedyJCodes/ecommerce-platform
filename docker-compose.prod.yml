@@ -1,0 +1,27 @@
+services:
+  mysql:
+    restart: always
+    mem_limit: 1g
+    cpus: "1.0"
+    ports:
+      - "3306:3306"
+
+  redis:
+    restart: always
+    mem_limit: 512m
+    cpus: "0.5"
+    ports:
+      - "6379:6379"
+
+  backend:
+    restart: always
+    mem_limit: 512m
+    cpus: "1.0"
+    environment:
+      ENV: production
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

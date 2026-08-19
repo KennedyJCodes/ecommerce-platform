@@ -2,85 +2,96 @@
 package service_auth
 
 import (
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
+	"fmt"
+
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UserLoginService implements the input.UserServiceLogin interface.
-
-// It handles user authentication by validating input, checking user existence, verifying credentials, and issuing JWT tokens.
+// UserLoginService orchestrates the authentication flow for existing users.
+// It embeds BaseAuthService to reuse common security logic, adhering to the input.UserServiceLogin port. It is responsible for the transition from raw credentials to a secure, authenticated session.
 type UserLoginService struct {
 	BaseAuthService
 }
 
-// NewUserLoginService constructs a UserLoginService with necessary dependencies.
+// NewUserLoginService initializes a UserLoginService with all necessary
+// infrastructure and domain dependencies.
 
 // Parameters:
-//   - userRepo: repository for user data access (output.UserRepository)
-//   - userNameValidator: validator for username input (input.Validator)
-//   - passwordValidator: validator for password input (input.Validator)
-
+//   - userRepo: persistence adapter for user data.
+//   - userNameValidator/passwordValidator: business rule engines for input integrity.
+//   - csrfService/csrfCookieSetter: components for cross-site request forgery protection.
+//
 // Returns:
-//   - input.UserServiceLogin: ready-to-use login service.
-func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator) input.UserServiceLogin {
+//   - input.UserServiceLogin: the abstracted login service interface.
+func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService) input.UserServiceLogin {
 	return &UserLoginService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,
 			UserNameValidator: userNameValidator,
 			PasswordValidator: passwordValidator,
+			TokenService:      tokenService,
+			CSRFService:       csrfService,
 		},
 	}
 }
 
-// Login authenticates a user and returns a signed JWT token.
+// Login executes the full authentication protocol.
+// The process follows a strict security sequence:
+//  1. Input Validation: Ensures data follows domain formats before hitting the DB.
+//  2. Identity Verification: Confirms the user exists.
+//  3. Credential Challenge: Performs a secure bcrypt comparison against the stored hash.
+//  4. Security Upgrading: Generates a new CSRF context for the authenticated session.
+//  5. Token Issuance: Signs access and refresh JWTs for subsequent authorized requests.
 
-// Steps:
-//   1. Validate username format.
-//   2. Check that the user exists in the repository.
-//   3. Retrieve stored salt and password hash for the username.
-//   4. Combine provided password with salt and compare hash.
-//   5. Generate and return a JWT token if credentials are valid.
-
-// Parameters:
-//   - account: models.Account containing Username and Password.
-
-// Returns:
-//   - token string: a signed JWT token on success.
-//   - error: non-nil if validation, lookup, or authentication fails.
-func (l *UserLoginService) Login(account models.Account) (string, error) {
-	// 1. Validate username
+// Returns a TokenPair containing both tokens and a CSRF token, or a domain-specific error.
+func (l *UserLoginService) Login(account models.Account) (*models.TokenPair, string, error) {
+	// 1. Validate format integrity
 	if err := l.ValidateUserName(account.UserName); err != nil {
-		return "", errors.NewValidationError(errors.ErrInvalidUsername)
+		return nil, "", errors.NewValidationError(errors.ErrInvalidUsername)
 	}
 
-	// 2. Check user existence
+	// 2. Identify user in persistence
 	exists, err := l.CheckUserExists(account.UserName)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 	if !exists {
-		return "", errors.NewNotFoundError(errors.ErrUserNotFound)
+		return nil, "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
 
+	// 3. Retrieve security credentials
 	storedHash, err := l.UserRepo.GetHashPassword(account.UserName)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	userId, err := l.UserRepo.GetID(account.UserName)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
-	// 4. Verify password by hashing provided password with salt
+	// 4. Cryptographic verification
+	// CompareHashAndPassword handles the complexity of constant-time comparisons to prevent timing attacks.
 	err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(account.Password))
 	if err != nil {
-		return "", errors.NewAuthError(errors.ErrInvalidCredentials)
+		return nil, "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
 
-	// 5. Generate JWT token
-	return l.GenerateToken(userId, account.UserName)
+	// 5. Establish CSRF Protection for the new session
+	userIDStr := fmt.Sprintf("%d", userId)
+	csrfToken, err := l.GenerateCSRFToken(userIDStr)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// 6. Finalize session via JWT
+	tokens, err := l.GenerateTokenPair(userId, account.UserName)
+	if err != nil {
+		return nil, "", err
+	}
+	return tokens, csrfToken, nil
 }

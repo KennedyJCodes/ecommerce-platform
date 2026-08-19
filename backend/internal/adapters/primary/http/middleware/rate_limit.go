@@ -6,7 +6,7 @@ package middleware
 import (
 	"net/http"
 
-	ratelimiter "github.com/David-Alejandro-Jimenez/sale-watches/pkg/security/rate_limiter"
+	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
 )
 
 // RateLimitMiddleware returns a Middleware that enforces rate limiting based on client IP.
@@ -20,7 +20,7 @@ import (
 func RateLimitMiddleware(ipExtractor ratelimiter.IPExtractor, limiter ratelimiter.RateLimiterHandler) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			clientIP := ipExtractor.Extract(r.RemoteAddr)
+			clientIP := ipExtractor.Extract(r)
 
 			if !limiter.Allow(clientIP) {
 				http.Error(w, "Too many requests", http.StatusTooManyRequests)

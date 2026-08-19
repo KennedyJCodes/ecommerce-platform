@@ -1,17 +1,16 @@
-// Package http implements HTTP handlers for the sale-watches application.
+// Package http implements HTTP handlers for the ecommerce-platform application.
 // This file contains the LoginHandler, which is responsible for processing login requests.
 package http
 
 import (
-	"encoding/json"
 	"net/http"
-	"os"
 
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/domain/models"
-	"github.com/David-Alejandro-Jimenez/sale-watches/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/errors"
-	httpUtil "github.com/David-Alejandro-Jimenez/sale-watches/pkg/http"
-	"github.com/David-Alejandro-Jimenez/sale-watches/pkg/http/cookies"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 )
 
 // LoginHandler handles HTTP requests related to user login.
@@ -19,14 +18,18 @@ import (
 // It acts as an adapter between HTTP requests and the core domain's login functionality, using the UserServiceLogin interface to process login operations.
 type LoginHandler struct {
 	userServiceLogin input.UserServiceLogin
+	csrfService      output.CSRFService
+	isProduction     bool
 }
 
 // NewLoginHandler creates a new instance of LoginHandler.
 
 // It receives an implementation of the UserServiceLogin interface, which encapsulates the business logic for authenticating users.
-func NewLoginHandler(userServiceLogin input.UserServiceLogin) *LoginHandler {
+func NewLoginHandler(userServiceLogin input.UserServiceLogin, csrfService output.CSRFService, isProduction bool) *LoginHandler {
 	return &LoginHandler{
 		userServiceLogin: userServiceLogin,
+		csrfService:      csrfService,
+		isProduction:     isProduction,
 	}
 }
 
@@ -40,20 +43,23 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var account models.Account
-	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
-		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrInvalidRequest))
+	if err := httpUtil.DecodeJSONBody(w, r, &account, httpUtil.MaxAuthBodySize); err != nil {
+		httpUtil.HandleError(w, err)
 		return
 	}
 
-	token, err := h.userServiceLogin.Login(account)
+	tokens, csrfToken, err := h.userServiceLogin.Login(account)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return
 	}
 
-	isProduction := os.Getenv("ENV") == "production"
-	cookies.SetAuthCookie(w, token, isProduction)
+	cookies.SetAuthCookie(w, tokens.AccessToken, h.isProduction)
+	cookies.SetRefreshCookie(w, tokens.RefreshToken, h.isProduction)
+	cookies.SetCSRFCookie(w, csrfToken, h.isProduction)
+
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
-		"message": "Successful login",
+		"message":    "Successful login",
+		"csrf_token": csrfToken,
 	})
 }
