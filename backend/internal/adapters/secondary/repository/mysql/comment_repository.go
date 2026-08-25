@@ -48,16 +48,16 @@ func (r *SqlCommentRepository) GetComments() ([]models.Comment, error) {
 	// Define SQL query to select comments and join with user table.
 	const sqlQuery = `
 	SELECT 
-		c.ID,
-		c.Date,
-		c.Content,
-		c.UserID,
-		u.UserName AS UserName,
-		c.Rating
+		c.id,
+		c.date,
+		c.content,
+		c.user_id,
+		u.username AS username,
+		c.rating
 	FROM comments c
 	JOIN user_registration u
-		ON c.UserID = u.UserID
-		ORDER BY c.Date DESC
+		ON c.user_id = u.user_id
+		ORDER BY c.date DESC
 	`
 
 	// Execute the query and scan results into comments slice.
@@ -80,7 +80,7 @@ func (r *SqlCommentRepository) GetComments() ([]models.Comment, error) {
 // Returns:
 //   - error: non-nil if the insert fails, wrapped as an InternalError.
 func (r *SqlCommentRepository) SaveComment(userID int, content string, rating int) error {
-	const query = `INSERT INTO comments (UserID, Content, Rating, Date)
+	const query = `INSERT INTO comments (user_id, content, rating, date)
 	VALUES (?, ?, ?, NOW())`
 
 	// Execute the insert query with provided parameters.

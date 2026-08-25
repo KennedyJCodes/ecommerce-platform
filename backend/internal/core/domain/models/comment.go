@@ -12,10 +12,10 @@ package models
 //   - Content:   textual body of the comment.
 //   - Rating:    numeric score given by the user (e.g., 1–5).
 type Comment struct {
-	ID int `db:"ID"`
-	Date string `db:"Date"`
-	UserID int `db:"UserID"`
-	UserName string `db:"UserName"`
-	Content string `db:"Content"`
-	Rating int `db:"Rating"`
+	ID int `db:"id"`
+	Date string `db:"date"`
+	UserID int `db:"user_id"`
+	UserName string `db:"user_name"`
+	Content string `db:"content"`
+	Rating int `db:"rating"`
 } 

@@ -11,5 +11,5 @@ CREATE TABLE IF NOT EXISTS payments (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_paypal_order_id (paypal_order_id),
     INDEX idx_payments_user_id (user_id),
-    CONSTRAINT fk_payments_user FOREIGN KEY (user_id) REFERENCES user_registration(UserID) ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT fk_payments_user FOREIGN KEY (user_id) REFERENCES user_registration(user_id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

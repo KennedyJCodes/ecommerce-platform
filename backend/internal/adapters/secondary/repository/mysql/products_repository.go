@@ -5,6 +5,7 @@ package repository_mysql
 import (
 	"database/sql"
 	"errors"
+	"log"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
@@ -39,13 +40,14 @@ func NewSqlProductsRepository(db *sqlx.DB) (output.ProductsRepository, error) {
 func (r *SqlProductsRepository) GetProducts() ([]models.Product, error) {
 	var product []models.Product
 	const sqlQuery = `
-	SELECT Product_ID, Product_Name, Product_Description, Product_Price, Stock_Quantity, Brand, Image_URL, Movement_Type
-	FROM Products `
+	SELECT product_id, product_name, product_description, product_price, stock_quantity, brand, image_url, movement_type
+	FROM products`
 
 	// Execute the query and map the entire result set to the product slice.
 	err := r.db.Select(&product, sqlQuery)
 	if err != nil {
 		// Wrap low-level DB error in a domain-friendly InternalError.
+		log.Printf("Error executing GetProducts query: %v", err)
 		return nil, Custom_errors.NewInternalError(Custom_errors.ErrDatabaseQuery).WithError(err)
 	}
 
@@ -63,9 +65,9 @@ func (r *SqlProductsRepository) GetProducts() ([]models.Product, error) {
 func (r *SqlProductsRepository) GetProductByID(id int) (models.Product, error) {
 	var product models.Product
 	const sqlQuery = `
-	SELECT Product_ID, Product_Name, Product_Description, Product_Price, Stock_Quantity, Brand, Image_URL, Movement_Type
-	FROM Products
-	WHERE Product_ID = ?`
+	SELECT product_id, product_name, product_description, product_price, stock_quantity, brand, image_url, movement_type
+	FROM products
+	WHERE product_id = ?`
 
 	// Validate input ID before querying.
 	if id < 0 {
@@ -94,9 +96,9 @@ func (r *SqlProductsRepository) GetProductByID(id int) (models.Product, error) {
 func (r *SqlProductsRepository) GetProductsByBrand(brand string) ([]models.Product, error) {
 	var productByBrand []models.Product
 	const sqlQuery = `
-		SELECT Product_ID, Product_Name, Product_Description, Product_Price, Stock_Quantity, Brand, Image_URL, Movement_Type
-		FROM Products
-		WHERE Brand = ?`
+		SELECT product_id, product_name, product_description, product_price, stock_quantity, brand, image_url, movement_type
+		FROM products
+		WHERE brand = ?`
 
 	// Execute parameterized query to filter by brand.
 	err := r.db.Select(&productByBrand, sqlQuery, brand)

@@ -43,7 +43,7 @@ func NewSQLUserRepository(db *sqlx.DB, hasher securityAuth.Hasher) (output.UserR
 // Any SQL errors are wrapped as internal errors.
 func (r *SQLUserRepository) UserExists(username string) (bool, error) {
 	var exists bool
-	query := "SELECT EXISTS(SELECT 1 FROM user_registration WHERE UserName = ?)"
+	query := "SELECT EXISTS(SELECT 1 FROM user_registration WHERE username = ?)"
 	err := r.db.QueryRow(query, username).Scan(&exists)
 	if err != nil {
 		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
@@ -57,7 +57,7 @@ func (r *SQLUserRepository) UserExists(username string) (bool, error) {
 // If no record is found, returns a NotFoundError. Other SQL errors are wrapped as internal errors.
 func (r *SQLUserRepository) GetHashPassword(username string) (string, error) {
 	var hashPassword string
-	query := "SELECT Password FROM user_registration WHERE UserName = ?"
+	query := "SELECT password FROM user_registration WHERE username = ?"
 	err := r.db.QueryRow(query, username).Scan(&hashPassword)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -85,7 +85,7 @@ func (r *SQLUserRepository) SaveUser(username, password string) error {
 
 	defer tx.Rollback()
 
-	_, err = tx.Exec("INSERT INTO user_registration (UserName, Password) VALUES (?, ?)", username, hash)
+	_, err = tx.Exec("INSERT INTO user_registration (username, password) VALUES (?, ?)", username, hash)
 	if err != nil {
 		return errors.NewInternalError(errors.ErrDatabaseInsert).WithError(err)
 	}
@@ -108,7 +108,7 @@ func (r *SQLUserRepository) SaveUser(username, password string) error {
 //   - error: non-nil if the user is not found or a database error occurs.
 func (r *SQLUserRepository) GetID(username string) (int, error) {
 	var id int
-	query := "SELECT UserID FROM user_registration WHERE UserName = ?"
+	query := "SELECT user_id FROM user_registration WHERE username = ?"
 
 	// Execute the query and scan the single result into id.
 	err := r.db.QueryRow(query, username).Scan(&id)

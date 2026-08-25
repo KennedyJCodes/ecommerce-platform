@@ -7,18 +7,33 @@ services:
     cpus: "0.5"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: store_watches
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
     ports:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./backend/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-P", "3306"]
       interval: 5s
       timeout: 5s
       retries: 15
       start_period: 60s
+    networks:
+      - app-network
+
+  migrate:
+    image: migrate/migrate:v4.17.0
+    container_name: ecommerce-migrate
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./backend/migrations:/migrations
+    command: [
+      "-path", "/migrations",
+      "-database", "mysql://root:${MYSQL_ROOT_PASSWORD}@tcp(mysql:3306)/${MYSQL_DATABASE}",
+      "up"
+    ]
     networks:
       - app-network
 
@@ -62,7 +77,7 @@ services:
       DATABASE_PORT: "3306"
       DATABASE_USER: root
       DATABASE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DATABASE_NAME: store_watches
+      DATABASE_NAME: ${MYSQL_DATABASE}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_USERNAME: "default"
@@ -81,6 +96,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - app-network
 

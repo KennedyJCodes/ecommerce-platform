@@ -40,7 +40,7 @@ func NewAppConfig() *AppConfig {
 	config.SetDefault("RATE_LIMITING_EXPIRATION_MINUTES", 30)
 	config.SetDefault("DATABASE_HOST", "localhost")
 	config.SetDefault("DATABASE_PORT", 3306)
-	config.SetDefault("DATABASE_NAME", "store_watches")
+	config.SetDefault("DATABASE_NAME", "ecommerce-mysql")
 	config.SetDefault("REDIS_HOST", "localhost")
 	config.SetDefault("REDIS_PORT", 6379)
 	config.SetDefault("REDIS_DB", 0)
