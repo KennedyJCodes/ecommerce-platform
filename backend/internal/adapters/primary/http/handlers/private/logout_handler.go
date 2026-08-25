@@ -1,7 +1,7 @@
 // Package http implements HTTP handlers for the ecommerce-platform application.
 // This file contains the LogoutHandler, which processes logout requests by revoking
 // the current JWT token and clearing the authentication cookie.
-package http
+package private_handlers
 
 import (
 	"net/http"
@@ -32,6 +32,7 @@ type LogoutHandler struct {
 //   - tokenService: the service for JWT validation.
 //   - blacklistRepo: an implementation of the TokenBlacklistPort for token revocation.
 //   - isProduction: whether the app runs in production (sets Secure flag on cleared cookie).
+//
 // Returns:
 //   - *LogoutHandler: ready-to-use handler for the logout endpoint.
 func NewLogoutHandler(tokenService output.TokenService, blacklistRepo output.TokenBlacklistPort, isProduction bool) *LogoutHandler {

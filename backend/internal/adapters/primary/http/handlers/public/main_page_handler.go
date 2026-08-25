@@ -1,11 +1,11 @@
 // Package http implements HTTP handlers for the ecommerce-platform application.
 // This file contains the MainPageHandler, responsible for serving the main page of the application.
-package http
+package public_handlers
 
 import (
+	"html/template"
 	"net/http"
 	"path/filepath"
-	"html/template"
 )
 
 // MainPageHandler handles HTTP requests to the main page.

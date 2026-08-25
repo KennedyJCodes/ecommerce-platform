@@ -1,6 +1,6 @@
 // Package http implements HTTP handlers and adapters for the ecommerce-platform application.
 // This file contains the ProductsHandler, which manages product-related requests such as retrieving all products, filtering by brand, or fetching by specific ID.
-package http
+package public_handlers
 
 import (
 	"net/http"

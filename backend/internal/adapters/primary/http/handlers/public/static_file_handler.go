@@ -1,7 +1,7 @@
 // Package http implements HTTP handlers for the ecommerce-platform application.
 // This file contains the StaticFileHandler which is responsible for serving static files.
 // It restricts the served files based on allowed extensions and ensures that only valid paths are served.
-package http
+package public_handlers
 
 import (
 	"net/http"

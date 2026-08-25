@@ -1,6 +1,6 @@
 // Package http provides HTTP handlers for the Watch Store API's comment endpoints.
 // It defines adapters that translate HTTP requests into domain service calls and format service responses (or errors) as JSON HTTP responses.
-package http
+package private_handlers
 
 import (
 	"net/http"
