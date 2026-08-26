@@ -25,11 +25,13 @@ type UserRepository interface {
 		// - Duplicate username
 		// - Invalid credentials
 		// - Storage persistence failures
-	SaveUser(username, password string) error
+	SaveUser(username, password, email string) error
 
 	// GetID returns the numeric ID for a given username.
     // Returns:
     //   - int: user ID.
     //   - error: non-nil if user not found or storage error.
 	GetID(username string) (int, error)
+
+	EmailExists(email string) (bool, error)
 }

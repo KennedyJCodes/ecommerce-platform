@@ -5,6 +5,8 @@ package service_auth
 import (
 	"fmt"
 	"unicode"
+	"regexp"
+	"strings"
 )
 
 const (
@@ -84,5 +86,27 @@ func (p *PasswordValidator) Validate(input interface{}) error {
 	if !hasSpecialCharacter {
 		return fmt.Errorf("the password must have some special character")
 	}
+	return nil
+}
+
+type EmailValidator struct{}
+
+var emailRegex = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+
+func (e *EmailValidator) Validate(email interface{}) error {
+	emailStr := strings.TrimSpace(email.(string))
+
+	if emailStr == "" {
+		return fmt.Errorf("you cannot enter empty fields")
+	}
+
+	if len(emailStr) > 254 {
+		return fmt.Errorf("email is too long")
+	}
+
+	if !emailRegex.MatchString(emailStr) {
+		return fmt.Errorf("invalid email format")
+	}
+
 	return nil
 }

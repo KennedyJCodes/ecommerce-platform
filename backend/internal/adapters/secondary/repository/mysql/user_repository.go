@@ -72,7 +72,7 @@ func (r *SQLUserRepository) GetHashPassword(username string) (string, error) {
 // SaveUser inserts a new user into the database with a salted and hashed password.
 
 // It generates a new salt, combines it with the plain password, hashes the result, and executes an INSERT statement. Any generation, hashing, or SQL errors are wrapped as internal errors.
-func (r *SQLUserRepository) SaveUser(username, password string) error {
+func (r *SQLUserRepository) SaveUser(username, password, email string) error {
 	hash, err := r.hasher.Hash([]byte(password))
 	if err != nil {
 		return errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
@@ -85,7 +85,7 @@ func (r *SQLUserRepository) SaveUser(username, password string) error {
 
 	defer tx.Rollback()
 
-	_, err = tx.Exec("INSERT INTO user_registration (username, password) VALUES (?, ?)", username, hash)
+	_, err = tx.Exec("INSERT INTO user_registration (username, password, email) VALUES (?, ?, ?)", username, hash, email)
 	if err != nil {
 		return errors.NewInternalError(errors.ErrDatabaseInsert).WithError(err)
 	}
@@ -122,4 +122,15 @@ func (r *SQLUserRepository) GetID(username string) (int, error) {
 	}
 	// Return the found user ID.
 	return id, nil
+}
+
+func (r *SQLUserRepository) EmailExists(email string) (bool, error) {
+	var exists bool
+	query := "SELECT EXISTS(SELECT 1 FROM user_registration WHERE email = ?)"
+	err := r.db.QueryRow(query, email).Scan(&exists)
+	if err != nil {
+		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
+	}
+
+	return exists, nil
 }

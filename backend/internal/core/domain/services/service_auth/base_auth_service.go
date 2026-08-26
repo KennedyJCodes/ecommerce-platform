@@ -24,6 +24,8 @@ type BaseAuthService struct {
 	// PasswordValidator: strategy to enforce password security requirements.
 	PasswordValidator input.Validator
 
+	EmailValidator input.Validator
+
 	// TokenService: domain service for JWT generation and validation.
 	TokenService output.TokenService
 
@@ -49,10 +51,25 @@ func (b *BaseAuthService) ValidatePassword(password interface{}) error {
 	return nil
 }
 
+func (b *BaseAuthService) ValidateEmail(email interface{}) error {
+	if err := b.EmailValidator.Validate(email); err != nil {
+		return errors.NewValidationError(errors.ErrInvalidEmail)
+	}
+	return nil
+}
+
 // CheckUserExists verifies the presence of a username in the persistence layer.
 // Returns (true, nil) if the user is registered, or handles database errors gracefully.
 func (b *BaseAuthService) CheckUserExists(username string) (bool, error) {
 	exists, err := b.UserRepo.UserExists(username)
+	if err != nil {
+		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
+	}
+	return exists, nil
+}
+
+func (b *BaseAuthService) CheckEmailExists(email string) (bool, error) {
+	exists, err := b.UserRepo.EmailExists(email)
 	if err != nil {
 		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
 	}

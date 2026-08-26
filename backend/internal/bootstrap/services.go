@@ -64,6 +64,7 @@ func SetupUserService(userRepo output.UserRepository, tokenService output.TokenS
 	// Initialize specific domain validators.
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}
+	emailValidator := &service_auth.EmailValidator{}
 
-	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService)
+	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, emailValidator, tokenService, csrfService)
 }
