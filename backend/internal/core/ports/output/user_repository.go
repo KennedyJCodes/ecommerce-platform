@@ -1,19 +1,20 @@
 // Package output defines persistence contracts for comments and users.
 package output
 
+import (
+	"context"
+
+	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
+)
+
 // UserRepository persists and retrieves user credentials.
 type UserRepository interface {
+	FindByUserName(ctx context.Context, username string) (*models_auth.User, error)
+
 	// UserExists checks if a username is already registered in the system.
 	// Returns true if the username exists in storage, false otherwise.
 	// May return an error for database connectivity issues or storage failures.
-	UserExists(username string) (bool, error)
-
-	// GetHashPassword retrieves the hashed password for a registered user.
-	// Primarily used during authentication processes. Returns an error if:
-		// - User doesn't exist
-		// - Password record is corrupted
-		// - Storage system failure occurs
-	GetHashPassword(username string) (string, error)
+	UserExists(ctx context.Context, username string) (bool, error)
 
 	// SaveUser persists a new user record with secure credential storage.
 	// Implementations should:
@@ -25,13 +26,7 @@ type UserRepository interface {
 		// - Duplicate username
 		// - Invalid credentials
 		// - Storage persistence failures
-	SaveUser(username, password, email string) error
+	SaveUser(ctx context.Context, user models_auth.User) (models_auth.User, error)
 
-	// GetID returns the numeric ID for a given username.
-    // Returns:
-    //   - int: user ID.
-    //   - error: non-nil if user not found or storage error.
-	GetID(username string) (int, error)
-
-	EmailExists(email string) (bool, error)
+	EmailExists(ctx context.Context, email string) (bool, error)
 }

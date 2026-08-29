@@ -3,10 +3,13 @@
 package service_auth
 
 import (
+	"context"
+	
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // BaseAuthService serves as a foundational structure for authentication use cases.
@@ -26,11 +29,21 @@ type BaseAuthService struct {
 
 	EmailValidator input.Validator
 
+	Hasher security_auth.Hasher
+
 	// TokenService: domain service for JWT generation and validation.
 	TokenService output.TokenService
 
 	// CSRFService: domain service to manage the lifecycle of CSRF tokens.
 	CSRFService output.CSRFService
+}
+
+func (b *BaseAuthService) HashearPassword(password []byte) (string, error) {
+	hash, err := b.Hasher.Hash(password)
+	if err != nil {
+		return "", errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
+	}
+	return hash, nil
 }
 
 // ValidateUserName evaluates if the provided username meets business requirements.
@@ -60,16 +73,16 @@ func (b *BaseAuthService) ValidateEmail(email interface{}) error {
 
 // CheckUserExists verifies the presence of a username in the persistence layer.
 // Returns (true, nil) if the user is registered, or handles database errors gracefully.
-func (b *BaseAuthService) CheckUserExists(username string) (bool, error) {
-	exists, err := b.UserRepo.UserExists(username)
+func (b *BaseAuthService) CheckUserExists(ctx context.Context, username string) (bool, error) {
+	exists, err := b.UserRepo.UserExists(ctx, username)
 	if err != nil {
 		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
 	}
 	return exists, nil
 }
 
-func (b *BaseAuthService) CheckEmailExists(email string) (bool, error) {
-	exists, err := b.UserRepo.EmailExists(email)
+func (b *BaseAuthService) CheckEmailExists(ctx context.Context, email string) (bool, error) {
+	exists, err := b.UserRepo.EmailExists(ctx, email)
 	if err != nil {
 		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
 	}

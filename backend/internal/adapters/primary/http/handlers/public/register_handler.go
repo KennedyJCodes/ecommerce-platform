@@ -5,7 +5,7 @@ package public_handlers
 import (
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
@@ -45,13 +45,13 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Decode the JSON request body into an Account instance.
-	var account models.Account
+	var account dto.RegisterAccount
 	if err := httpUtil.DecodeJSONBody(w, r, &account, httpUtil.MaxAuthBodySize); err != nil {
 		httpUtil.HandleError(w, err)
 		return
 	}
 
-	tokens, csrfToken, err := h.userServiceRegister.Register(account)
+	tokens, csrfToken, err := h.userServiceRegister.Register(r.Context(), account)
 	if err != nil {
 		httpUtil.HandleError(w, err)
 		return

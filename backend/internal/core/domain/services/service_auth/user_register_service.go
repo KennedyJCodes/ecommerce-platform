@@ -2,12 +2,16 @@
 package service_auth
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // UserRegisterService handles the logic for creating new user identities.
@@ -25,7 +29,7 @@ type UserRegisterService struct {
 //
 // Returns:
 //   - input.UserServiceRegister: the registration service interface.
-func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService) input.UserServiceRegister {
+func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService, passwordHasher security_auth.Hasher) input.UserServiceRegister {
 	return &UserRegisterService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,
@@ -34,6 +38,7 @@ func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, p
 			EmailValidator:    emailValidator,
 			TokenService:      tokenService,
 			CSRFService:       csrfService,
+			Hasher:            passwordHasher,
 		},
 	}
 }
@@ -49,53 +54,59 @@ func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, p
 //  6. Session Issuance: Signs access and refresh JWTs for immediate authentication.
 //
 // Returns a TokenPair, a CSRF token on success, or an error.
-func (r *UserRegisterService) Register(account models.Account) (*models.TokenPair, string, error) {
-	// 1. Validate input integrity (Format and Strength)
-	if err := r.ValidateUserName(account.UserName); err != nil {
+func (r *UserRegisterService) Register(ctx context.Context, request dto.RegisterAccount) (*models.TokenPair, string, error) {
+	if err := r.ValidateUserName(request.UserName); err != nil {
+		return nil, "", err
+	}
+	
+	if err := r.ValidatePassword(request.Password); err != nil {
 		return nil, "", err
 	}
 
-	if err := r.ValidatePassword(account.Password); err != nil {
+	if err := r.ValidateEmail(request.Email); err != nil {
 		return nil, "", err
 	}
-
-	if err := r.ValidateEmail(account.Email); err != nil {
-		return nil, "", err
-	}
-
-	existsEmail, err := r.CheckEmailExists(account.Email)
+	
+	existsEmail, err := r.CheckEmailExists(ctx, request.Email)
 	if err != nil {
 		return nil, "", err
 	}
 	if existsEmail {
 		return nil, "", errors.NewConflictError(errors.ErrEmailAlreadyExists)
 	}
-
-	existsUser, err := r.CheckUserExists(account.UserName)
+	
+	existsUser, err := r.CheckUserExists(ctx, request.UserName)
 	if err != nil {
 		return nil, "", err
 	}
 	if existsUser {
 		return nil, "", errors.NewConflictError(errors.ErrUserAlreadyExists)
 	}
-
-	// The repository is expected to handle the cryptographic hashing before storage.
-	if err := r.UserRepo.SaveUser(account.UserName, account.Password, account.Email); err != nil {
-		return nil, "", err
+	
+	hash, err := r.Hasher.Hash([]byte(request.Password))
+	if err != nil {
+		return nil, "", errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
 	}
 
-	userId, err := r.UserRepo.GetID(account.UserName)
+	newUser := models_auth.User{
+		UserName:     request.UserName,
+		Email:        request.Email,
+		PasswordHash: string(hash),
+	}
+
+	// The repository is expected to handle the cryptographic hashing before storage.
+	savedUser, err := r.UserRepo.SaveUser(ctx, newUser); 
 	if err != nil {
 		return nil, "", err
 	}
 
-	userIDStr := fmt.Sprintf("%d", userId)
+	userIDStr := fmt.Sprintf("%d", savedUser.UserID)
 	csrfToken, err := r.GenerateCSRFToken(userIDStr)
 	if err != nil {
 		return nil, "", err
 	}
 
-	tokens, err := r.GenerateTokenPair(userId, account.UserName)
+	tokens, err := r.GenerateTokenPair(int(savedUser.UserID), request.UserName)
 	if err != nil {
 		return nil, "", err
 	}
