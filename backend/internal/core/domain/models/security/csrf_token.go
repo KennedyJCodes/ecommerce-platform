@@ -1,5 +1,5 @@
 // Package models defines core domain entities for the ecommerce-platform application.
-package models
+package models_security
 
 import "time"
 

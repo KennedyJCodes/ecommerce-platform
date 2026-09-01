@@ -1,5 +1,5 @@
 // Package models defines core domain entities and configuration structs for the sale‑watches application.
-package models
+package models_security
 
 import "time"
 

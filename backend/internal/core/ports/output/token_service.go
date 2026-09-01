@@ -2,7 +2,7 @@
 // This file contains the TokenService interface for JWT-related operations.
 package output
 
-import "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+import "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 
 // TokenService defines the contract for JWT generation, validation, and parsing.
 // Implementations handle the lifecycle of access tokens and refresh tokens used
@@ -10,9 +10,9 @@ import "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/doma
 type TokenService interface {
 	// GenerateJWT creates a signed access JWT for the given user.
 	// Returns the token string or an error if signing fails.
-	GenerateToken(userId int, userName string, tokenType models.TokenType) (string, error)
+	GenerateToken(userId int, userName string, tokenType models_auth.TokenType) (string, error)
 
 	// ValidateRefreshToken parses and validates a refresh token string.
 	// Returns the claims if the token is valid and has subject "refresh".
-	ValidateToken(tokenString string) (*models.Claims, error)
+	ValidateToken(tokenString string) (*models_auth.Claims, error)
 }

@@ -42,11 +42,11 @@ func NewSQLUserRepository(db *sqlx.DB, hasher securityAuth.Hasher) (output.UserR
 
 func (r *SQLUserRepository) FindByUserName(ctx context.Context, username string) (*models_auth.User, error) {
 	var user models_auth.User
-    query := `SELECT id, username, email, password_hash, created_at, updated_at 
+    query := `SELECT user_id, username, email, password, created_at, updated_at 
             FROM user_registration WHERE username = ?`
 
     err := r.db.QueryRowContext(ctx, query, username).Scan(
-        &user.UserID, &user.UserName, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt,
+        &user.UserID, &user.UserName, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt,
     )
     if errors.Is(err, sql.ErrNoRows) {
         return &models_auth.User{}, errorsApp.NewBadRequestError(errorsApp.ErrUserNotFound)
@@ -93,7 +93,7 @@ func (r *SQLUserRepository) SaveUser(ctx context.Context, user models_auth.User)
 
 	result, err := tx.ExecContext(ctx,
 		"INSERT INTO user_registration (username, password, email) VALUES (?, ?, ?)",
-		user.UserName, user.PasswordHash, user.Email,
+		user.UserName, user.Password, user.Email,
 	)
 	if err != nil {
 		return models_auth.User{}, errorsApp.NewInternalError(errorsApp.ErrDatabaseInsert).WithError(err)

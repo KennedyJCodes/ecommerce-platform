@@ -6,8 +6,7 @@ import (
 	"fmt"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
-	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
@@ -54,7 +53,7 @@ func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, p
 //  6. Session Issuance: Signs access and refresh JWTs for immediate authentication.
 //
 // Returns a TokenPair, a CSRF token on success, or an error.
-func (r *UserRegisterService) Register(ctx context.Context, request dto.RegisterAccount) (*models.TokenPair, string, error) {
+func (r *UserRegisterService) Register(ctx context.Context, request dto.RegisterAccount) (*models_auth.TokenPair, string, error) {
 	if err := r.ValidateUserName(request.UserName); err != nil {
 		return nil, "", err
 	}
@@ -84,6 +83,7 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 	}
 	
 	hash, err := r.Hasher.Hash([]byte(request.Password))
+	fmt.Printf("HASH GENERADO: %q\n", hash)
 	if err != nil {
 		return nil, "", errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
 	}
@@ -91,7 +91,7 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 	newUser := models_auth.User{
 		UserName:     request.UserName,
 		Email:        request.Email,
-		PasswordHash: string(hash),
+		Password: string(hash),
 	}
 
 	// The repository is expected to handle the cryptographic hashing before storage.

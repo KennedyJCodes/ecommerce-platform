@@ -1,6 +1,6 @@
 // Package models defines core domain entities for the ecommerce-platform application.
 // This file declares the Product type, the central entity representing a watch in the catalog.
-package models
+package models_product
 
 // Product represents a watch available in the store's inventory.
 // It encapsulates all physical and commercial attributes of a watch, including technical specifications like movement type and logistical data like stock quantity.

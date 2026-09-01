@@ -1,7 +1,7 @@
 // Package models defines core domain entities for the sale‑watches application.
 
 // This file declares the Claims type used in JSON Web Tokens for user authentication.
-package models
+package models_auth
 
 import "github.com/golang-jwt/jwt/v5"
 

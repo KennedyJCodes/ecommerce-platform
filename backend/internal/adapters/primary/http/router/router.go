@@ -18,8 +18,8 @@ type RouterConfiguration interface {
 type RouterDependencies struct {
 	UserServiceLogin    input.UserServiceLogin
 	UserServiceRegister input.UserServiceRegister
-	CommentGetService   input.CommentGetService
-	CommentAddService   input.CommentAddService
+	ReviewGetService   input.ReviewGetService
+	ReviewAddService   input.ReviewAddService
 	RateHandler         ratelimiter.RateLimiterHandler
 	StaticFileService   output.StaticFilePort
 	ProductsGetService  input.ProductsGetService
@@ -61,8 +61,8 @@ func NewRouter(deps RouterDependencies) *mux.Router {
 	handlers := buildHandlers(
 		deps.UserServiceLogin,
 		deps.UserServiceRegister,
-		deps.CommentGetService,
-		deps.CommentAddService,
+		deps.ReviewGetService,
+		deps.ReviewAddService,
 		deps.StaticFileService,
 		deps.ProductsGetService,
 		deps.CSRFService,

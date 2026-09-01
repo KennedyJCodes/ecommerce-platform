@@ -1,4 +1,4 @@
-package models
+package models_auth
 
 type TokenType string
 

@@ -20,7 +20,7 @@ type User struct {
 	UserID uint64
 	UserName string
 	Email string
-	PasswordHash string
+	Password string
 	VerifiedAt time.Time
 	CreatedAt time.Time
     UpdatedAt time.Time

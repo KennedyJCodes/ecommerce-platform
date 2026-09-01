@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/security"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"github.com/redis/go-redis/v9"
 )
@@ -39,7 +39,7 @@ func NewRedisCSRFRepository(client *redis.Client) *RedisCSRFRepository {
 //
 // Returns:
 //   - error: an error if serialization or the Redis SET command fails.
-func (r *RedisCSRFRepository) Save(token *models.CSRFToken) error {
+func (r *RedisCSRFRepository) Save(token *models_security.CSRFToken) error {
 	data, err := json.Marshal(token)
 	if err != nil {
 		return err
@@ -59,9 +59,9 @@ func (r *RedisCSRFRepository) Save(token *models.CSRFToken) error {
 //   - userID: the unique identifier of the user whose token is being searched.
 //
 // Returns:
-//   - *models.CSRFToken: the retrieved token if found.
+//   - *models_security.CSRFToken: the retrieved token if found.
 //   - error: a NotFoundError if missing, or InternalError for other Redis/parsing failures.
-func (r *RedisCSRFRepository) Find(userID string) (*models.CSRFToken, error) {
+func (r *RedisCSRFRepository) Find(userID string) (*models_security.CSRFToken, error) {
 	key := "csrf:" + userID
 	data, err := r.client.Get(r.context, key).Bytes()
 	if err == redis.Nil {
@@ -72,7 +72,7 @@ func (r *RedisCSRFRepository) Find(userID string) (*models.CSRFToken, error) {
 		return nil, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
 	}
 
-	var token models.CSRFToken
+	var token models_security.CSRFToken
 	if err := json.Unmarshal(data, &token); err != nil {
 		return nil, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
 	}

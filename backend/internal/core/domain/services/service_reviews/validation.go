@@ -1,5 +1,5 @@
-// Package service_comments provides validation logic for comment data.
-package service_comments
+// Package service_reviews provides validation logic for review data.
+package service_reviews
 
 import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
@@ -9,7 +9,7 @@ import (
 // Fields:
 //   - Content: the text body of the comment; must be non-empty.
 //   - Rating: numerical score for the comment; must be between 1 and 5 (inclusive).
-type CommentValidationData struct {
+type ReviewValidationData struct {
 	Content string
 	Rating  int
 }
@@ -24,25 +24,25 @@ type CommentValidationData struct {
 //  4. Rating must be between 1 and 5 (inclusive).
 
 // On validation failure, returns a ValidationError with appropriate message.
-type CommentValidator struct{}
+type ReviewValidator struct{}
 
-// Validate checks the provided input against comment rules.
+// Validate checks the provided input against review rules.
 
 // Parameters:
-//   - input: interface{} expected to be of type CommentValidationData.
+//   - input: interface{} expected to be of type ReviewValidationData.
 
 // Returns:
 //   - error: nil if validation passes; ValidationError otherwise.
-func (r *CommentValidator) Validate(input interface{}) error {
+func (r *ReviewValidator) Validate(input interface{}) error {
 	// Assert correct type
-	data, ok := input.(CommentValidationData)
+	data, ok := input.(ReviewValidationData)
 	if !ok {
 		return errors.NewValidationError("Incorrect validation data")
 	}
 
 	// Rule 1: Content must not be empty
 	if data.Content == "" {
-		return errors.NewValidationError("Comment content cannot be empty")
+		return errors.NewValidationError("Review content cannot be empty")
 	}
 
 	// Rule 2: Rating must be provided

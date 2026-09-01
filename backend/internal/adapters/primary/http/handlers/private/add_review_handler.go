@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/review"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
@@ -17,20 +17,20 @@ import (
 
 // Fields:
 //   - commentService: domain service used to add new comments.
-type CommentsAddHandler struct {
-	commentService input.CommentAddService
+type ReviewsAddHandler struct {
+	ReviewService input.ReviewAddService
 }
 
-// NewCommentsAddHandler constructs and returns a new CommentsAddHandler.
+// NewReviewsAddHandler constructs and returns a new ReviewsAddHandler.
 
 // Parameters:
-//   - commentService: an implementation of input.CommentAddService responsible for persisting new comments.
+//   - commentService: an implementation of input.ReviewAddService responsible for persisting new reviews.
 
 // Returns:
-//   - *CommentsAddHandler: ready-to-use HTTP handler for the "add comment" endpoint.
-func NewCommentAddsHandler(commentService input.CommentAddService) *CommentsAddHandler {
-	return &CommentsAddHandler{
-		commentService: commentService,
+//   - *ReviewsAddHandler: ready-to-use HTTP handler for the "add review" endpoint.
+func NewReviewsAddHandler(reviewService input.ReviewAddService) *ReviewsAddHandler {
+	return &ReviewsAddHandler{
+		ReviewService: reviewService,
 	}
 }
 
@@ -52,7 +52,7 @@ func NewCommentAddsHandler(commentService input.CommentAddService) *CommentsAddH
 // Parameters:
 //   - w: http.ResponseWriter to write HTTP response headers and body.
 //   - r: *http.Request containing HTTP request data and context.
-func (h *CommentsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	// Step 1: Method check
 	if r.Method != http.MethodPost {
 		httpUtil.HandleError(w, errors.NewBadRequestError(errors.ErrMethodNotAllowed))
@@ -60,8 +60,8 @@ func (h *CommentsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Step 2: Decode JSON body
-	var account models.Review
-	if err := httpUtil.DecodeJSONBody(w, r, &account, httpUtil.MaxCommentBodySize); err != nil {
+	var review dto.ReviewRequest
+		if err := httpUtil.DecodeJSONBody(w, r, &review, httpUtil.MaxCommentBodySize); err != nil {
 		httpUtil.HandleError(w, err)
 		return
 	}
@@ -75,8 +75,8 @@ func (h *CommentsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 4: Call domain service to add the comment
-	err := h.commentService.AddComment(userIdInt, account.Content, account.Rating)
+	// Step 4: Call domain service to add the review
+	err := h.ReviewService.AddReview(userIdInt, review)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError(errors.ErrInternalServer))
 		return
@@ -84,6 +84,6 @@ func (h *CommentsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// Step 5: Send success response
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
-		"message": "Comment added",
+		"message": "Review added",
 	})
 }

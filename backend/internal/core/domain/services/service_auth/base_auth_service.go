@@ -4,8 +4,8 @@ package service_auth
 
 import (
 	"context"
-	
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
@@ -91,18 +91,18 @@ func (b *BaseAuthService) CheckEmailExists(ctx context.Context, email string) (b
 
 // GenerateTokenPair wraps the security package logic to create an access JWT
 // and a refresh JWT. Returns a TokenPair or an InternalError on failure.
-func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*models.TokenPair, error) {
-	accessToken, err := b.TokenService.GenerateToken(userId, username, models.TokenTypeAccess)
+func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*models_auth.TokenPair, error) {
+	accessToken, err := b.TokenService.GenerateToken(userId, username, models_auth.TokenTypeAccess)
 	if err != nil {
 		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	refreshToken, err := b.TokenService.GenerateToken(userId, username, models.TokenTypeRefresh)
+	refreshToken, err := b.TokenService.GenerateToken(userId, username, models_auth.TokenTypeRefresh)
 	if err != nil {
 		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	return &models.TokenPair{
+	return &models_auth.TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil

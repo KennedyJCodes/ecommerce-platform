@@ -3,49 +3,49 @@
 package repository_mysql
 
 import (
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/review"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"github.com/jmoiron/sqlx"
 )
 
-// SqlCommentRepository implements output.CommentRepository using a SQL database.
+// SqlReviewRepository implements output.ReviewRepository using a SQL database.
 // It uses sqlx for database interactions and expects a valid *sqlx.DB connection.
 //
 // Fields:
 //   - db: *sqlx.DB instance for executing queries.
-type SqlCommentRepository struct {
+type SqlReviewRepository struct {
 	db *sqlx.DB
 }
 
-// NewSqlCommentRepository creates a new SqlCommentRepository.
+// NewSqlReviewRepository creates a new SqlReviewRepository.
 // It validates the required database dependency and reports configuration
 // errors to the caller instead of exiting the process.
 
 // Parameters:
-//   - db: *sqlx.DB connection to the comments database.
+//   - db: *sqlx.DB connection to the reviews database.
 
 // Returns:
-//   - output.CommentRepository: initialized repository instance.
-func NewSqlCommentRepository(db *sqlx.DB) (output.CommentRepository, error) {
+//   - output.ReviewRepository: initialized repository instance.
+func NewSqlReviewRepository(db *sqlx.DB) (output.ReviewRepository, error) {
 	if db == nil {
 		return nil, errors.NewInternalError(errors.ErrDatabaseConnection)
 	}
 
-	return &SqlCommentRepository{
+	return &SqlReviewRepository{
 		db: db,
 	}, nil
 }
 
-// GetComments retrieves all comments from the database, ordered by date descending.
+// GetReviews retrieves all reviews from the database, ordered by date descending.
 // It performs a JOIN with the user_registration table to include the commenter's username.
 
 // Returns:
-//   - []models.Comment: slice of Comment models containing ID, Date, Content, UserID, UserName, and Rating.
+//   - []models_review.Review: slice of Review models containing ID, Date, Content, UserID, UserName, and Rating.
 //   - error: non-nil if the query fails, wrapped as an InternalError.
-func (r *SqlCommentRepository) GetComments() ([]models.Comment, error) {
-	var comment []models.Comment
-	// Define SQL query to select comments and join with user table.
+func (r *SqlReviewRepository) GetReviews() ([]models_review.Review, error) {
+	var review []models_review.Review
+	// Define SQL query to select reviews and join with user table.
 	const sqlQuery = `
 	SELECT 
 		c.id,
@@ -60,31 +60,31 @@ func (r *SqlCommentRepository) GetComments() ([]models.Comment, error) {
 		ORDER BY c.date DESC
 	`
 
-	// Execute the query and scan results into comments slice.
-	err := r.db.Select(&comment, sqlQuery)
+	// Execute the query and scan results into reviews slice.
+	err := r.db.Select(&review, sqlQuery)
 	if err != nil {
 		// Wrap low-level DB error in a domain-friendly InternalError.
 		return nil, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
 	}
-	return comment, nil
+	return review, nil
 }
 
-// SaveComment inserts a new comment into the database with the current timestamp.
+// SaveReview inserts a new review into the database with the current timestamp.
 // It uses parameterized queries to prevent SQL injection.
 
 // Parameters:
-//   - userID: ID of the authenticated user adding the comment.
-//   - content: text content of the comment.
-//   - rating: numerical rating associated with the comment.
+//   - userID: ID of the authenticated user adding the review.
+//   - content: text content of the review.
+//   - rating: numerical rating associated with the review.
 
 // Returns:
 //   - error: non-nil if the insert fails, wrapped as an InternalError.
-func (r *SqlCommentRepository) SaveComment(userID int, content string, rating int) error {
+func (r *SqlReviewRepository) SaveReview(userID int, review models_review.Review) error {
 	const query = `INSERT INTO comments (user_id, content, rating, date)
 	VALUES (?, ?, ?, NOW())`
 
 	// Execute the insert query with provided parameters.
-	_, err := r.db.Exec(query, userID, content, rating)
+	_, err := r.db.Exec(query, userID, review.Content, review.Rating)
 	if err != nil {
 		// Return a generic InternalError on failure.
 		return errors.NewInternalError("Error querying the database")

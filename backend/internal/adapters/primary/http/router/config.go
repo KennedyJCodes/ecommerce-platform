@@ -26,8 +26,8 @@ type HandlerConfig struct {
 	Login       *public_handlers.LoginHandler
 	Register    *public_handlers.RegisterHandler
 	Refresh     *public_handlers.RefreshHandler
-	CommentsGet *public_handlers.CommentsGetHandler
-	CommentsAdd *private_handlers.CommentsAddHandler
+	ReviewsGet *public_handlers.ReviewsGetHandler
+	ReviewsAdd *private_handlers.ReviewsAddHandler
 	Logout      *private_handlers.LogoutHandler
 	MainPage    *public_handlers.MainPageHandler
 	StaticFile  *public_handlers.StaticFileHandler
@@ -37,8 +37,8 @@ type HandlerConfig struct {
 func buildHandlers(
 	userServiceLogin input.UserServiceLogin,
 	userServiceRegister input.UserServiceRegister,
-	commentGetService input.CommentGetService,
-	commentAddService input.CommentAddService,
+	reviewGetService input.ReviewGetService,
+	reviewAddService input.ReviewAddService,
 	staticFileService output.StaticFilePort,
 	productsGetService input.ProductsGetService,
 	csrfService output.CSRFService,
@@ -54,8 +54,8 @@ func buildHandlers(
 		Login:       public_handlers.NewLoginHandler(userServiceLogin, csrfService, isProduction),
 		Register:    public_handlers.NewRegisterHandler(userServiceRegister, csrfService, isProduction),
 		Refresh:     public_handlers.NewRefreshHandler(tokenService, blacklistRepo, isProduction),
-		CommentsGet: public_handlers.NewCommentsGetHandler(commentGetService),
-		CommentsAdd: private_handlers.NewCommentAddsHandler(commentAddService),
+		ReviewsGet: public_handlers.NewReviewsGetHandler(reviewGetService),
+		ReviewsAdd: private_handlers.NewReviewsAddHandler(reviewAddService),
 		Logout:      private_handlers.NewLogoutHandler(tokenService, blacklistRepo, isProduction),
 		MainPage:    mainPageHandler,
 		StaticFile:  public_handlers.NewStaticFileHandler(staticFileService),

@@ -20,8 +20,8 @@ import (
 type Dependencies struct {
 	UserServiceLogin    input.UserServiceLogin
 	UserServiceRegister input.UserServiceRegister
-	CommentGetService   input.CommentGetService
-	CommentAddService   input.CommentAddService
+	ReviewGetService   input.ReviewGetService
+	ReviewAddService   input.ReviewAddService
 	RateHandler         ratelimiter.RateLimiterHandler
 	StaticFileAdapter   output.StaticFilePort
 	ProductsGetService  input.ProductsGetService
@@ -55,7 +55,7 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 
 	// Inject repositories and services into their respective application logic layers.
 	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, tokenService, csrfService)
-	commentGetService, commentAddService, err := bootstrap.SetupCommentService(a.db)
+	reviewGetService, reviewAddService, err := bootstrap.SetupReviewService(a.db)
 	if err != nil {
 		return nil, fmt.Errorf("build dependencies: %w", err)
 	}
@@ -68,8 +68,8 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 	return &Dependencies{
 		UserServiceLogin:    userServiceLogin,
 		UserServiceRegister: userServiceRegister,
-		CommentGetService:   commentGetService,
-		CommentAddService:   commentAddService,
+		ReviewGetService:   reviewGetService,
+		ReviewAddService:   reviewAddService,
 		RateHandler:         bootstrap.SetupRateLimiter(a.config),
 		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
 		ProductsGetService:  productsGetService,
@@ -95,8 +95,8 @@ func (a *Application) BuildRouter() (http.Handler, error) {
 	router := primaryRouter.NewRouter(primaryRouter.RouterDependencies{
 		UserServiceLogin:    deps.UserServiceLogin,
 		UserServiceRegister: deps.UserServiceRegister,
-		CommentGetService:   deps.CommentGetService,
-		CommentAddService:   deps.CommentAddService,
+		ReviewGetService:   deps.ReviewGetService,
+		ReviewAddService:   deps.ReviewAddService,
 		RateHandler:         deps.RateHandler,
 		StaticFileService:   deps.StaticFileAdapter,
 		ProductsGetService:  deps.ProductsGetService,

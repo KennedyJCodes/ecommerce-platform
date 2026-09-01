@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
@@ -75,13 +75,13 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newAccessToken, err := h.tokenService.GenerateToken(claims.UserID, claims.UserName, models.TokenTypeAccess)
+	newAccessToken, err := h.tokenService.GenerateToken(claims.UserID, claims.UserName, models_auth.TokenTypeAccess)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error generating access token"))
 		return
 	}
 
-	newRefreshToken, err := h.tokenService.GenerateToken(claims.UserID, claims.UserName, models.TokenTypeRefresh)
+	newRefreshToken, err := h.tokenService.GenerateToken(claims.UserID, claims.UserName, models_auth.TokenTypeRefresh)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error generating refresh token"))
 		return

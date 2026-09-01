@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
@@ -50,17 +50,21 @@ func NewUserLoginService(userRepo output.UserRepository, userNameValidator, pass
 //  5. Token Issuance: Signs access and refresh JWTs for subsequent authorized requests.
 
 // Returns a TokenPair containing both tokens and a CSRF token, or a domain-specific error.
-func (l *UserLoginService) Login(ctx context.Context, request dto.LoginRequest) (*models.TokenPair, string, error) {
+func (l *UserLoginService) Login(ctx context.Context, request dto.LoginRequest) (*models_auth.TokenPair, string, error) {
 	if err := l.ValidateUserName(request.UserName); err != nil {
 		return nil, "", errors.NewValidationError(errors.ErrInvalidUsername)
 	}
 
 	user, err := l.UserRepo.FindByUserName(ctx, request.UserName)
+	fmt.Printf("USER RECIBIDO: %q\n", user)
+	fmt.Printf("err: %q\n", err)
+	fmt.Printf("HASH RECIBIDO: %q\n", user.Password)
+	fmt.Printf("PASSWORD LOGIN: %q\n", request.Password)
 	if err != nil {
 		return nil, "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(request.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
 	if err != nil {
 		return nil, "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}

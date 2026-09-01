@@ -1,6 +1,4 @@
-// Package models defines core domain entities for the ecommerce-platform application.
-// This file declares the RedisConfig struct, which encapsulates all parameters required to establish and tune a connection to a Redis server.
-package models
+package config
 
 import "time"
 

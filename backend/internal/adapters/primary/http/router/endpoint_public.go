@@ -14,7 +14,7 @@ func (c *HandlerConfig) registerPublicRoutes(router *mux.Router, rateLimitMW mid
 	public.Use(mux.MiddlewareFunc(rateLimitMW))
 
 	public.Handle("/", http.HandlerFunc(c.MainPage.Handle)).Methods("GET", "OPTIONS")
-	public.Handle("/comments", http.HandlerFunc(c.CommentsGet.Handle)).Methods("GET", "OPTIONS")
+	public.Handle("/comments", http.HandlerFunc(c.ReviewsGet.Handle)).Methods("GET", "OPTIONS")
 	public.Handle("/products", http.HandlerFunc(c.Products.Handle)).Methods("GET", "OPTIONS")
 	public.Handle("/product-id/{id}", http.HandlerFunc(c.Products.HandleGetByID)).Methods("GET", "OPTIONS")
 	public.Handle("/products-brand/{brand}", http.HandlerFunc(c.Products.HandleGetByBrand)).Methods("GET", "OPTIONS")
