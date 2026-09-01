@@ -83,7 +83,6 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 	}
 	
 	hash, err := r.Hasher.Hash([]byte(request.Password))
-	fmt.Printf("HASH GENERADO: %q\n", hash)
 	if err != nil {
 		return nil, "", errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
 	}

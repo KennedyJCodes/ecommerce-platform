@@ -56,10 +56,6 @@ func (l *UserLoginService) Login(ctx context.Context, request dto.LoginRequest) 
 	}
 
 	user, err := l.UserRepo.FindByUserName(ctx, request.UserName)
-	fmt.Printf("USER RECIBIDO: %q\n", user)
-	fmt.Printf("err: %q\n", err)
-	fmt.Printf("HASH RECIBIDO: %q\n", user.Password)
-	fmt.Printf("PASSWORD LOGIN: %q\n", request.Password)
 	if err != nil {
 		return nil, "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
