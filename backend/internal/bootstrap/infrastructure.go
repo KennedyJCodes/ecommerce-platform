@@ -30,7 +30,7 @@ func SetupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
 }
 
 // SetupUserRepository initializes the user repository with its necessary security dependencies.
-// It explicitly injects a BcryptHasher into the SQLUserRepository, ensuring that all user persistence operations follow the defined security standards for password hashing.
+// It explicitly injects a BcryptHasher into the SQLUserRepository, keeping hashing strategy configurable for user persistence workflows.
 
 // Parameters:
 //   - db: an active *sqlx.DB connection pool.

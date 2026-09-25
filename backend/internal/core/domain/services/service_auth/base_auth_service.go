@@ -42,12 +42,8 @@ type BaseAuthService struct {
 	CodeVerificationSender output.CodeVerificationSender
 }
 
-func (b *BaseAuthService) HashearPassword(password []byte) (string, error) {
-	hash, err := b.Hasher.Hash(password)
-	if err != nil {
-		return "", errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
-	}
-	return hash, nil
+func (b *BaseAuthService) HashSensitiveValue(value []byte) (string, error) {
+	return b.Hasher.Hash(value)
 }
 
 // ValidateUserName evaluates if the provided username meets business requirements.

@@ -28,18 +28,18 @@ type UserRegisterService struct {
 //
 // Returns:
 //   - input.UserServiceRegister: the registration service interface.
-func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService, passwordHasher security_auth.Hasher,  codeVerificationService input.CodeVerificationService, codeVerificationSender output.CodeVerificationSender) input.UserServiceRegister {
+func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService, hasher security_auth.Hasher, codeVerificationService input.CodeVerificationService, codeVerificationSender output.CodeVerificationSender) input.UserServiceRegister {
 	return &UserRegisterService{
 		BaseAuthService: BaseAuthService{
-			UserRepo:          userRepo,
-			UserNameValidator: userNameValidator,
-			PasswordValidator: passwordValidator,
-			EmailValidator:    emailValidator,
-			TokenService:      tokenService,
-			CSRFService:       csrfService,
-			Hasher:            passwordHasher,
+			UserRepo:                userRepo,
+			UserNameValidator:       userNameValidator,
+			PasswordValidator:       passwordValidator,
+			EmailValidator:          emailValidator,
+			TokenService:            tokenService,
+			CSRFService:             csrfService,
+			Hasher:                  hasher,
 			CodeVerificationService: codeVerificationService,
-			CodeVerificationSender: codeVerificationSender,
+			CodeVerificationSender:  codeVerificationSender,
 		},
 	}
 }
@@ -59,7 +59,7 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 	if err := r.ValidateUserName(request.UserName); err != nil {
 		return nil, "", err
 	}
-	
+
 	if err := r.ValidatePassword(request.Password); err != nil {
 		return nil, "", err
 	}
@@ -67,7 +67,7 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 	if err := r.ValidateEmail(request.Email); err != nil {
 		return nil, "", err
 	}
-	
+
 	existsEmail, err := r.CheckEmailExists(ctx, request.Email)
 	if err != nil {
 		return nil, "", err
@@ -75,7 +75,7 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 	if existsEmail {
 		return nil, "", errors.NewConflictError(errors.ErrEmailAlreadyExists)
 	}
-	
+
 	existsUser, err := r.CheckUserExists(ctx, request.UserName)
 	if err != nil {
 		return nil, "", err
@@ -83,20 +83,19 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 	if existsUser {
 		return nil, "", errors.NewConflictError(errors.ErrUserAlreadyExists)
 	}
-	
-	hash, err := r.Hasher.Hash([]byte(request.Password))
+
+	hash, err := r.HashSensitiveValue([]byte(request.Password))
 	if err != nil {
 		return nil, "", errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
 	}
 
 	newUser := models_auth.User{
-		UserName:     request.UserName,
-		Email:        request.Email,
+		UserName: request.UserName,
+		Email:    request.Email,
 		Password: string(hash),
 	}
 
-	// The repository is expected to handle the cryptographic hashing before storage.
-	savedUser, err := r.UserRepo.SaveUser(ctx, newUser); 
+	savedUser, err := r.UserRepo.SaveUser(ctx, newUser)
 	if err != nil {
 		return nil, "", err
 	}
@@ -120,6 +119,11 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 	err = r.SendCodeVerification(newUser.Email, codeVerification)
 	if err != nil {
 		return nil, "", err
+	}
+
+	_, err = r.HashSensitiveValue([]byte(codeVerification))
+	if err != nil {
+		return nil, "", errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
 	}
 
 	return tokens, csrfToken, nil

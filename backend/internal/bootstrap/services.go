@@ -58,7 +58,7 @@ func SetupProductsService(db *sqlx.DB) (input.ProductsGetService, error) {
 //   - userRepo: the user persistence adapter (output port).
 //   - tokenService: the service for JWT generation and validation (input port).
 //   - csrfService: the service for managing CSRF tokens (input port).
-//   - hasher: the service for hashing passwords (input port).
+//   - hasher: the service for hashing sensitive values (input port).
 //
 // Returns:
 //   - input.UserServiceLogin: the service handling user authentication.
@@ -68,9 +68,9 @@ func SetupUserService(userRepo output.UserRepository, tokenService output.TokenS
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}
 	emailValidator := &service_auth.EmailValidator{}
-	passwordHasher := &security_auth.BcryptHasher{}
+	hasher := &security_auth.BcryptHasher{}
 	codeVerificationService := service_code_verification.NewCodeVerificationService()
 
 	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService),
-	service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, emailValidator, tokenService, csrfService, passwordHasher, codeVerificationService, codeVerificationSender)
+		service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, emailValidator, tokenService, csrfService, hasher, codeVerificationService, codeVerificationSender)
 }

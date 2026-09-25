@@ -1,4 +1,4 @@
-// Package repository provides SQL-based implementations of output ports for persisting and retrieving user data. It depends on a SQL database connection and pluggable security components for salt generation and password hashing.
+// Package repository provides SQL-based implementations of output ports for persisting and retrieving user data.
 package repository_mysql
 
 import (
@@ -15,7 +15,7 @@ import (
 
 // SQLUserRepository implements the UserRepository interface using a SQL database.
 
-// It requires a *sqlx.DB for database operations, a Generator for creating salts, and a Hasher for hashing passwords.
+// It requires a *sqlx.DB for database operations and a pluggable Hasher dependency.
 type SQLUserRepository struct {
 	db     *sqlx.DB
 	hasher securityAuth.Hasher
@@ -42,19 +42,19 @@ func NewSQLUserRepository(db *sqlx.DB, hasher securityAuth.Hasher) (output.UserR
 
 func (r *SQLUserRepository) FindByUserName(ctx context.Context, username string) (*models_auth.User, error) {
 	var user models_auth.User
-    query := `SELECT user_id, username, email, password, created_at, updated_at 
+	query := `SELECT user_id, username, email, password, created_at, updated_at 
             FROM user_registration WHERE username = ?`
 
-    err := r.db.QueryRowContext(ctx, query, username).Scan(
-        &user.UserID, &user.UserName, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt,
-    )
-    if errors.Is(err, sql.ErrNoRows) {
-        return &models_auth.User{}, errorsApp.NewBadRequestError(errorsApp.ErrUserNotFound)
-    }
-    if err != nil {
-        return &models_auth.User{}, err
-    }
-    return &user, nil
+	err := r.db.QueryRowContext(ctx, query, username).Scan(
+		&user.UserID, &user.UserName, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return &models_auth.User{}, errorsApp.NewBadRequestError(errorsApp.ErrUserNotFound)
+	}
+	if err != nil {
+		return &models_auth.User{}, err
+	}
+	return &user, nil
 }
 
 // UserExists checks whether a user with the given username exists in the database.
@@ -78,14 +78,13 @@ func (r *SQLUserRepository) EmailExists(ctx context.Context, email string) (bool
 	if err != nil {
 		return false, errorsApp.NewInternalError(errorsApp.ErrDatabaseQuery).WithError(err)
 	}
-	
+
 	return exists, nil
 }
 
-// SaveUser inserts a new user into the database with a salted and hashed password.
-// It generates a new salt, combines it with the plain password, hashes the result, and executes an INSERT statement. Any generation, hashing, or SQL errors are wrapped as internal errors.
+// SaveUser inserts a new user into the database.
 func (r *SQLUserRepository) SaveUser(ctx context.Context, user models_auth.User) (models_auth.User, error) {
-		tx, err := r.db.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return models_auth.User{}, errorsApp.NewInternalError(errorsApp.ErrDatabaseTransaction).WithError(err)
 	}
