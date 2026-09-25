@@ -4,6 +4,7 @@ package service_auth
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
@@ -28,18 +29,19 @@ type UserRegisterService struct {
 //
 // Returns:
 //   - input.UserServiceRegister: the registration service interface.
-func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService, hasher security_auth.Hasher, codeVerificationService input.CodeVerificationService, codeVerificationSender output.CodeVerificationSender) input.UserServiceRegister {
+func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService, hasher security_auth.Hasher, codeVerificationService input.CodeVerificationService, codeVerificationSender output.CodeVerificationSender, codeVerificationRepository output.VerificationCodeRepository) input.UserServiceRegister {
 	return &UserRegisterService{
 		BaseAuthService: BaseAuthService{
-			UserRepo:                userRepo,
-			UserNameValidator:       userNameValidator,
-			PasswordValidator:       passwordValidator,
-			EmailValidator:          emailValidator,
-			TokenService:            tokenService,
-			CSRFService:             csrfService,
-			Hasher:                  hasher,
-			CodeVerificationService: codeVerificationService,
-			CodeVerificationSender:  codeVerificationSender,
+			UserRepo:                   userRepo,
+			UserNameValidator:          userNameValidator,
+			PasswordValidator:          passwordValidator,
+			EmailValidator:             emailValidator,
+			TokenService:               tokenService,
+			CSRFService:                csrfService,
+			Hasher:                     hasher,
+			CodeVerificationService:    codeVerificationService,
+			CodeVerificationSender:     codeVerificationSender,
+			CodeVerificationRepository: codeVerificationRepository,
 		},
 	}
 }
@@ -121,9 +123,19 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 		return nil, "", err
 	}
 
-	_, err = r.HashSensitiveValue([]byte(codeVerification))
+	codeHash, err := r.HashSensitiveValue([]byte(codeVerification))
 	if err != nil {
 		return nil, "", errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
+	}
+
+	err = r.CodeVerificationRepository.SaveCodeVerication(
+		ctx,
+		savedUser.UserID,
+		codeHash,
+		time.Now().Add(10*time.Minute),
+	)
+	if err != nil {
+		return nil, "", err
 	}
 
 	return tokens, csrfToken, nil

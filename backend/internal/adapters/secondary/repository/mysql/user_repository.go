@@ -9,7 +9,6 @@ import (
 	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	errorsApp "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
-	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -18,25 +17,19 @@ import (
 // It requires a *sqlx.DB for database operations and a pluggable Hasher dependency.
 type SQLUserRepository struct {
 	db     *sqlx.DB
-	hasher securityAuth.Hasher
 }
 
 // NewSQLUserRepository creates a new SQLUserRepository instance.
 
 // It validates constructor dependencies and returns an error instead of
 // terminating the process, leaving startup decisions to the composition root.
-func NewSQLUserRepository(db *sqlx.DB, hasher securityAuth.Hasher) (output.UserRepository, error) {
+func NewSQLUserRepository(db *sqlx.DB) (output.UserRepository, error) {
 	if db == nil {
 		return nil, errorsApp.NewInternalError(errorsApp.ErrDatabaseConnection)
 	}
 
-	if hasher == nil {
-		return nil, errorsApp.NewInternalError("Hasher not initialized")
-	}
-
 	return &SQLUserRepository{
 		db:     db,
-		hasher: hasher,
 	}, nil
 }
 

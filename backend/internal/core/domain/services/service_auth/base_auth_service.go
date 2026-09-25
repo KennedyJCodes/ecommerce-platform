@@ -40,6 +40,8 @@ type BaseAuthService struct {
 	CodeVerificationService input.CodeVerificationService
 
 	CodeVerificationSender output.CodeVerificationSender
+
+	CodeVerificationRepository output.VerificationCodeRepository
 }
 
 func (b *BaseAuthService) HashSensitiveValue(value []byte) (string, error) {

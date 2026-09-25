@@ -20,8 +20,8 @@ import (
 type Dependencies struct {
 	UserServiceLogin    input.UserServiceLogin
 	UserServiceRegister input.UserServiceRegister
-	ReviewGetService   input.ReviewGetService
-	ReviewAddService   input.ReviewAddService
+	ReviewGetService    input.ReviewGetService
+	ReviewAddService    input.ReviewAddService
 	RateHandler         ratelimiter.RateLimiterHandler
 	StaticFileAdapter   output.StaticFilePort
 	ProductsGetService  input.ProductsGetService
@@ -49,6 +49,11 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 		return nil, fmt.Errorf("build dependencies: %w", err)
 	}
 
+	codeVerificationRepository, err := bootstrap.SetupVerificationCodeRepository(a.db)
+	if err != nil {
+		return nil, fmt.Errorf("build dependencies: %w", err)
+	}
+
 	tokenService := bootstrap.SetupTokenService(a.config)
 	csrfService := bootstrap.SetupCSRFService(a.redisClient)
 	blacklistRepo := bootstrap.SetupTokenBlacklistRepository(a.redisClient)
@@ -56,12 +61,13 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 
 	// Inject repositories and services into their respective application logic layers.
 	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(
-		userRepo, 
-		tokenService, 
-		csrfService, 
+		userRepo,
+		tokenService,
+		csrfService,
 		codeVerificationSender,
+		codeVerificationRepository,
 	)
-	
+
 	reviewGetService, reviewAddService, err := bootstrap.SetupReviewService(a.db)
 	if err != nil {
 		return nil, fmt.Errorf("build dependencies: %w", err)
@@ -75,8 +81,8 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 	return &Dependencies{
 		UserServiceLogin:    userServiceLogin,
 		UserServiceRegister: userServiceRegister,
-		ReviewGetService:   reviewGetService,
-		ReviewAddService:   reviewAddService,
+		ReviewGetService:    reviewGetService,
+		ReviewAddService:    reviewAddService,
 		RateHandler:         bootstrap.SetupRateLimiter(a.config),
 		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
 		ProductsGetService:  productsGetService,
@@ -102,8 +108,8 @@ func (a *Application) BuildRouter() (http.Handler, error) {
 	router := primaryRouter.NewRouter(primaryRouter.RouterDependencies{
 		UserServiceLogin:    deps.UserServiceLogin,
 		UserServiceRegister: deps.UserServiceRegister,
-		ReviewGetService:   deps.ReviewGetService,
-		ReviewAddService:   deps.ReviewAddService,
+		ReviewGetService:    deps.ReviewGetService,
+		ReviewAddService:    deps.ReviewAddService,
 		RateHandler:         deps.RateHandler,
 		StaticFileService:   deps.StaticFileAdapter,
 		ProductsGetService:  deps.ProductsGetService,

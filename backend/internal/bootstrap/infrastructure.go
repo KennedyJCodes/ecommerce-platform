@@ -11,7 +11,6 @@ import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/static"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -38,13 +37,21 @@ func SetupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
 // Returns:
 //   - output.UserRepository: a repository ready to handle user-related database operations.
 func SetupUserRepository(db *sqlx.DB) (output.UserRepository, error) {
-	// Define the hashing strategy to be used by the repository.
-	hasher := security_auth.BcryptHasher{}
-	userRepo, err := repository_mysql.NewSQLUserRepository(db, hasher)
+	userRepo, err := repository_mysql.NewSQLUserRepository(db)
 	if err != nil {
 		return nil, fmt.Errorf("setup user repository: %w", err)
 	}
 	return userRepo, nil
+}
+
+// SetupVerificationCodeRepository initializes the repository used to persist
+// hashed user verification codes.
+func SetupVerificationCodeRepository(db *sqlx.DB) (output.VerificationCodeRepository, error) {
+	codeRepository, err := repository_mysql.NewSQLVerificationCodeRepository(db)
+	if err != nil {
+		return nil, fmt.Errorf("setup verification code repository: %w", err)
+	}
+	return codeRepository, nil
 }
 
 // SetupTokenService creates a new JWTService instance with the secret key from config.
