@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/databse"
+	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/database"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/redis/go-redis/v9"
 )

@@ -19,7 +19,9 @@ import (
 //  3. Orchestrating the generation of session (JWT) and security (CSRF) tokens.
 type BaseAuthService struct {
 	// UserRepo: output port for user data persistence and existence checks.
-	UserRepo output.UserRepository
+	UserRepo              output.UserRepository
+	
+	PendingUserRepository output.PendingUserRepository
 
 	// UserNameValidator: strategy to enforce username complexity and format rules.
 	UserNameValidator input.Validator
@@ -40,8 +42,6 @@ type BaseAuthService struct {
 	CodeVerificationService input.CodeVerificationService
 
 	CodeVerificationSender output.CodeVerificationSender
-
-	CodeVerificationRepository output.VerificationCodeRepository
 }
 
 func (b *BaseAuthService) HashSensitiveValue(value []byte) (string, error) {

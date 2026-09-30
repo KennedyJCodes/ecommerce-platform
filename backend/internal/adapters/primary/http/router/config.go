@@ -23,15 +23,15 @@ type RouterConfig struct {
 }
 
 type HandlerConfig struct {
-	Login       *public_handlers.LoginHandler
-	Register    *public_handlers.RegisterHandler
-	Refresh     *public_handlers.RefreshHandler
+	Login      *public_handlers.LoginHandler
+	Register   *public_handlers.RegisterHandler
+	Refresh    *public_handlers.RefreshHandler
 	ReviewsGet *public_handlers.ReviewsGetHandler
 	ReviewsAdd *private_handlers.ReviewsAddHandler
-	Logout      *private_handlers.LogoutHandler
-	MainPage    *public_handlers.MainPageHandler
-	StaticFile  *public_handlers.StaticFileHandler
-	Products    *public_handlers.ProductsHandler
+	Logout     *private_handlers.LogoutHandler
+	MainPage   *public_handlers.MainPageHandler
+	StaticFile *public_handlers.StaticFileHandler
+	Products   *public_handlers.ProductsHandler
 }
 
 func buildHandlers(
@@ -51,15 +51,15 @@ func buildHandlers(
 	mainPageHandler.SetStaticDir(staticFileService.GetStaticDir())
 
 	return HandlerConfig{
-		Login:       public_handlers.NewLoginHandler(userServiceLogin, csrfService, isProduction),
-		Register:    public_handlers.NewRegisterHandler(userServiceRegister, csrfService, isProduction),
-		Refresh:     public_handlers.NewRefreshHandler(tokenService, blacklistRepo, isProduction),
+		Login:      public_handlers.NewLoginHandler(userServiceLogin, csrfService, isProduction),
+		Register:   public_handlers.NewRegisterHandler(userServiceRegister),
+		Refresh:    public_handlers.NewRefreshHandler(tokenService, blacklistRepo, isProduction),
 		ReviewsGet: public_handlers.NewReviewsGetHandler(reviewGetService),
 		ReviewsAdd: private_handlers.NewReviewsAddHandler(reviewAddService),
-		Logout:      private_handlers.NewLogoutHandler(tokenService, blacklistRepo, isProduction),
-		MainPage:    mainPageHandler,
-		StaticFile:  public_handlers.NewStaticFileHandler(staticFileService),
-		Products:    public_handlers.NewProductsHandler(productsGetService),
+		Logout:     private_handlers.NewLogoutHandler(tokenService, blacklistRepo, isProduction),
+		MainPage:   mainPageHandler,
+		StaticFile: public_handlers.NewStaticFileHandler(staticFileService),
+		Products:   public_handlers.NewProductsHandler(productsGetService),
 	}
 }
 

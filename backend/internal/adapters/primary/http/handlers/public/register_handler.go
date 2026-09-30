@@ -7,10 +7,8 @@ import (
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 )
 
 // RegisterHandler handles HTTP requests for user registration.
@@ -18,18 +16,14 @@ import (
 // It serves as an adapter between HTTP requests and the core business logic for registering users, utilizing the UserServiceRegister interface.
 type RegisterHandler struct {
 	userServiceRegister input.UserServiceRegister
-	csrfService         output.CSRFService
-	isProduction        bool
 }
 
 // NewRegisterHandler creates a new instance of RegisterHandler.
 
 // It receives an implementation of the UserServiceRegister interface that encapsulates the business logic for user registration.
-func NewRegisterHandler(userServiceRegister input.UserServiceRegister, csrfService output.CSRFService, isProduction bool) *RegisterHandler {
+func NewRegisterHandler(userServiceRegister input.UserServiceRegister) *RegisterHandler {
 	return &RegisterHandler{
 		userServiceRegister: userServiceRegister,
-		csrfService:         csrfService,
-		isProduction:        isProduction,
 	}
 }
 
@@ -51,19 +45,13 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, csrfToken, err := h.userServiceRegister.Register(r.Context(), account)
-	if err != nil {
+	if err := h.userServiceRegister.Register(r.Context(), account); err != nil {
 		httpUtil.HandleError(w, err)
 		return
 	}
 
-	cookies.SetAuthCookie(w, tokens.AccessToken, h.isProduction)
-	cookies.SetRefreshCookie(w, tokens.RefreshToken, h.isProduction)
-	cookies.SetCSRFCookie(w, csrfToken, h.isProduction)
-
-	// Send a JSON response indicating successful registration.
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
-		"message":    "Successfully registered user",
-		"csrf_token": csrfToken,
+		"message": "revisa tu correo para el código",
+		"next":    "/verify",
 	})
 }

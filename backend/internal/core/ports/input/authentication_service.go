@@ -21,8 +21,6 @@ type UserServiceLogin interface {
 // UserServiceRegister defines the interface for user registration operations.
 // Implementations should handle new user account creation and provide JWT tokens upon successful registration.
 type UserServiceRegister interface {
-	// Register creates a new user account with provided credentials.
-	// Returns a TokenPair containing access and refresh tokens, the CSRF token,
-	// or an error if registration fails.
-	Register(ctx context.Context, request dto.RegisterAccount) (*models_auth.TokenPair, string, error)
+	// Register stores a pending user and sends its verification code.
+	Register(ctx context.Context, request dto.RegisterAccount) error
 }

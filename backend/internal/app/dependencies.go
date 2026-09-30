@@ -8,6 +8,7 @@ import (
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
 	primaryRouter "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/router"
+	repository_redis "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/redis"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
@@ -49,23 +50,19 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 		return nil, fmt.Errorf("build dependencies: %w", err)
 	}
 
-	codeVerificationRepository, err := bootstrap.SetupVerificationCodeRepository(a.db)
-	if err != nil {
-		return nil, fmt.Errorf("build dependencies: %w", err)
-	}
-
 	tokenService := bootstrap.SetupTokenService(a.config)
 	csrfService := bootstrap.SetupCSRFService(a.redisClient)
 	blacklistRepo := bootstrap.SetupTokenBlacklistRepository(a.redisClient)
 	codeVerificationSender := bootstrap.SetupCodeVerificationSender(a.config)
+	pendingUserRepository := repository_redis.NewRedisPendingUserRepository(a.redisClient)
 
 	// Inject repositories and services into their respective application logic layers.
 	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(
 		userRepo,
+		pendingUserRepository,
 		tokenService,
 		csrfService,
 		codeVerificationSender,
-		codeVerificationRepository,
 	)
 
 	reviewGetService, reviewAddService, err := bootstrap.SetupReviewService(a.db)

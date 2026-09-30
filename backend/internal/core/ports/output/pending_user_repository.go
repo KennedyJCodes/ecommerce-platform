@@ -4,7 +4,7 @@ package output
 import (
 	"time"
 
-	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/databse"
+	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/database"
 )
 
 // PendingUserRepository defines the persistence contract for users awaiting verification.

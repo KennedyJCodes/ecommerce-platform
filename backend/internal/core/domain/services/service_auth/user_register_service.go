@@ -1,142 +1,88 @@
-// Package service_auth provides implementations of the core input ports for authentication flows.
 package service_auth
 
 import (
 	"context"
-	"fmt"
+	"crypto/rand"
+	"encoding/hex"
 	"time"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
+	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/database"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
-// UserRegisterService handles the logic for creating new user identities.
-// It leverages BaseAuthService for shared validation and token orchestration, ensuring that new accounts meet the same security standards as existing ones.
-type UserRegisterService struct {
-	BaseAuthService
+type UserRegisterService struct{ BaseAuthService }
+
+func NewUserRegisterService(userRepo output.UserRepository, pendingUserRepository output.PendingUserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, hasher security_auth.Hasher, codeVerificationService input.CodeVerificationService, codeVerificationSender output.CodeVerificationSender) input.UserServiceRegister {
+	return &UserRegisterService{BaseAuthService: BaseAuthService{
+		UserRepo: userRepo, PendingUserRepository: pendingUserRepository,
+		UserNameValidator: userNameValidator, PasswordValidator: passwordValidator,
+		EmailValidator: emailValidator, Hasher: hasher,
+		CodeVerificationService: codeVerificationService, CodeVerificationSender: codeVerificationSender,
+	}}
 }
 
-// NewUserRegisterService constructs a UserRegisterService with the necessary collaborators for persistence, validation, and security session management.
-
-// Parameters:
-//   - userRepo: output port for user persistence.
-//   - userNameValidator/passwordValidator: components to enforce domain constraints.
-//   - csrfService/csrfCookieSetter: infrastructure for CSRF protection.
-//
-// Returns:
-//   - input.UserServiceRegister: the registration service interface.
-func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService, hasher security_auth.Hasher, codeVerificationService input.CodeVerificationService, codeVerificationSender output.CodeVerificationSender, codeVerificationRepository output.VerificationCodeRepository) input.UserServiceRegister {
-	return &UserRegisterService{
-		BaseAuthService: BaseAuthService{
-			UserRepo:                   userRepo,
-			UserNameValidator:          userNameValidator,
-			PasswordValidator:          passwordValidator,
-			EmailValidator:             emailValidator,
-			TokenService:               tokenService,
-			CSRFService:                csrfService,
-			Hasher:                     hasher,
-			CodeVerificationService:    codeVerificationService,
-			CodeVerificationSender:     codeVerificationSender,
-			CodeVerificationRepository: codeVerificationRepository,
-		},
-	}
-}
-
-// Register orchestrates the onboarding of a new user into the system.
-
-// The registration flow is executed as an atomic-like business process:
-//  1. Format Validation: Verifies username and password against complexity rules.
-//  2. Collision Check: Prevents duplicate accounts by verifying username uniqueness.
-//  3. Secure Persistence: Delegates the hashing and storage to the repository layer.
-//  4. Identity Resolution: Retrieves the newly generated unique ID.
-//  5. Security Context: Initializes the CSRF state for the new user.
-//  6. Session Issuance: Signs access and refresh JWTs for immediate authentication.
-//
-// Returns a TokenPair, a CSRF token on success, or an error.
-func (r *UserRegisterService) Register(ctx context.Context, request dto.RegisterAccount) (*models_auth.TokenPair, string, error) {
+func (r *UserRegisterService) Register(ctx context.Context, request dto.RegisterAccount) error {
 	if err := r.ValidateUserName(request.UserName); err != nil {
-		return nil, "", err
+		return err
 	}
-
 	if err := r.ValidatePassword(request.Password); err != nil {
-		return nil, "", err
+		return err
 	}
-
 	if err := r.ValidateEmail(request.Email); err != nil {
-		return nil, "", err
-	}
-
-	existsEmail, err := r.CheckEmailExists(ctx, request.Email)
-	if err != nil {
-		return nil, "", err
-	}
-	if existsEmail {
-		return nil, "", errors.NewConflictError(errors.ErrEmailAlreadyExists)
+		return err
 	}
 
 	existsUser, err := r.CheckUserExists(ctx, request.UserName)
 	if err != nil {
-		return nil, "", err
+		return err
 	}
 	if existsUser {
-		return nil, "", errors.NewConflictError(errors.ErrUserAlreadyExists)
+		return errors.NewConflictError(errors.ErrUserAlreadyExists)
 	}
-
-	hash, err := r.HashSensitiveValue([]byte(request.Password))
+	existsEmail, err := r.CheckEmailExists(ctx, request.Email)
 	if err != nil {
-		return nil, "", errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
+		return err
+	}
+	if existsEmail {
+		return errors.NewConflictError(errors.ErrEmailAlreadyExists)
 	}
 
-	newUser := models_auth.User{
-		UserName: request.UserName,
-		Email:    request.Email,
-		Password: string(hash),
-	}
-
-	savedUser, err := r.UserRepo.SaveUser(ctx, newUser)
+	code, err := r.CodeVerificationService.GenerateCodeVerification()
 	if err != nil {
-		return nil, "", err
+		return errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
 	}
-
-	userIDStr := fmt.Sprintf("%d", savedUser.UserID)
-	csrfToken, err := r.GenerateCSRFToken(userIDStr)
+	passwordHash, err := r.HashSensitiveValue([]byte(request.Password))
 	if err != nil {
-		return nil, "", err
+		return errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
 	}
-
-	tokens, err := r.GenerateTokenPair(int(savedUser.UserID), request.UserName)
+	codeHash, err := r.HashSensitiveValue([]byte(code))
 	if err != nil {
-		return nil, "", err
+		return errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
 	}
 
-	codeVerification, err := r.CodeVerificationService.GenerateCodeVerification()
+	userID, err := newPendingUserID()
 	if err != nil {
-		return nil, "", errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
+		return errors.NewInternalError(errors.ErrDatabaseInsert).WithError(err)
+	}
+	pendingUser := &modelsdb.PendingUser{
+		ID: userID, Username: request.UserName, PasswordHash: string(passwordHash),
+		Email: request.Email, HashCode: string(codeHash), Attempts: 0,
+	}
+	if err := r.PendingUserRepository.SavePendingUser(pendingUser, 10*time.Minute); err != nil {
+		return err
 	}
 
-	err = r.SendCodeVerification(newUser.Email, codeVerification)
-	if err != nil {
-		return nil, "", err
-	}
+	return r.SendCodeVerification(request.Email, code)
+}
 
-	codeHash, err := r.HashSensitiveValue([]byte(codeVerification))
-	if err != nil {
-		return nil, "", errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
+func newPendingUserID() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
 	}
-
-	err = r.CodeVerificationRepository.SaveCodeVerication(
-		ctx,
-		savedUser.UserID,
-		codeHash,
-		time.Now().Add(10*time.Minute),
-	)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return tokens, csrfToken, nil
+	return hex.EncodeToString(b), nil
 }
