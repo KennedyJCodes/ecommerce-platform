@@ -25,6 +25,7 @@ type RouterConfig struct {
 type HandlerConfig struct {
 	Login      *public_handlers.LoginHandler
 	Register   *public_handlers.RegisterHandler
+	Verify     *public_handlers.VerifyHandler
 	Refresh    *public_handlers.RefreshHandler
 	ReviewsGet *public_handlers.ReviewsGetHandler
 	ReviewsAdd *private_handlers.ReviewsAddHandler
@@ -53,6 +54,7 @@ func buildHandlers(
 	return HandlerConfig{
 		Login:      public_handlers.NewLoginHandler(userServiceLogin, csrfService, isProduction),
 		Register:   public_handlers.NewRegisterHandler(userServiceRegister, isProduction),
+		Verify:     public_handlers.NewVerifyHandler(),
 		Refresh:    public_handlers.NewRefreshHandler(tokenService, blacklistRepo, isProduction),
 		ReviewsGet: public_handlers.NewReviewsGetHandler(reviewGetService),
 		ReviewsAdd: private_handlers.NewReviewsAddHandler(reviewAddService),

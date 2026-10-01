@@ -16,4 +16,5 @@ func (c *HandlerConfig) registerLoginRoutes(router *mux.Router, rateLimitMW midd
 
 	loginRouter.Handle("/login", http.HandlerFunc(c.Login.Handle)).Methods("POST", "OPTIONS")
 	loginRouter.Handle("/register", http.HandlerFunc(c.Register.Handle)).Methods("POST", "OPTIONS")
+	loginRouter.Handle("/verify", http.HandlerFunc(c.Verify.Handle)).Methods("POST", "OPTIONS")
 }
