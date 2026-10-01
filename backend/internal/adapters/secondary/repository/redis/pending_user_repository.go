@@ -8,6 +8,7 @@ import (
 
 	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/database"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	appErrors "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -44,4 +45,18 @@ func (r *RedisPendingUserRepository) SavePendingUser(user *modelsdb.PendingUser,
 	pipeline.Expire(r.context, key, ttl)
 	_, err := pipeline.Exec(r.context)
 	return err
+}
+
+// GetPendingUserHashCode retrieves only the verification-code hash from a pending user Redis Hash.
+func (r *RedisPendingUserRepository) GetPendingUserHashCode(userID string) (string, error) {
+	key := "pending_user:" + userID
+	hashCode, err := r.client.HGet(r.context, key, "hash_code").Result()
+	if err == redis.Nil {
+		return "", appErrors.NewNotFoundError(appErrors.ErrUserNotFound)
+	}
+	if err != nil {
+		return "", appErrors.NewInternalError(appErrors.ErrDatabaseQuery).WithError(err)
+	}
+
+	return hashCode, nil
 }

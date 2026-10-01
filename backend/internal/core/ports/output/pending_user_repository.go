@@ -11,4 +11,7 @@ import (
 type PendingUserRepository interface {
 	// Save stores a pending user as a Redis Hash with the provided expiration time.
 	SavePendingUser(user *modelsdb.PendingUser, ttl time.Duration) error
+
+	// GetPendingUserHashCode retrieves the stored verification-code hash for a pending user.
+	GetPendingUserHashCode(userID string) (string, error)
 }

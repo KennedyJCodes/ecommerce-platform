@@ -44,16 +44,6 @@ func SetupUserRepository(db *sqlx.DB) (output.UserRepository, error) {
 	return userRepo, nil
 }
 
-// SetupVerificationCodeRepository initializes the repository used to persist
-// hashed user verification codes.
-func SetupVerificationCodeRepository(db *sqlx.DB) (output.VerificationCodeRepository, error) {
-	codeRepository, err := repository_mysql.NewSQLVerificationCodeRepository(db)
-	if err != nil {
-		return nil, fmt.Errorf("setup verification code repository: %w", err)
-	}
-	return codeRepository, nil
-}
-
 // SetupTokenService creates a new JWTService instance with the secret key from config.
 func SetupTokenService(appConfig *config.AppConfig) *jwt.JWTService {
 	return jwt.NewJWTService(appConfig.GetJWTSecret())
