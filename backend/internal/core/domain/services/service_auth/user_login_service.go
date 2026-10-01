@@ -10,7 +10,7 @@ import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // UserLoginService orchestrates the authentication flow for existing users.
@@ -29,7 +29,7 @@ type UserLoginService struct {
 //
 // Returns:
 //   - input.UserServiceLogin: the abstracted login service interface.
-func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService) input.UserServiceLogin {
+func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService, hasher security_auth.Hasher) input.UserServiceLogin {
 	return &UserLoginService{
 		BaseAuthService: BaseAuthService{
 			UserRepo:          userRepo,
@@ -37,6 +37,7 @@ func NewUserLoginService(userRepo output.UserRepository, userNameValidator, pass
 			PasswordValidator: passwordValidator,
 			TokenService:      tokenService,
 			CSRFService:       csrfService,
+			Hasher:            hasher,
 		},
 	}
 }
@@ -60,7 +61,7 @@ func (l *UserLoginService) Login(ctx context.Context, request dto.LoginRequest) 
 		return nil, "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
+	err = l.Hasher.Compare([]byte(request.Password), user.Password)
 	if err != nil {
 		return nil, "", errors.NewAuthError(errors.ErrInvalidCredentials)
 	}

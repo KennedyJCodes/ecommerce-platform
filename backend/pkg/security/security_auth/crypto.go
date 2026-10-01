@@ -11,6 +11,9 @@ import (
 type Hasher interface {
 	// Hash takes a byte slice and returns its hashed representation.
 	Hash(value []byte) (string, error)
+
+	// Compare checks whether a value matches a previously generated hash.
+	Compare(value []byte, hashedValue string) error
 }
 
 // BcryptHasher implements the Hasher interface using bcrypt with the DefaultCost.
@@ -24,4 +27,10 @@ func (h BcryptHasher) Hash(value []byte) (string, error) {
 		return "", errors.NewInternalError("error hashing value")
 	}
 	return string(hash), nil
+}
+
+// Compare verifies a value against a bcrypt hash.
+// It returns an error when the value does not match the hash.
+func (h BcryptHasher) Compare(value []byte, hashedValue string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedValue), value)
 }
