@@ -22,5 +22,5 @@ type UserServiceLogin interface {
 // Implementations should handle new user account creation and provide JWT tokens upon successful registration.
 type UserServiceRegister interface {
 	// Register stores a pending user and sends its verification code.
-	Register(ctx context.Context, request dto.RegisterAccount) error
+	Register(ctx context.Context, request dto.RegisterAccount) (string, error)
 }

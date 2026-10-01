@@ -9,6 +9,7 @@ import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 )
 
 // RegisterHandler handles HTTP requests for user registration.
@@ -16,14 +17,16 @@ import (
 // It serves as an adapter between HTTP requests and the core business logic for registering users, utilizing the UserServiceRegister interface.
 type RegisterHandler struct {
 	userServiceRegister input.UserServiceRegister
+	isProduction        bool
 }
 
 // NewRegisterHandler creates a new instance of RegisterHandler.
 
 // It receives an implementation of the UserServiceRegister interface that encapsulates the business logic for user registration.
-func NewRegisterHandler(userServiceRegister input.UserServiceRegister) *RegisterHandler {
+func NewRegisterHandler(userServiceRegister input.UserServiceRegister, isProduction bool) *RegisterHandler {
 	return &RegisterHandler{
 		userServiceRegister: userServiceRegister,
+		isProduction:        isProduction,
 	}
 }
 
@@ -45,13 +48,16 @@ func (h *RegisterHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.userServiceRegister.Register(r.Context(), account); err != nil {
+	pendingUserID, err := h.userServiceRegister.Register(r.Context(), account)
+	if err != nil {
 		httpUtil.HandleError(w, err)
 		return
 	}
 
+	cookies.SetPendingUserCookie(w, pendingUserID, h.isProduction)
+
 	httpUtil.SendJSONResponse(w, http.StatusOK, map[string]string{
-		"message": "revisa tu correo para el código",
+		"message": "Check your email for the code.",
 		"next":    "/verify",
 	})
 }

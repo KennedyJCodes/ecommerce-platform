@@ -52,7 +52,7 @@ func buildHandlers(
 
 	return HandlerConfig{
 		Login:      public_handlers.NewLoginHandler(userServiceLogin, csrfService, isProduction),
-		Register:   public_handlers.NewRegisterHandler(userServiceRegister),
+		Register:   public_handlers.NewRegisterHandler(userServiceRegister, isProduction),
 		Refresh:    public_handlers.NewRefreshHandler(tokenService, blacklistRepo, isProduction),
 		ReviewsGet: public_handlers.NewReviewsGetHandler(reviewGetService),
 		ReviewsAdd: private_handlers.NewReviewsAddHandler(reviewAddService),

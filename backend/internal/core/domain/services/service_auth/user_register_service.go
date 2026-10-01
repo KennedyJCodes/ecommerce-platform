@@ -16,6 +16,8 @@ import (
 
 type UserRegisterService struct{ BaseAuthService }
 
+const pendingUserTTL = 10 * time.Minute
+
 func NewUserRegisterService(userRepo output.UserRepository, pendingUserRepository output.PendingUserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, hasher security_auth.Hasher, codeVerificationService input.CodeVerificationService, codeVerificationSender output.CodeVerificationSender) input.UserServiceRegister {
 	return &UserRegisterService{BaseAuthService: BaseAuthService{
 		UserRepo: userRepo, PendingUserRepository: pendingUserRepository,
@@ -25,58 +27,62 @@ func NewUserRegisterService(userRepo output.UserRepository, pendingUserRepositor
 	}}
 }
 
-func (r *UserRegisterService) Register(ctx context.Context, request dto.RegisterAccount) error {
+func (r *UserRegisterService) Register(ctx context.Context, request dto.RegisterAccount) (string, error) {
 	if err := r.ValidateUserName(request.UserName); err != nil {
-		return err
+		return "", err
 	}
 	if err := r.ValidatePassword(request.Password); err != nil {
-		return err
+		return "", err
 	}
 	if err := r.ValidateEmail(request.Email); err != nil {
-		return err
+		return "", err
 	}
 
 	existsUser, err := r.CheckUserExists(ctx, request.UserName)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if existsUser {
-		return errors.NewConflictError(errors.ErrUserAlreadyExists)
+		return "", errors.NewConflictError(errors.ErrUserAlreadyExists)
 	}
 	existsEmail, err := r.CheckEmailExists(ctx, request.Email)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if existsEmail {
-		return errors.NewConflictError(errors.ErrEmailAlreadyExists)
+		return "", errors.NewConflictError(errors.ErrEmailAlreadyExists)
 	}
 
 	code, err := r.CodeVerificationService.GenerateCodeVerification()
 	if err != nil {
-		return errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
+		return "", errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
 	}
 	passwordHash, err := r.HashSensitiveValue([]byte(request.Password))
 	if err != nil {
-		return errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
+		return "", errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
 	}
 	codeHash, err := r.HashSensitiveValue([]byte(code))
 	if err != nil {
-		return errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
+		return "", errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
 	}
 
 	userID, err := newPendingUserID()
 	if err != nil {
-		return errors.NewInternalError(errors.ErrDatabaseInsert).WithError(err)
+		return "", errors.NewInternalError(errors.ErrDatabaseInsert).WithError(err)
 	}
 	pendingUser := &modelsdb.PendingUser{
 		ID: userID, Username: request.UserName, PasswordHash: string(passwordHash),
 		Email: request.Email, HashCode: string(codeHash), Attempts: 0,
 	}
-	if err := r.PendingUserRepository.SavePendingUser(pendingUser, 10*time.Minute); err != nil {
-		return err
+	if err := r.PendingUserRepository.SavePendingUser(pendingUser, pendingUserTTL); err != nil {
+		return "", err
 	}
 
-	return r.SendCodeVerification(request.Email, code)
+	if err := r.SendCodeVerification(request.Email, code); err != nil {
+		return "", err
+	}
+
+	return userID, nil
 }
 
 func newPendingUserID() (string, error) {
