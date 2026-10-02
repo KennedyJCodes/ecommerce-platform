@@ -74,3 +74,9 @@ func SetupUserService(userRepo output.UserRepository, pendingUserRepository outp
 	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService, hasher),
 		service_auth.NewUserRegisterService(userRepo, pendingUserRepository, userNameValidator, passwordValidator, emailValidator, hasher, codeVerificationService, codeVerificationSender)
 }
+
+// SetupUserVerificationService initializes the pending-registration verification flow.
+func SetupUserVerificationService(userRepo output.UserRepository, pendingUserRepository output.PendingUserRepository, tokenService output.TokenService, csrfService output.CSRFService) input.UserVerificationService {
+	hasher := &security_auth.BcryptHasher{}
+	return service_code_verification.NewUserVerificationService(userRepo, pendingUserRepository, tokenService, csrfService, hasher)
+}

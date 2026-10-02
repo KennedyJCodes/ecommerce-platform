@@ -16,7 +16,7 @@ import (
 
 // It requires a *sqlx.DB for database operations and a pluggable Hasher dependency.
 type SQLUserRepository struct {
-	db     *sqlx.DB
+	db *sqlx.DB
 }
 
 // NewSQLUserRepository creates a new SQLUserRepository instance.
@@ -29,7 +29,7 @@ func NewSQLUserRepository(db *sqlx.DB) (output.UserRepository, error) {
 	}
 
 	return &SQLUserRepository{
-		db:     db,
+		db: db,
 	}, nil
 }
 
@@ -84,8 +84,8 @@ func (r *SQLUserRepository) SaveUser(ctx context.Context, user models_auth.User)
 	defer tx.Rollback()
 
 	result, err := tx.ExecContext(ctx,
-		"INSERT INTO user_registration (username, password, email) VALUES (?, ?, ?)",
-		user.UserName, user.Password, user.Email,
+		"INSERT INTO user_registration (username, password, email, verified_at) VALUES (?, ?, ?, ?)",
+		user.UserName, user.Password, user.Email, user.VerifiedAt,
 	)
 	if err != nil {
 		return models_auth.User{}, errorsApp.NewInternalError(errorsApp.ErrDatabaseInsert).WithError(err)

@@ -14,4 +14,10 @@ type PendingUserRepository interface {
 
 	// GetPendingUserHashCode retrieves the stored verification-code hash for a pending user.
 	GetPendingUserHashCode(userID string) (string, error)
+
+	// GetPendingUser retrieves all data needed to complete a pending registration.
+	GetPendingUser(userID string) (*modelsdb.PendingUser, error)
+
+	// DeletePendingUser removes a pending registration after successful verification.
+	DeletePendingUser(userID string) error
 }

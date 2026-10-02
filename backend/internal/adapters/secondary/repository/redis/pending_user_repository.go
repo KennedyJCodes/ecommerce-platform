@@ -60,3 +60,38 @@ func (r *RedisPendingUserRepository) GetPendingUserHashCode(userID string) (stri
 
 	return hashCode, nil
 }
+
+// GetPendingUser retrieves a pending user from its Redis Hash.
+func (r *RedisPendingUserRepository) GetPendingUser(userID string) (*modelsdb.PendingUser, error) {
+	key := "pending_user:" + userID
+	fields, err := r.client.HGetAll(r.context, key).Result()
+	if err != nil {
+		return nil, appErrors.NewInternalError(appErrors.ErrDatabaseQuery).WithError(err)
+	}
+	if len(fields) == 0 {
+		return nil, appErrors.NewNotFoundError(appErrors.ErrUserNotFound)
+	}
+
+	attempts, err := strconv.Atoi(fields["attempts"])
+	if err != nil {
+		return nil, appErrors.NewInternalError(appErrors.ErrDatabaseQuery).WithError(err)
+	}
+
+	return &modelsdb.PendingUser{
+		ID:           fields["id"],
+		Username:     fields["username"],
+		PasswordHash: fields["password_hash"],
+		Email:        fields["email"],
+		HashCode:     fields["hash_code"],
+		Attempts:     attempts,
+	}, nil
+}
+
+// DeletePendingUser removes a pending user from Redis after verification.
+func (r *RedisPendingUserRepository) DeletePendingUser(userID string) error {
+	key := "pending_user:" + userID
+	if err := r.client.Del(r.context, key).Err(); err != nil {
+		return appErrors.NewInternalError(appErrors.ErrDatabaseDelete).WithError(err)
+	}
+	return nil
+}

@@ -230,3 +230,17 @@ func SetPendingUserCookie(w http.ResponseWriter, pendingUserID string, isProduct
 	)
 	SetCookie(w, config)
 }
+
+// ClearPendingUserCookie invalidates the pending registration cookie.
+func ClearPendingUserCookie(w http.ResponseWriter, isProduction bool) {
+	config := CookieConfig{
+		Name:     prefixedName("pending_user_id"),
+		Value:    "",
+		MaxAge:   -1,
+		Path:     "/verify",
+		HttpOnly: true,
+		Secure:   isProduction,
+		SameSite: http.SameSiteLaxMode,
+	}
+	SetCookie(w, config)
+}

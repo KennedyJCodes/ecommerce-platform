@@ -38,6 +38,7 @@ type HandlerConfig struct {
 func buildHandlers(
 	userServiceLogin input.UserServiceLogin,
 	userServiceRegister input.UserServiceRegister,
+	userVerificationService input.UserVerificationService,
 	reviewGetService input.ReviewGetService,
 	reviewAddService input.ReviewAddService,
 	staticFileService output.StaticFilePort,
@@ -54,7 +55,7 @@ func buildHandlers(
 	return HandlerConfig{
 		Login:      public_handlers.NewLoginHandler(userServiceLogin, csrfService, isProduction),
 		Register:   public_handlers.NewRegisterHandler(userServiceRegister, isProduction),
-		Verify:     public_handlers.NewVerifyHandler(),
+		Verify:     public_handlers.NewVerifyHandler(userVerificationService, isProduction),
 		Refresh:    public_handlers.NewRefreshHandler(tokenService, blacklistRepo, isProduction),
 		ReviewsGet: public_handlers.NewReviewsGetHandler(reviewGetService),
 		ReviewsAdd: private_handlers.NewReviewsAddHandler(reviewAddService),

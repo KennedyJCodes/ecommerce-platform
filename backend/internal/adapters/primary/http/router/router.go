@@ -16,18 +16,19 @@ type RouterConfiguration interface {
 }
 
 type RouterDependencies struct {
-	UserServiceLogin    input.UserServiceLogin
-	UserServiceRegister input.UserServiceRegister
-	ReviewGetService   input.ReviewGetService
-	ReviewAddService   input.ReviewAddService
-	RateHandler         ratelimiter.RateLimiterHandler
-	StaticFileService   output.StaticFilePort
-	ProductsGetService  input.ProductsGetService
-	CSRFMiddleware      *middleware.CSRFMiddleware
-	CSRFService         output.CSRFService
-	IsProduction        bool
-	BlacklistRepo       output.TokenBlacklistPort
-	TokenService        output.TokenService
+	UserServiceLogin        input.UserServiceLogin
+	UserServiceRegister     input.UserServiceRegister
+	UserVerificationService input.UserVerificationService
+	ReviewGetService        input.ReviewGetService
+	ReviewAddService        input.ReviewAddService
+	RateHandler             ratelimiter.RateLimiterHandler
+	StaticFileService       output.StaticFilePort
+	ProductsGetService      input.ProductsGetService
+	CSRFMiddleware          *middleware.CSRFMiddleware
+	CSRFService             output.CSRFService
+	IsProduction            bool
+	BlacklistRepo           output.TokenBlacklistPort
+	TokenService            output.TokenService
 }
 
 // NewRouter constructs and returns a *mux.Router configured with all application routes, handlers, and global middleware.
@@ -61,6 +62,7 @@ func NewRouter(deps RouterDependencies) *mux.Router {
 	handlers := buildHandlers(
 		deps.UserServiceLogin,
 		deps.UserServiceRegister,
+		deps.UserVerificationService,
 		deps.ReviewGetService,
 		deps.ReviewAddService,
 		deps.StaticFileService,
@@ -77,12 +79,12 @@ func NewRouter(deps RouterDependencies) *mux.Router {
 	// 4. Build RouterConfig with dependencies
 	c := &RouterConfig{
 		Handlers:          handlers,
-		IPExtractor:        ratelimiter.NewDefaultIPExtractor("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/32"),
-		RateLimiter:        deps.RateHandler,
-		MiddlewareManager:  middlewareManager,
-		CSRFMiddleware:     deps.CSRFMiddleware,
-		TokenService:       deps.TokenService,
-		BlacklistRepo:      deps.BlacklistRepo,
+		IPExtractor:       ratelimiter.NewDefaultIPExtractor("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/32"),
+		RateLimiter:       deps.RateHandler,
+		MiddlewareManager: middlewareManager,
+		CSRFMiddleware:    deps.CSRFMiddleware,
+		TokenService:      deps.TokenService,
+		BlacklistRepo:     deps.BlacklistRepo,
 	}
 
 	// 5. Register routes on router

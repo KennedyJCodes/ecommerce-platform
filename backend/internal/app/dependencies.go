@@ -19,17 +19,18 @@ import (
 // Dependencies holds all the initialized services, ports, and handlers required  to run the application.
 // By grouping these in a single struct, the application ensures that all required components are ready before starting the HTTP server.
 type Dependencies struct {
-	UserServiceLogin    input.UserServiceLogin
-	UserServiceRegister input.UserServiceRegister
-	ReviewGetService    input.ReviewGetService
-	ReviewAddService    input.ReviewAddService
-	RateHandler         ratelimiter.RateLimiterHandler
-	StaticFileAdapter   output.StaticFilePort
-	ProductsGetService  input.ProductsGetService
-	CSRFMiddleware      *middleware.CSRFMiddleware
-	TokenService        output.TokenService
-	CSRFService         output.CSRFService
-	BlacklistRepo       output.TokenBlacklistPort
+	UserServiceLogin        input.UserServiceLogin
+	UserServiceRegister     input.UserServiceRegister
+	UserVerificationService input.UserVerificationService
+	ReviewGetService        input.ReviewGetService
+	ReviewAddService        input.ReviewAddService
+	RateHandler             ratelimiter.RateLimiterHandler
+	StaticFileAdapter       output.StaticFilePort
+	ProductsGetService      input.ProductsGetService
+	CSRFMiddleware          *middleware.CSRFMiddleware
+	TokenService            output.TokenService
+	CSRFService             output.CSRFService
+	BlacklistRepo           output.TokenBlacklistPort
 }
 
 // BuildDependencies orchestrates the initialization of all internal services and repositories.
@@ -55,6 +56,7 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 	blacklistRepo := bootstrap.SetupTokenBlacklistRepository(a.redisClient)
 	codeVerificationSender := bootstrap.SetupCodeVerificationSender(a.config)
 	pendingUserRepository := repository_redis.NewRedisPendingUserRepository(a.redisClient)
+	userVerificationService := bootstrap.SetupUserVerificationService(userRepo, pendingUserRepository, tokenService, csrfService)
 
 	// Inject repositories and services into their respective application logic layers.
 	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(
@@ -76,17 +78,18 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 	}
 
 	return &Dependencies{
-		UserServiceLogin:    userServiceLogin,
-		UserServiceRegister: userServiceRegister,
-		ReviewGetService:    reviewGetService,
-		ReviewAddService:    reviewAddService,
-		RateHandler:         bootstrap.SetupRateLimiter(a.config),
-		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
-		ProductsGetService:  productsGetService,
-		TokenService:        tokenService,
-		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
-		CSRFService:         csrfService,
-		BlacklistRepo:       blacklistRepo,
+		UserServiceLogin:        userServiceLogin,
+		UserServiceRegister:     userServiceRegister,
+		UserVerificationService: userVerificationService,
+		ReviewGetService:        reviewGetService,
+		ReviewAddService:        reviewAddService,
+		RateHandler:             bootstrap.SetupRateLimiter(a.config),
+		StaticFileAdapter:       bootstrap.SetupStaticFileAdapter(a.config),
+		ProductsGetService:      productsGetService,
+		TokenService:            tokenService,
+		CSRFMiddleware:          bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
+		CSRFService:             csrfService,
+		BlacklistRepo:           blacklistRepo,
 	}, nil
 }
 
@@ -105,6 +108,7 @@ func (a *Application) BuildRouter() (http.Handler, error) {
 	router := primaryRouter.NewRouter(primaryRouter.RouterDependencies{
 		UserServiceLogin:    deps.UserServiceLogin,
 		UserServiceRegister: deps.UserServiceRegister,
+		UserVerificationService: deps.UserVerificationService,
 		ReviewGetService:    deps.ReviewGetService,
 		ReviewAddService:    deps.ReviewAddService,
 		RateHandler:         deps.RateHandler,
