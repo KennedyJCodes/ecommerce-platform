@@ -4,7 +4,6 @@ package bootstrap_database
 
 import (
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
 )
 
 // SetupDatabaseRedis extracts the Redis-specific configuration from the global application config.
@@ -14,9 +13,9 @@ import (
 //   - appConfig: a pointer to the application configuration manager.
 //
 // Returns:
-//   - models.RedisConfig: a struct containing all necessary parameters for Redis connectivity.
+//   - config.RedisConfig: a struct containing all necessary parameters for Redis connectivity.
 //   - error: returns nil by default, but follows the bootstrap signature for consistency.
-func SetupDatabaseRedis(appConfig *config.AppConfig) (models.RedisConfig, error) {
+func SetupDatabaseRedis(appConfig *config.AppConfig) (config.RedisConfig, error) {
 	// Delegation to the config provider to extract Redis-specific values.
 	redisConfig := appConfig.GetRedisConfig()
 	return redisConfig, nil

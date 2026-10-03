@@ -5,12 +5,12 @@ package bootstrap
 import (
 	"fmt"
 
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/notification"
 	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/security/jwt"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/static"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -29,7 +29,7 @@ func SetupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
 }
 
 // SetupUserRepository initializes the user repository with its necessary security dependencies.
-// It explicitly injects a BcryptHasher into the SQLUserRepository, ensuring that all user persistence operations follow the defined security standards for password hashing.
+// It explicitly injects a BcryptHasher into the SQLUserRepository, keeping hashing strategy configurable for user persistence workflows.
 
 // Parameters:
 //   - db: an active *sqlx.DB connection pool.
@@ -37,9 +37,7 @@ func SetupStaticFileAdapter(appConfig *config.AppConfig) output.StaticFilePort {
 // Returns:
 //   - output.UserRepository: a repository ready to handle user-related database operations.
 func SetupUserRepository(db *sqlx.DB) (output.UserRepository, error) {
-	// Define the hashing strategy to be used by the repository.
-	hasher := security_auth.BcryptHasher{}
-	userRepo, err := repository_mysql.NewSQLUserRepository(db, hasher)
+	userRepo, err := repository_mysql.NewSQLUserRepository(db)
 	if err != nil {
 		return nil, fmt.Errorf("setup user repository: %w", err)
 	}
@@ -49,4 +47,10 @@ func SetupUserRepository(db *sqlx.DB) (output.UserRepository, error) {
 // SetupTokenService creates a new JWTService instance with the secret key from config.
 func SetupTokenService(appConfig *config.AppConfig) *jwt.JWTService {
 	return jwt.NewJWTService(appConfig.GetJWTSecret())
+}
+
+func SetupCodeVerificationSender(appConfig *config.AppConfig) output.CodeVerificationSender {
+	apiKey := appConfig.GetResendEmailAPIKey()
+	fromEmail := appConfig.GetResendEmailFrom()
+	return notification.NewCodeVerificationNotification(apiKey, fromEmail)
 }

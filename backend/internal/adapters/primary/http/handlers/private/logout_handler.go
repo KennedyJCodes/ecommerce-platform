@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
@@ -56,7 +56,7 @@ func NewLogoutHandler(tokenService output.TokenService, blacklistRepo output.Tok
 //   - r: *http.Request containing the authenticated user's context.
 func (h *LogoutHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	claimsValue := r.Context().Value(middleware.GetClaimsContextKey())
-	claims, ok := claimsValue.(*models.Claims)
+	claims, ok := claimsValue.(*models_auth.Claims)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

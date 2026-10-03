@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
 )
@@ -125,7 +125,7 @@ func AuthMiddleware(options *AuthOptions) Middleware {
 				return
 			}
 
-			if claims.Type != string(models.TokenTypeAccess) {
+			if claims.Type != string(models_auth.TokenTypeAccess) {
     			http.Error(w, "Invalid token type", http.StatusUnauthorized)
    				return
 			}

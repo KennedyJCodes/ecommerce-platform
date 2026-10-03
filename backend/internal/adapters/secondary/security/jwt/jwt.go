@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -27,14 +27,14 @@ func NewJWTService(secretKey string) *JWTService {
 // GenerateJWT generates a signed JWT for the specified userName.
 // The token embeds a unique ID (jti), issued-at timestamp, username,
 // and an expiration set to 15 minutes from now.
-func (j *JWTService) GenerateToken(userID int, userName string, tokenType models.TokenType) (string, error) {
+func (j *JWTService) GenerateToken(userID int, userName string, tokenType models_auth.TokenType) (string, error) {
 	jtiBytes := make([]byte, 16)
 	if _, err := rand.Read(jtiBytes); err != nil {
 		return "", fmt.Errorf("error generating token ID: %w", err)
 	}
 
-	if tokenType == models.TokenTypeAccess {
-		var claims = models.Claims{
+	if tokenType == models_auth.TokenTypeAccess {
+		var claims = models_auth.Claims{
 		UserID:   userID,
 		UserName: userName,
 		Type:   "access",
@@ -47,8 +47,8 @@ func (j *JWTService) GenerateToken(userID int, userName string, tokenType models
 
 		var token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		return token.SignedString(j.secretKey)
-	} else if tokenType == models.TokenTypeRefresh {
-		var claims = models.Claims{
+	} else if tokenType == models_auth.TokenTypeRefresh {
+		var claims = models_auth.Claims{
 		UserID:   userID,
 		UserName: userName,
 		Type:   "refresh",
@@ -69,8 +69,8 @@ func (j *JWTService) GenerateToken(userID int, userName string, tokenType models
 // ValidateRefreshToken validates a refresh token string and returns its claims.
 // It verifies the signature, checks that the Subject is "refresh", and ensures
 // the token has not expired.
-func (j *JWTService) ValidateToken(tokenString string) (*models.Claims, error) {
-	claims := &models.Claims{}
+func (j *JWTService) ValidateToken(tokenString string) (*models_auth.Claims, error) {
+	claims := &models_auth.Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if token.Method != jwt.SigningMethodHS256 {

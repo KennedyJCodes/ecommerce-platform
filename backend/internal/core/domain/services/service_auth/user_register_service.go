@@ -1,95 +1,94 @@
-// Package service_auth provides implementations of the core input ports for authentication flows.
 package service_auth
 
 import (
-	"fmt"
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
+	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/database"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
-// UserRegisterService handles the logic for creating new user identities.
-// It leverages BaseAuthService for shared validation and token orchestration, ensuring that new accounts meet the same security standards as existing ones.
-type UserRegisterService struct {
-	BaseAuthService
+type UserRegisterService struct{ BaseAuthService }
+
+const pendingUserTTL = 10 * time.Minute
+
+func NewUserRegisterService(userRepo output.UserRepository, pendingUserRepository output.PendingUserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, hasher security_auth.Hasher, codeVerificationService input.CodeVerificationService, codeVerificationSender output.CodeVerificationSender) input.UserServiceRegister {
+	return &UserRegisterService{BaseAuthService: BaseAuthService{
+		UserRepo: userRepo, PendingUserRepository: pendingUserRepository,
+		UserNameValidator: userNameValidator, PasswordValidator: passwordValidator,
+		EmailValidator: emailValidator, Hasher: hasher,
+		CodeVerificationService: codeVerificationService, CodeVerificationSender: codeVerificationSender,
+	}}
 }
 
-// NewUserRegisterService constructs a UserRegisterService with the necessary collaborators for persistence, validation, and security session management.
-
-// Parameters:
-//   - userRepo: output port for user persistence.
-//   - userNameValidator/passwordValidator: components to enforce domain constraints.
-//   - csrfService/csrfCookieSetter: infrastructure for CSRF protection.
-//
-// Returns:
-//   - input.UserServiceRegister: the registration service interface.
-func NewUserRegisterService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService) input.UserServiceRegister {
-	return &UserRegisterService{
-		BaseAuthService: BaseAuthService{
-			UserRepo:          userRepo,
-			UserNameValidator: userNameValidator,
-			PasswordValidator: passwordValidator,
-			TokenService:      tokenService,
-			CSRFService:       csrfService,
-		},
+func (r *UserRegisterService) Register(ctx context.Context, request dto.RegisterAccount) (string, error) {
+	if err := r.ValidateUserName(request.UserName); err != nil {
+		return "", err
 	}
+	if err := r.ValidatePassword(request.Password); err != nil {
+		return "", err
+	}
+	if err := r.ValidateEmail(request.Email); err != nil {
+		return "", err
+	}
+
+	existsUser, err := r.CheckUserExists(ctx, request.UserName)
+	if err != nil {
+		return "", err
+	}
+	if existsUser {
+		return "", errors.NewConflictError(errors.ErrUserAlreadyExists)
+	}
+	existsEmail, err := r.CheckEmailExists(ctx, request.Email)
+	if err != nil {
+		return "", err
+	}
+	if existsEmail {
+		return "", errors.NewConflictError(errors.ErrEmailAlreadyExists)
+	}
+
+	code, err := r.CodeVerificationService.GenerateCodeVerification()
+	if err != nil {
+		return "", errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
+	}
+	passwordHash, err := r.HashSensitiveValue([]byte(request.Password))
+	if err != nil {
+		return "", errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
+	}
+	codeHash, err := r.HashSensitiveValue([]byte(code))
+	if err != nil {
+		return "", errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(err)
+	}
+
+	userID, err := newPendingUserID()
+	if err != nil {
+		return "", errors.NewInternalError(errors.ErrDatabaseInsert).WithError(err)
+	}
+	pendingUser := &modelsdb.PendingUser{
+		ID: userID, Username: request.UserName, PasswordHash: string(passwordHash),
+		Email: request.Email, HashCode: string(codeHash), Attempts: 0,
+	}
+	if err := r.PendingUserRepository.SavePendingUser(pendingUser, pendingUserTTL); err != nil {
+		return "", err
+	}
+
+	if err := r.SendCodeVerification(request.Email, code); err != nil {
+		return "", err
+	}
+
+	return userID, nil
 }
 
-// Register orchestrates the onboarding of a new user into the system.
-
-// The registration flow is executed as an atomic-like business process:
-//  1. Format Validation: Verifies username and password against complexity rules.
-//  2. Collision Check: Prevents duplicate accounts by verifying username uniqueness.
-//  3. Secure Persistence: Delegates the hashing and storage to the repository layer.
-//  4. Identity Resolution: Retrieves the newly generated unique ID.
-//  5. Security Context: Initializes the CSRF state for the new user.
-//  6. Session Issuance: Signs access and refresh JWTs for immediate authentication.
-//
-// Returns a TokenPair, a CSRF token on success, or an error.
-func (r *UserRegisterService) Register(account models.Account) (*models.TokenPair, string, error) {
-	// 1. Validate input integrity (Format and Strength)
-	if err := r.ValidateUserName(account.UserName); err != nil {
-		return nil, "", errors.NewValidationError(errors.ErrInvalidUsername)
+func newPendingUserID() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
 	}
-
-	if err := r.ValidatePassword(account.Password); err != nil {
-		return nil, "", errors.NewValidationError(errors.ErrInvalidPassword)
-	}
-
-	// 2. Ensure username uniqueness (Conflict Check)
-	exists, err := r.CheckUserExists(account.UserName)
-	if err != nil {
-		return nil, "", err
-	}
-	if exists {
-		return nil, "", errors.NewConflictError(errors.ErrUserAlreadyExists)
-	}
-
-	// 3. Persist the new identity
-	// The repository is expected to handle the cryptographic hashing before storage.
-	if err := r.UserRepo.SaveUser(account.UserName, account.Password); err != nil {
-		return nil, "", err
-	}
-
-	// 4. Resolve the persistent ID
-	userId, err := r.UserRepo.GetID(account.UserName)
-	if err != nil {
-		return nil, "", err
-	}
-
-	// 5. Establish immediate security session (CSRF)
-	userIDStr := fmt.Sprintf("%d", userId)
-	csrfToken, err := r.GenerateCSRFToken(userIDStr)
-	if err != nil {
-		return nil, "", err
-	}
-
-	// 6. Generate token pair
-	tokens, err := r.GenerateTokenPair(userId, account.UserName)
-	if err != nil {
-		return nil, "", err
-	}
-	return tokens, csrfToken, nil
+	return hex.EncodeToString(b), nil
 }

@@ -16,6 +16,6 @@ func (c *HandlerConfig) registerPrivateRoutes(router *mux.Router, rateLimitMW, a
 	private.Use(mux.MiddlewareFunc(csrfMW))
 	private.Use(mux.MiddlewareFunc(middleware.NoCacheMiddleware()))
 
-	private.Handle("/comments/newComments", http.HandlerFunc(c.CommentsAdd.Handle)).Methods("POST", "OPTIONS")
+	private.Handle("/comments/newComments", http.HandlerFunc(c.ReviewsAdd.Handle)).Methods("POST", "OPTIONS")
 	private.Handle("/logout", http.HandlerFunc(c.Logout.Handle)).Methods("POST", "OPTIONS")
 }

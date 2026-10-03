@@ -158,7 +158,9 @@ func SetCookie(w http.ResponseWriter, config CookieConfig) {
 		cookie.MaxAge = -1
 		cookie.Expires = time.Time{}
 	} else {
-		cookie.Expires = time.Now().Add(config.MaxAge)
+		// Expires is serialized with second precision by net/http. Round it
+		// here so the in-memory and wire representations stay consistent.
+		cookie.Expires = time.Now().Add(config.MaxAge).UTC().Round(time.Second)
 		cookie.MaxAge = 0
 	}
 
@@ -212,5 +214,33 @@ func SetCSRFCookie(w http.ResponseWriter, token string, isProduction bool) {
 		WithSameSite(http.SameSiteStrictMode),
 		WithSecure(isProduction),
 	)
+	SetCookie(w, config)
+}
+
+// SetPendingUserCookie stores the pending registration ID only for the
+// verification route and expires it with the verification code.
+func SetPendingUserCookie(w http.ResponseWriter, pendingUserID string, isProduction bool) {
+	config := NewCookieConfig(prefixedName("pending_user_id"),
+		WithValue(pendingUserID),
+		WithMaxAge(10*time.Minute),
+		WithPath("/verify"),
+		WithHttpOnly(true),
+		WithSecure(isProduction),
+		WithSameSite(http.SameSiteLaxMode),
+	)
+	SetCookie(w, config)
+}
+
+// ClearPendingUserCookie invalidates the pending registration cookie.
+func ClearPendingUserCookie(w http.ResponseWriter, isProduction bool) {
+	config := CookieConfig{
+		Name:     prefixedName("pending_user_id"),
+		Value:    "",
+		MaxAge:   -1,
+		Path:     "/verify",
+		HttpOnly: true,
+		Secure:   isProduction,
+		SameSite: http.SameSiteLaxMode,
+	}
 	SetCookie(w, config)
 }

@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/security"
 	"golang.org/x/time/rate"
 )
 
@@ -32,7 +32,7 @@ type RateLimiterManager interface {
 	CleanupInactiveLimiters(expirationDuration time.Duration)
 
 	// SetDefaultLimiterConfig updates the default rate limiting parameters.
-	SetDefaultLimiterConfig(config models.LimiterConfig)
+	SetDefaultLimiterConfig(config models_security.LimiterConfig)
 }
 
 // DefaultRateLimiter implements RateLimiterHandler using an underlying RateLimiterManager.
@@ -46,7 +46,7 @@ type DefaultRateLimiter struct {
 // burst: Maximum burst size (bucket capacity)
 func NewDefaultRateLimiter(requestPerSecond float64, burst int) RateLimiterHandler {
 	manager := NewRateLimiterManager()
-	manager.SetDefaultLimiterConfig(models.LimiterConfig{
+	manager.SetDefaultLimiterConfig(models_security.LimiterConfig{
 		RequestPerSecond: requestPerSecond,
 		Burst:            burst,
 	})
@@ -58,7 +58,7 @@ func NewDefaultRateLimiter(requestPerSecond float64, burst int) RateLimiterHandl
 
 // NewDefaultRateLimiterWithCleanup creates a rate limiter and starts background cleanup
 // for inactive IP entries.
-func NewDefaultRateLimiterWithCleanup(config models.LimiterConfig) RateLimiterHandler {
+func NewDefaultRateLimiterWithCleanup(config models_security.LimiterConfig) RateLimiterHandler {
 	manager := NewRateLimiterManager()
 	manager.SetDefaultLimiterConfig(config)
 
@@ -80,7 +80,7 @@ func (d *DefaultRateLimiter) Allow(ipAddress string) bool {
 // DefaultRateLimiterManager implements RateLimiterManager with in-memory storage.
 // Uses sync.Map for concurrent access safety and automatic cleanup of inactive entries.
 type DefaultRateLimiterManager struct {
-	defaultConfig  models.LimiterConfig // Default rate limiting parameters
+	defaultConfig  models_security.LimiterConfig // Default rate limiting parameters
 	ipLimiterCache sync.Map             // Concurrent storage for IP limiter records
 }
 
@@ -89,7 +89,7 @@ type DefaultRateLimiterManager struct {
 // - 5 request burst capacity
 func NewRateLimiterManager() *DefaultRateLimiterManager {
 	return &DefaultRateLimiterManager{
-		defaultConfig: models.LimiterConfig{
+		defaultConfig: models_security.LimiterConfig{
 			RequestPerSecond: 1.5,
 			Burst:            5,
 		},
@@ -98,7 +98,7 @@ func NewRateLimiterManager() *DefaultRateLimiterManager {
 
 // SetDefaultLimiterConfig updates the default rate limiting parameters for new limiters.
 // Does not affect existing rate limiter instances.
-func (m *DefaultRateLimiterManager) SetDefaultLimiterConfig(config models.LimiterConfig) {
+func (m *DefaultRateLimiterManager) SetDefaultLimiterConfig(config models_security.LimiterConfig) {
 	m.defaultConfig = config
 }
 

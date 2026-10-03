@@ -1,125 +1,105 @@
-// Package repository provides SQL-based implementations of output ports for persisting and retrieving user data. It depends on a SQL database connection and pluggable security components for salt generation and password hashing.
+// Package repository provides SQL-based implementations of output ports for persisting and retrieving user data.
 package repository_mysql
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 
+	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
-	securityAuth "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
+	errorsApp "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 	"github.com/jmoiron/sqlx"
 )
 
 // SQLUserRepository implements the UserRepository interface using a SQL database.
 
-// It requires a *sqlx.DB for database operations, a Generator for creating salts, and a Hasher for hashing passwords.
+// It requires a *sqlx.DB for database operations and a pluggable Hasher dependency.
 type SQLUserRepository struct {
-	db     *sqlx.DB
-	hasher securityAuth.Hasher
+	db *sqlx.DB
 }
 
 // NewSQLUserRepository creates a new SQLUserRepository instance.
 
 // It validates constructor dependencies and returns an error instead of
 // terminating the process, leaving startup decisions to the composition root.
-func NewSQLUserRepository(db *sqlx.DB, hasher securityAuth.Hasher) (output.UserRepository, error) {
+func NewSQLUserRepository(db *sqlx.DB) (output.UserRepository, error) {
 	if db == nil {
-		return nil, errors.NewInternalError(errors.ErrDatabaseConnection)
-	}
-
-	if hasher == nil {
-		return nil, errors.NewInternalError("Hasher not initialized")
+		return nil, errorsApp.NewInternalError(errorsApp.ErrDatabaseConnection)
 	}
 
 	return &SQLUserRepository{
-		db:     db,
-		hasher: hasher,
+		db: db,
 	}, nil
 }
 
-// UserExists checks whether a user with the given username exists in the database.
+func (r *SQLUserRepository) FindByUserName(ctx context.Context, username string) (*models_auth.User, error) {
+	var user models_auth.User
+	query := `SELECT user_id, username, email, password, created_at, updated_at 
+            FROM user_registration WHERE username = ?`
 
+	err := r.db.QueryRowContext(ctx, query, username).Scan(
+		&user.UserID, &user.UserName, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return &models_auth.User{}, errorsApp.NewBadRequestError(errorsApp.ErrUserNotFound)
+	}
+	if err != nil {
+		return &models_auth.User{}, err
+	}
+	return &user, nil
+}
+
+// UserExists checks whether a user with the given username exists in the database.
 // It returns true if a matching record is found, or false otherwise.
 // Any SQL errors are wrapped as internal errors.
-func (r *SQLUserRepository) UserExists(username string) (bool, error) {
+func (r *SQLUserRepository) UserExists(ctx context.Context, username string) (bool, error) {
 	var exists bool
-	query := "SELECT EXISTS(SELECT 1 FROM user_registration WHERE UserName = ?)"
+	query := "SELECT EXISTS(SELECT 1 FROM user_registration WHERE username = ?)"
 	err := r.db.QueryRow(query, username).Scan(&exists)
 	if err != nil {
-		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
+		return false, errorsApp.NewInternalError(errorsApp.ErrDatabaseQuery).WithError(err)
 	}
 
 	return exists, nil
 }
 
-// GetHashPassword retrieves the hashed password for the specified username.
-
-// If no record is found, returns a NotFoundError. Other SQL errors are wrapped as internal errors.
-func (r *SQLUserRepository) GetHashPassword(username string) (string, error) {
-	var hashPassword string
-	query := "SELECT Password FROM user_registration WHERE UserName = ?"
-	err := r.db.QueryRow(query, username).Scan(&hashPassword)
+func (r *SQLUserRepository) EmailExists(ctx context.Context, email string) (bool, error) {
+	var exists bool
+	query := "SELECT EXISTS(SELECT 1 FROM user_registration WHERE email = ?)"
+	err := r.db.QueryRow(query, email).Scan(&exists)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", errors.NewNotFoundError(errors.ErrUserNotFound)
-		}
-		return "", errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
+		return false, errorsApp.NewInternalError(errorsApp.ErrDatabaseQuery).WithError(err)
 	}
 
-	return hashPassword, nil
+	return exists, nil
 }
 
-// SaveUser inserts a new user into the database with a salted and hashed password.
-
-// It generates a new salt, combines it with the plain password, hashes the result, and executes an INSERT statement. Any generation, hashing, or SQL errors are wrapped as internal errors.
-func (r *SQLUserRepository) SaveUser(username, password string) error {
-	hash, err := r.hasher.Hash([]byte(password))
+// SaveUser inserts a new user into the database.
+func (r *SQLUserRepository) SaveUser(ctx context.Context, user models_auth.User) (models_auth.User, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errors.NewInternalError(errors.ErrHashingPassword).WithError(err)
+		return models_auth.User{}, errorsApp.NewInternalError(errorsApp.ErrDatabaseTransaction).WithError(err)
 	}
-
-	tx, err := r.db.Begin()
-	if err != nil {
-		return errors.NewInternalError(errors.ErrDatabaseTransaction).WithError(err)
-	}
-
 	defer tx.Rollback()
 
-	_, err = tx.Exec("INSERT INTO user_registration (UserName, Password) VALUES (?, ?)", username, hash)
+	result, err := tx.ExecContext(ctx,
+		"INSERT INTO user_registration (username, password, email, verified_at) VALUES (?, ?, ?, ?)",
+		user.UserName, user.Password, user.Email, user.VerifiedAt,
+	)
 	if err != nil {
-		return errors.NewInternalError(errors.ErrDatabaseInsert).WithError(err)
+		return models_auth.User{}, errorsApp.NewInternalError(errorsApp.ErrDatabaseInsert).WithError(err)
 	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return models_auth.User{}, errorsApp.NewInternalError(errorsApp.ErrDatabaseInsert).WithError(err)
+	}
+	user.UserID = uint64(id)
 
 	if err = tx.Commit(); err != nil {
-		return errors.NewInternalError(errors.ErrDatabaseCommit).WithError(err)
+		return models_auth.User{}, errorsApp.NewInternalError(errorsApp.ErrDatabaseCommit).WithError(err)
 	}
 
-	return nil
-}
-
-// GetID retrieves the unique user ID for a given username from the database.
-// It returns a NotFoundError if no matching user is found, or an InternalError if any other database error occurs.
-
-// Parameters:
-//   - username: the username string to look up in the User_Registration table.
-
-// Returns:
-//   - int: the UserID corresponding to the provided username.
-//   - error: non-nil if the user is not found or a database error occurs.
-func (r *SQLUserRepository) GetID(username string) (int, error) {
-	var id int
-	query := "SELECT UserID FROM user_registration WHERE UserName = ?"
-
-	// Execute the query and scan the single result into id.
-	err := r.db.QueryRow(query, username).Scan(&id)
-	if err != nil {
-		// No matching row indicates user does not exist.
-		if err == sql.ErrNoRows {
-			return 0, errors.NewNotFoundError(errors.ErrUserNotFound)
-		}
-		// Wrap other errors as InternalError for upstream handling.
-		return 0, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
-	}
-	// Return the found user ID.
-	return id, nil
+	return user, nil
 }

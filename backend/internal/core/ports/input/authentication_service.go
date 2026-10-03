@@ -3,7 +3,10 @@
 package input
 
 import (
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"context"
+
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 )
 
 // UserServiceLogin defines the interface for user authentication operations.
@@ -12,14 +15,12 @@ type UserServiceLogin interface {
 	// Login authenticates a user using account credentials.
 	// Returns a TokenPair containing access and refresh tokens, the CSRF token,
 	// or an error if verification fails.
-	Login(account models.Account) (*models.TokenPair, string, error)
+	Login(ctx context.Context, request dto.LoginRequest) (*models_auth.TokenPair, string, error)
 }
 
 // UserServiceRegister defines the interface for user registration operations.
 // Implementations should handle new user account creation and provide JWT tokens upon successful registration.
 type UserServiceRegister interface {
-	// Register creates a new user account with provided credentials.
-	// Returns a TokenPair containing access and refresh tokens, the CSRF token,
-	// or an error if registration fails.
-	Register(account models.Account) (*models.TokenPair, string, error)
+	// Register stores a pending user and sends its verification code.
+	Register(ctx context.Context, request dto.RegisterAccount) (string, error)
 }

@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/security"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
 )
@@ -42,7 +42,7 @@ func (uc *CSRFUseCase) GenerateToken(userID string) (string, error) {
 	tokenValue := base64.RawURLEncoding.EncodeToString(bytes)
 
 	now := time.Now()
-	token := &models.CSRFToken{
+	token := &models_security.CSRFToken{
 		Value:     tokenValue,
 		UserID:    userID,
 		CreatedAt: now,

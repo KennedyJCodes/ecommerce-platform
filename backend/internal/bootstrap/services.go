@@ -7,30 +7,32 @@ import (
 
 	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_comments"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_code_verification"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_products"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_reviews"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 	"github.com/jmoiron/sqlx"
 )
 
-// SetupCommentService initializes the comment-related services.
-// It creates a single SQL repository and shares it between the retrieval (Get) and creation (Add) services. It also injects a CommentValidator to ensure business rules are met before persistence.
+// SetupReviewService initializes the review-related services.
+// It creates a single SQL repository and shares it between the retrieval (Get) and creation (Add) services. It also injects a ReviewValidator to ensure business rules are met before persistence.
 
 // Parameters:
 //   - db: an active *sqlx.DB connection pool.
 //
 // Returns:
-//   - input.CommentGetService: service for fetching comments.
-//   - input.CommentAddService: service for adding new comments.
-func SetupCommentService(db *sqlx.DB) (input.CommentGetService, input.CommentAddService, error) {
-	commentRepo, err := repository_mysql.NewSqlCommentRepository(db)
+//   - input.ReviewGetService: service for fetching reviews.
+//   - input.ReviewAddService: service for adding new reviews.
+func SetupReviewService(db *sqlx.DB) (input.ReviewGetService, input.ReviewAddService, error) {
+	reviewRepo, err := repository_mysql.NewSqlReviewRepository(db)
 	if err != nil {
-		return nil, nil, fmt.Errorf("setup comment repository: %w", err)
+		return nil, nil, fmt.Errorf("setup review repository: %w", err)
 	}
 
-	commentValidator := &service_comments.CommentValidator{}
-	return service_comments.NewCommentGetService(commentRepo), service_comments.NewCommentAddService(commentRepo, commentValidator), nil
+	reviewValidator := &service_reviews.ReviewValidator{}
+	return service_reviews.NewReviewGetService(reviewRepo), service_reviews.NewReviewAddService(reviewRepo, reviewValidator), nil
 }
 
 // SetupProductsService initializes the product catalog service.
@@ -56,14 +58,25 @@ func SetupProductsService(db *sqlx.DB) (input.ProductsGetService, error) {
 //   - userRepo: the user persistence adapter (output port).
 //   - tokenService: the service for JWT generation and validation (input port).
 //   - csrfService: the service for managing CSRF tokens (input port).
+//   - hasher: the service for hashing sensitive values (input port).
 //
 // Returns:
 //   - input.UserServiceLogin: the service handling user authentication.
 //   - input.UserServiceRegister: the service handling new user creation.
-func SetupUserService(userRepo output.UserRepository, tokenService output.TokenService, csrfService output.CSRFService) (input.UserServiceLogin, input.UserServiceRegister) {
+func SetupUserService(userRepo output.UserRepository, pendingUserRepository output.PendingUserRepository, tokenService output.TokenService, csrfService output.CSRFService, codeVerificationSender output.CodeVerificationSender) (input.UserServiceLogin, input.UserServiceRegister) {
 	// Initialize specific domain validators.
 	userNameValidator := &service_auth.UserNameValidator{}
 	passwordValidator := &service_auth.PasswordValidator{}
+	emailValidator := &service_auth.EmailValidator{}
+	hasher := &security_auth.BcryptHasher{}
+	codeVerificationService := service_code_verification.NewCodeVerificationService()
 
-	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService), service_auth.NewUserRegisterService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService)
+	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService, hasher),
+		service_auth.NewUserRegisterService(userRepo, pendingUserRepository, userNameValidator, passwordValidator, emailValidator, hasher, codeVerificationService, codeVerificationSender)
+}
+
+// SetupUserVerificationService initializes the pending-registration verification flow.
+func SetupUserVerificationService(userRepo output.UserRepository, pendingUserRepository output.PendingUserRepository, tokenService output.TokenService, csrfService output.CSRFService) input.UserVerificationService {
+	hasher := &security_auth.BcryptHasher{}
+	return service_code_verification.NewUserVerificationService(userRepo, pendingUserRepository, tokenService, csrfService, hasher)
 }

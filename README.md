@@ -1,6 +1,6 @@
 # Ecommerce Platform
 
-**Proyecto personal** en evolución: la idea a medio plazo es convertirlo en una **plataforma de comercio electrónico** completa. Hoy el foco sigue apoyándose en un catálogo pensado al inicio para relojes: API en Go, frontend estático (HTML/CSS), usuarios, productos y comentarios.
+**Proyecto personal** en evolución: la idea a medio plazo es convertirlo en una **plataforma de comercio electrónico** completa. Hoy el foco sigue apoyándose en un catálogo pensado al inicio para relojes: API en Go, frontend estático (HTML/CSS), usuarios (con verificación por email), productos y comentarios.
 
 **Sobre los nombres y el alcance:** el proyecto **empezó** con la idea de centrarse **solo en relojes**; por eso muchas cosas aún hablan de relojes (por ejemplo el nombre de la base `store_watches`, textos del frontend, ejemplos en configuración). **Decidí ampliar** el objetivo hacia una **plataforma de comercio** más general. Ese cambio de rumbo es reciente: **con el tiempo** se irá **actualizando** código, copys, esquema de datos y documentación para que reflejen mejor un ecommerce genérico, sin prisa de romper lo que ya funciona.
 
@@ -25,14 +25,14 @@
 
 ## Qué es este proyecto
 
-Es una aplicación web monolito **API + estáticos**: el backend en **Go** expone rutas REST y entrega los archivos del directorio `frontend` (HTML y CSS). Los datos persistentes viven en **MySQL**; **Redis** se usa para soporte de la aplicación (por ejemplo tokens CSRF asociados a la sesión del usuario). El esquema inicial y datos de ejemplo se cargan automáticamente la primera vez que arranca el contenedor de MySQL.
+Es una aplicación web monolito **API + estáticos**: el backend en **Go** expone rutas REST y entrega los archivos del directorio `frontend` (HTML y CSS). Los datos persistentes viven en **MySQL**; **Redis** se usa para soporte de la aplicación (por ejemplo tokens CSRF y los registros pendientes de verificación, que caducan a los 10 minutos). El esquema y los datos de ejemplo se crean con migraciones versionadas (golang-migrate) que ejecuta el servicio `migrate` de Docker Compose antes de arrancar el backend.
 
 No es un producto comercial cerrado: es un **laboratorio** para ir sumando piezas (pagos, carrito, panel de administración, etc.) hasta tener una plataforma de ecommerce coherente. Lo que aún suene muy a “tienda de relojes” en nombres o textos es herencia de ese arranque; se irá unificando con el tiempo (como se indica arriba).
 
 Funcionalidades principales hoy:
 
 - Página principal y archivos estáticos.
-- Registro y login (JWT en cookies HTTP-only; rutas sensibles protegidas).
+- Registro con verificación por email (código de 6 dígitos enviado con Resend, válido 10 minutos), login y logout (JWT en cookies HTTP-only; rutas sensibles protegidas).
 - Listado de productos, filtro por marca y detalle por ID.
 - Listado de comentarios y alta de comentarios (ruta protegida con autenticación y CSRF).
 - Rate limiting por IP, CORS diferenciado para rutas públicas y privadas, cabeceras de seguridad HTTP.
@@ -49,8 +49,10 @@ En el esquema SQL existen tablas relacionadas con **pagos y webhooks** (PayPal) 
 | MySQL | Driver [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql), acceso con [sqlx](https://github.com/jmoiron/sqlx) |
 | Redis | [go-redis v9](https://github.com/redis/go-redis) |
 | Autenticación | JWT ([golang-jwt/jwt](https://github.com/golang-jwt/jwt)), hashing con [golang.org/x/crypto](https://pkg.go.dev/golang.org/x/crypto) |
+| Email | API HTTP de [Resend](https://resend.com) (códigos de verificación) |
 | Contenedores | Docker, Docker Compose |
 | Base de datos (contenedor) | MySQL 8.0 |
+| Migraciones | [golang-migrate](https://github.com/golang-migrate/migrate) (imagen `migrate/migrate`, servicio `migrate` de Compose) |
 | Caché / sesión (contenedor) | Redis 7 (Alpine) |
 | Frontend | HTML y CSS estático (sin bundler en el repositorio) |
 
@@ -76,6 +78,7 @@ cd ecommerce-platform
 ## Requisitos previos
 
 - [Docker](https://docs.docker.com/get-docker/) y [Docker Compose](https://docs.docker.com/compose/) (plugin V2).
+- Una cuenta de [Resend](https://resend.com) con una API key y un remitente permitido (para enviar los códigos de verificación).
 - Para desarrollo fuera de contenedor: Go 1.23+, MySQL 8 y Redis 7 accesibles según tu configuración.
 
 ## Puesta en marcha con Docker
@@ -91,8 +94,10 @@ cd ecommerce-platform
    Edita `.env` y define al menos:
 
    - `MYSQL_ROOT_PASSWORD`: contraseña del usuario `root` de MySQL.
+   - `MYSQL_DATABASE`: nombre de la base de datos.
    - `REDIS_PASSWORD`: contraseña que usará Redis con `requirepass`.
    - `SECURITY_JWT_JWT_SECRET`: cadena larga y aleatoria para firmar JWT.
+   - `RESEND_EMAIL_API_KEY` y `RESEND_EMAIL_FROM`: API key y remitente de tu cuenta de [Resend](https://resend.com). Sin ellas el backend no arranca, y sin una key válida no se envían los códigos, así que no podrás completar un registro.
 
 3. **Levantar los servicios** desde la raíz del repositorio:
 
@@ -100,7 +105,7 @@ cd ecommerce-platform
    docker compose up --build
    ```
 
-   La primera vez, MySQL ejecutará el script `backend/migrations/init.sql` (montado en `/docker-entrypoint-initdb.d`) y creará la base `store_watches` con tablas y datos de ejemplo.
+   La primera vez, el servicio `migrate` aplicará las migraciones de `backend/migrations` (tablas y datos de ejemplo) antes de que arranque el backend.
 
 4. **Abrir la aplicación** en el navegador:
 
@@ -114,7 +119,7 @@ Además de `docker-compose.yml` en la raíz del repositorio hay dos ficheros opc
 
 | Fichero | Rol |
 |---------|-----|
-| `docker-compose.yml` | Definición principal: MySQL, Redis, backend, red `app-network`, volúmenes, límites opcionales de CPU/memoria y **healthcheck del backend** (HTTP vía `wget`). |
+| `docker-compose.yml` | Definición principal: MySQL, el servicio `migrate` (migraciones), Redis, backend, red `app-network`, volúmenes, límites opcionales de CPU/memoria y **healthcheck del backend** (HTTP vía `wget`). |
 | `docker-compose.override.yml` | Si existe en la raíz, **Docker Compose lo fusiona automáticamente** con el fichero principal (no hace falta pasar `-f`). En este proyecto monta `./frontend` en el contenedor del backend para **editar estáticos sin reconstruir la imagen**. Si prefieres servir solo lo copiado en la imagen, renombra o elimina este fichero antes de levantar el stack. |
 | `docker-compose.prod.yml` | Fragmento con ajustes orientados a un despliegue más parecido a producción (reinicio, recursos, `ENV=production`, healthcheck del backend). **No** se aplica solo: indica ambos ficheros al ejecutar Compose, por ejemplo: |
 
@@ -128,7 +133,7 @@ En el **compose base** y en **`docker-compose.prod.yml`**, el healthcheck del ba
 
 ## Variables de entorno
 
-La configuración se basa en **variables de entorno**, documentadas en [`.env.example`](.env.example). Docker Compose inyecta en el servicio `backend` las credenciales de MySQL y Redis y el secreto JWT; el resto (rate limiting, PayPal, etc.) puedes definirla en tu `.env` siguiendo ese mismo ejemplo.
+La configuración se basa en **variables de entorno**, documentadas en [`.env.example`](.env.example). Docker Compose inyecta en el servicio `backend` las credenciales de MySQL y Redis, el secreto JWT y la configuración de Resend; el resto (rate limiting, PayPal, etc.) puedes definirla en tu `.env` siguiendo ese mismo ejemplo.
 
 En código, las claves que lee Viper coinciden con el nombre de las variables de entorno en mayúsculas (por ejemplo `DATABASE_HOST`, `REDIS_PORT`). `AutomaticEnv()` permite sobrescribir lo definido en `backend/internal/config/.env` con variables del sistema operativo (incluidas las que inyecta Docker Compose en el contenedor).
 
@@ -147,19 +152,19 @@ Si levantas el stack con `docker-compose.prod.yml`, en el host pueden publicarse
 ## Base de datos
 
 - **Motor**: MySQL 8.0, base `store_watches`, charset `utf8mb4`.
-- **Inicialización**: `backend/migrations/init.sql` (creación de tablas + datos semilla de relojes).
+- **Inicialización**: migraciones versionadas en `backend/migrations` (archivos `.up.sql` / `.down.sql`), aplicadas por el servicio `migrate`. Incluyen datos semilla de relojes.
 
 Tablas principales:
 
 | Tabla | Descripción breve |
 |-------|-------------------|
-| `user_registration` | Usuarios (nombre de usuario y contraseña almacenada de forma segura vía la aplicación). |
-| `Products` | Catálogo (nombre, descripción, precio, stock, marca, imagen, etc.). |
+| `user_registration` | Usuarios verificados (usuario, email, contraseña hasheada, fecha de verificación). |
+| `products` | Catálogo (nombre, descripción, precio, stock, marca, imagen, etc.). |
 | `comments` | Comentarios y valoraciones ligados a usuarios. |
 | `payments` | Registros de órdenes PayPal (esquema preparado para integración). |
 | `webhook_events` | Eventos de webhook asociados a pagos. |
 
-**Redis** almacena información efímera necesaria para el flujo seguro de la API (p. ej. tokens CSRF), no sustituye a MySQL como fuente de verdad del negocio.
+**Redis** almacena información efímera: tokens CSRF, tokens revocados y registros pendientes de verificación (con TTL). No sustituye a MySQL como fuente de verdad del negocio.
 
 ## API HTTP
 
@@ -172,8 +177,11 @@ Todas las rutas bajo el mismo origen que sirve el backend (por defecto `http://l
 | GET | `/products` | No | Lista de productos. |
 | GET | `/product-id/{id}` | No | Detalle de un producto. |
 | GET | `/products-brand/{brand}` | No | Productos por marca. |
-| POST | `/register` | No | Registro de usuario (emisión de cookies/JWT según implementación). |
+| POST | `/register` | No | Valida los datos, guarda el registro como pendiente y envía un código por email (emite la cookie `pending_user_id`). |
+| POST | `/verify` | No (requiere la cookie `pending_user_id`) | Recibe `{"code": "123456"}`, crea el usuario y emite cookies de sesión y CSRF. |
 | POST | `/login` | No | Inicio de sesión. |
+| POST | `/refresh` | Cookie de refresh | Renueva los tokens de sesión. |
+| POST | `/logout` | Sí (JWT) + CSRF | Cierra la sesión. |
 | POST | `/comments/newComments` | Sí (JWT) + CSRF | Alta de comentario. |
 
 Las rutas `POST` que reciben JSON validan `Content-Type: application/json`
@@ -185,10 +193,10 @@ Los ficheros estáticos (CSS, imágenes, etc.) se sirven bajo rutas registradas 
 
 ## Desarrollo local sin Docker
 
-1. Instala y arranca **MySQL** y **Redis** localmente, o usa solo los servicios de datos en Docker:
+1. Instala y arranca **MySQL** y **Redis** localmente, o usa solo los servicios de datos en Docker (incluido `migrate`, que crea las tablas):
 
    ```bash
-   docker compose up mysql redis
+   docker compose up mysql redis migrate
    ```
 
 2. Si el backend corre **en tu máquina** y las bases de datos en Docker, apunta el host a `127.0.0.1` y los puertos publicados (**3307** para MySQL, **6380** para Redis) mediante variables de entorno (por ejemplo un `.env` en la raíz o en `backend/internal/config`, según cómo ejecutes la app).
@@ -199,7 +207,7 @@ Los ficheros estáticos (CSS, imágenes, etc.) se sirven bajo rutas registradas 
    go run ./cmd/api
    ```
 
-   Asegúrate de cumplir la validación de configuración (JWT, credenciales MySQL y Redis, timeouts de Redis, etc.); revisa `internal/config/config.go` y `.env.example`.
+   Asegúrate de cumplir la validación de configuración (JWT, credenciales MySQL y Redis, timeouts de Redis, configuración de Resend, etc.); revisa `internal/config/config.go` y `.env.example`.
 
 ## Tests
 
@@ -222,11 +230,11 @@ Si trabajas sobre **`develop`** u otras ramas, ese workflow **no** se dispara ha
 
 ## Seguridad y secretos
 
-- No subas **contraseñas, JWT secrets ni claves de PayPal** al repositorio. Los ficheros con secretos deben permanecer solo en tu máquina: revisa [`.gitignore`](.gitignore) (incluye `.env` y `backend/internal/config/.env`, entre otros).
+- No subas **contraseñas, JWT secrets, API keys de Resend ni claves de PayPal** al repositorio. Los ficheros con secretos deben permanecer solo en tu máquina: revisa [`.gitignore`](.gitignore) (incluye `.env` y `backend/internal/config/.env`, entre otros).
 - En producción usa secretos rotados, HTTPS y revisa CORS y rate limits según tu despliegue.
 
 ## Solución de problemas
 
-- **El backend no arranca tras `docker compose up`**: espera a que los healthchecks de MySQL y Redis pasen a “healthy”; el servicio `backend` depende de ellos. Si el backend queda *unhealthy* pero responde en el navegador, revisa el healthcheck con `wget` (ver [Ficheros de Docker Compose](#ficheros-de-docker-compose)).
-- **MySQL vacío o sin tablas**: el script `init.sql` solo se aplica en la **primera** creación del volumen; si ya existía un volumen antiguo, usa `docker compose down -v` y vuelve a levantar (perderás datos).
+- **El backend no arranca tras `docker compose up`**: espera a que los healthchecks de MySQL y Redis pasen a “healthy” y a que el servicio `migrate` termine; el servicio `backend` depende de ellos. Si el backend queda *unhealthy* pero responde en el navegador, revisa el healthcheck con `wget` (ver [Ficheros de Docker Compose](#ficheros-de-docker-compose)).
+- **MySQL vacío o sin tablas**: revisa los logs del servicio `migrate` con `docker compose logs migrate`. Para reiniciar desde cero usa `docker compose down -v` (perderás datos).
 - **Error de conexión desde el host a la base**: recuerda usar el puerto **3307** (no 3306) cuando te conectes desde fuera de Docker Compose.

@@ -3,10 +3,13 @@
 package service_auth
 
 import (
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"context"
+
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
 )
 
 // BaseAuthService serves as a foundational structure for authentication use cases.
@@ -16,7 +19,9 @@ import (
 //  3. Orchestrating the generation of session (JWT) and security (CSRF) tokens.
 type BaseAuthService struct {
 	// UserRepo: output port for user data persistence and existence checks.
-	UserRepo output.UserRepository
+	UserRepo              output.UserRepository
+	
+	PendingUserRepository output.PendingUserRepository
 
 	// UserNameValidator: strategy to enforce username complexity and format rules.
 	UserNameValidator input.Validator
@@ -24,11 +29,23 @@ type BaseAuthService struct {
 	// PasswordValidator: strategy to enforce password security requirements.
 	PasswordValidator input.Validator
 
+	EmailValidator input.Validator
+
+	Hasher security_auth.Hasher
+
 	// TokenService: domain service for JWT generation and validation.
 	TokenService output.TokenService
 
 	// CSRFService: domain service to manage the lifecycle of CSRF tokens.
 	CSRFService output.CSRFService
+
+	CodeVerificationService input.CodeVerificationService
+
+	CodeVerificationSender output.CodeVerificationSender
+}
+
+func (b *BaseAuthService) HashSensitiveValue(value []byte) (string, error) {
+	return b.Hasher.Hash(value)
 }
 
 // ValidateUserName evaluates if the provided username meets business requirements.
@@ -49,10 +66,25 @@ func (b *BaseAuthService) ValidatePassword(password interface{}) error {
 	return nil
 }
 
+func (b *BaseAuthService) ValidateEmail(email interface{}) error {
+	if err := b.EmailValidator.Validate(email); err != nil {
+		return errors.NewValidationError(errors.ErrInvalidEmail)
+	}
+	return nil
+}
+
 // CheckUserExists verifies the presence of a username in the persistence layer.
 // Returns (true, nil) if the user is registered, or handles database errors gracefully.
-func (b *BaseAuthService) CheckUserExists(username string) (bool, error) {
-	exists, err := b.UserRepo.UserExists(username)
+func (b *BaseAuthService) CheckUserExists(ctx context.Context, username string) (bool, error) {
+	exists, err := b.UserRepo.UserExists(ctx, username)
+	if err != nil {
+		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
+	}
+	return exists, nil
+}
+
+func (b *BaseAuthService) CheckEmailExists(ctx context.Context, email string) (bool, error) {
+	exists, err := b.UserRepo.EmailExists(ctx, email)
 	if err != nil {
 		return false, errors.NewInternalError(errors.ErrDatabaseQuery).WithError(err)
 	}
@@ -61,18 +93,18 @@ func (b *BaseAuthService) CheckUserExists(username string) (bool, error) {
 
 // GenerateTokenPair wraps the security package logic to create an access JWT
 // and a refresh JWT. Returns a TokenPair or an InternalError on failure.
-func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*models.TokenPair, error) {
-	accessToken, err := b.TokenService.GenerateToken(userId, username, models.TokenTypeAccess)
+func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*models_auth.TokenPair, error) {
+	accessToken, err := b.TokenService.GenerateToken(userId, username, models_auth.TokenTypeAccess)
 	if err != nil {
 		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	refreshToken, err := b.TokenService.GenerateToken(userId, username, models.TokenTypeRefresh)
+	refreshToken, err := b.TokenService.GenerateToken(userId, username, models_auth.TokenTypeRefresh)
 	if err != nil {
 		return nil, errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
-	return &models.TokenPair{
+	return &models_auth.TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
@@ -92,4 +124,12 @@ func (b *BaseAuthService) GenerateCSRFToken(userID string) (string, error) {
 	}
 
 	return csrfToken, nil
+}
+
+func (b *BaseAuthService) SendCodeVerification(email string, code string) error {
+	emailErr := b.CodeVerificationSender.SendCodeVerification(email, code)
+	if emailErr != nil {
+		return errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(emailErr)
+	}
+	return nil
 }

@@ -362,6 +362,39 @@ func TestClearCookie(t *testing.T) {
 	}
 }
 
+func TestSetPendingUserCookie(t *testing.T) {
+	w := httptest.NewRecorder()
+	startedAt := time.Now()
+
+	cookies.SetPendingUserCookie(w, "pending-id", true)
+
+	resultCookies := w.Result().Cookies()
+	if len(resultCookies) != 1 {
+		t.Fatalf("Incorrect number of cookies. Expected: %d, Got: %d", 1, len(resultCookies))
+	}
+
+	cookie := resultCookies[0]
+	if cookie.Name != "pending_user_id" {
+		t.Errorf("Incorrect name. Expected: %s, Got: %s", "pending_user_id", cookie.Name)
+	}
+	if cookie.Value != "pending-id" {
+		t.Errorf("Incorrect value. Expected: %s, Got: %s", "pending-id", cookie.Value)
+	}
+	if cookie.Path != "/verify" {
+		t.Errorf("Incorrect path. Expected: %s, Got: %s", "/verify", cookie.Path)
+	}
+	if !cookie.HttpOnly || !cookie.Secure {
+		t.Errorf("Expected HttpOnly and Secure cookie, got HttpOnly=%v Secure=%v", cookie.HttpOnly, cookie.Secure)
+	}
+	if cookie.SameSite != http.SameSiteLaxMode {
+		t.Errorf("Incorrect SameSite. Expected: %v, Got: %v", http.SameSiteLaxMode, cookie.SameSite)
+	}
+	expectedExpiry := startedAt.Add(10 * time.Minute)
+	if cookie.Expires.Before(expectedExpiry.Add(-time.Second)) || cookie.Expires.After(expectedExpiry.Add(time.Second)) {
+		t.Errorf("Incorrect expiration. Expected around: %v, Got: %v", expectedExpiry, cookie.Expires)
+	}
+}
+
 func ExampleSetAuthCookie() {
 	w := httptest.NewRecorder()
 

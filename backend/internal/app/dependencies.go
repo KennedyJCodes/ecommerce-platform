@@ -8,6 +8,7 @@ import (
 
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
 	primaryRouter "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/router"
+	repository_redis "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/redis"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
@@ -18,17 +19,18 @@ import (
 // Dependencies holds all the initialized services, ports, and handlers required  to run the application.
 // By grouping these in a single struct, the application ensures that all required components are ready before starting the HTTP server.
 type Dependencies struct {
-	UserServiceLogin    input.UserServiceLogin
-	UserServiceRegister input.UserServiceRegister
-	CommentGetService   input.CommentGetService
-	CommentAddService   input.CommentAddService
-	RateHandler         ratelimiter.RateLimiterHandler
-	StaticFileAdapter   output.StaticFilePort
-	ProductsGetService  input.ProductsGetService
-	CSRFMiddleware      *middleware.CSRFMiddleware
-	TokenService        output.TokenService
-	CSRFService         output.CSRFService
-	BlacklistRepo       output.TokenBlacklistPort
+	UserServiceLogin        input.UserServiceLogin
+	UserServiceRegister     input.UserServiceRegister
+	UserVerificationService input.UserVerificationService
+	ReviewGetService        input.ReviewGetService
+	ReviewAddService        input.ReviewAddService
+	RateHandler             ratelimiter.RateLimiterHandler
+	StaticFileAdapter       output.StaticFilePort
+	ProductsGetService      input.ProductsGetService
+	CSRFMiddleware          *middleware.CSRFMiddleware
+	TokenService            output.TokenService
+	CSRFService             output.CSRFService
+	BlacklistRepo           output.TokenBlacklistPort
 }
 
 // BuildDependencies orchestrates the initialization of all internal services and repositories.
@@ -52,10 +54,20 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 	tokenService := bootstrap.SetupTokenService(a.config)
 	csrfService := bootstrap.SetupCSRFService(a.redisClient)
 	blacklistRepo := bootstrap.SetupTokenBlacklistRepository(a.redisClient)
+	codeVerificationSender := bootstrap.SetupCodeVerificationSender(a.config)
+	pendingUserRepository := repository_redis.NewRedisPendingUserRepository(a.redisClient)
+	userVerificationService := bootstrap.SetupUserVerificationService(userRepo, pendingUserRepository, tokenService, csrfService)
 
 	// Inject repositories and services into their respective application logic layers.
-	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(userRepo, tokenService, csrfService)
-	commentGetService, commentAddService, err := bootstrap.SetupCommentService(a.db)
+	userServiceLogin, userServiceRegister := bootstrap.SetupUserService(
+		userRepo,
+		pendingUserRepository,
+		tokenService,
+		csrfService,
+		codeVerificationSender,
+	)
+
+	reviewGetService, reviewAddService, err := bootstrap.SetupReviewService(a.db)
 	if err != nil {
 		return nil, fmt.Errorf("build dependencies: %w", err)
 	}
@@ -66,17 +78,18 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 	}
 
 	return &Dependencies{
-		UserServiceLogin:    userServiceLogin,
-		UserServiceRegister: userServiceRegister,
-		CommentGetService:   commentGetService,
-		CommentAddService:   commentAddService,
-		RateHandler:         bootstrap.SetupRateLimiter(a.config),
-		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
-		ProductsGetService:  productsGetService,
-		TokenService:        tokenService,
-		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
-		CSRFService:         csrfService,
-		BlacklistRepo:       blacklistRepo,
+		UserServiceLogin:        userServiceLogin,
+		UserServiceRegister:     userServiceRegister,
+		UserVerificationService: userVerificationService,
+		ReviewGetService:        reviewGetService,
+		ReviewAddService:        reviewAddService,
+		RateHandler:             bootstrap.SetupRateLimiter(a.config),
+		StaticFileAdapter:       bootstrap.SetupStaticFileAdapter(a.config),
+		ProductsGetService:      productsGetService,
+		TokenService:            tokenService,
+		CSRFMiddleware:          bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
+		CSRFService:             csrfService,
+		BlacklistRepo:           blacklistRepo,
 	}, nil
 }
 
@@ -95,8 +108,9 @@ func (a *Application) BuildRouter() (http.Handler, error) {
 	router := primaryRouter.NewRouter(primaryRouter.RouterDependencies{
 		UserServiceLogin:    deps.UserServiceLogin,
 		UserServiceRegister: deps.UserServiceRegister,
-		CommentGetService:   deps.CommentGetService,
-		CommentAddService:   deps.CommentAddService,
+		UserVerificationService: deps.UserVerificationService,
+		ReviewGetService:    deps.ReviewGetService,
+		ReviewAddService:    deps.ReviewAddService,
 		RateHandler:         deps.RateHandler,
 		StaticFileService:   deps.StaticFileAdapter,
 		ProductsGetService:  deps.ProductsGetService,

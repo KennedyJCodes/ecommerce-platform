@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models"
+	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/security"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
@@ -40,7 +40,7 @@ func NewAppConfig() *AppConfig {
 	config.SetDefault("RATE_LIMITING_EXPIRATION_MINUTES", 30)
 	config.SetDefault("DATABASE_HOST", "localhost")
 	config.SetDefault("DATABASE_PORT", 3306)
-	config.SetDefault("DATABASE_NAME", "store_watches")
+	config.SetDefault("DATABASE_NAME", "ecommerce-mysql")
 	config.SetDefault("REDIS_HOST", "localhost")
 	config.SetDefault("REDIS_PORT", 6379)
 	config.SetDefault("REDIS_DB", 0)
@@ -70,6 +70,8 @@ func ValidateRequiredConfig(config *viper.Viper) {
 		"REDIS_DIAL_TIMEOUT",
 		"REDIS_READ_TIMEOUT",
 		"REDIS_WRITE_TIMEOUT",
+		"RESEND_EMAIL_API_KEY",
+		"RESEND_EMAIL_FROM",
 	}
 
 	missing := []string{}
@@ -87,6 +89,14 @@ func ValidateRequiredConfig(config *viper.Viper) {
 	if len(missing) > 0 {
 		log.Fatalf("Missing configuration (use ENV vars or .env file): %v", missing)
 	}
+}
+
+func (a *AppConfig) GetResendEmailAPIKey() string {
+	return a.config.GetString("RESEND_EMAIL_API_KEY")
+}
+
+func (a *AppConfig) GetResendEmailFrom() string {
+	return a.config.GetString("RESEND_EMAIL_FROM")
 }
 
 // GetString returns a string value from the configuration by key.
@@ -111,7 +121,7 @@ func (a *AppConfig) GetPort() string {
 
 // NewRedisClient creates and returns a new Redis client connected to the configured Redis instance.
 // It verifies the connection with a 5-second timeout and terminates the application on failure.
-func NewRedisClient(cfg models.RedisConfig) *redis.Client {
+func NewRedisClient(cfg RedisConfig) *redis.Client {
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 
 	client := redis.NewClient(&redis.Options{
@@ -151,8 +161,8 @@ func (a *AppConfig) GetJWTSecret() string {
 }
 
 // GetRedisConfig returns a RedisConfig struct populated from the REDIS_* configuration keys.
-func (a *AppConfig) GetRedisConfig() models.RedisConfig {
-	return models.RedisConfig{
+func (a *AppConfig) GetRedisConfig() RedisConfig {
+	return RedisConfig{
 		Host:         a.config.GetString("REDIS_HOST"),
 		Port:         a.config.GetString("REDIS_PORT"),
 		Username:     a.config.GetString("REDIS_USERNAME"),
@@ -168,8 +178,8 @@ func (a *AppConfig) GetRedisConfig() models.RedisConfig {
 }
 
 // GetRateLimitConfig returns a LimiterConfig populated from RATE_LIMITING_* configuration keys.
-func (a *AppConfig) GetRateLimitConfig() models.LimiterConfig {
-	return models.LimiterConfig{
+func (a *AppConfig) GetRateLimitConfig() models_security.LimiterConfig {
+	return models_security.LimiterConfig{
 		RequestPerSecond:   a.config.GetFloat64("RATE_LIMITING_REQUESTS"),
 		Burst:              a.config.GetInt("RATE_LIMITING_BURST"),
 		CleanupInterval:    time.Duration(a.config.GetInt("RATE_LIMITING_CLEANUP_MINUTES")) * time.Minute,
