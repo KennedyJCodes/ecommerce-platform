@@ -1,6 +1,6 @@
 // Package http implements HTTP handlers for the ecommerce-platform application.
 // This file contains the LoginHandler, which is responsible for processing login requests.
-package http
+package public_handlers
 
 import (
 	"net/http"

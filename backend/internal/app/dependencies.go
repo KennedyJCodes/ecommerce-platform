@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	primaryHttp "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
+	primaryRouter "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/router"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
@@ -18,17 +18,17 @@ import (
 // Dependencies holds all the initialized services, ports, and handlers required  to run the application.
 // By grouping these in a single struct, the application ensures that all required components are ready before starting the HTTP server.
 type Dependencies struct {
-	UserServiceLogin       input.UserServiceLogin
-	UserServiceRegister    input.UserServiceRegister
-	CommentGetService      input.CommentGetService
-	CommentAddService      input.CommentAddService
-	RateHandler            ratelimiter.RateLimiterHandler
-	StaticFileAdapter      output.StaticFilePort
-	ProductsGetService     input.ProductsGetService
-	CSRFMiddleware         *middleware.CSRFMiddleware
-	TokenService           output.TokenService
-	CSRFService            output.CSRFService
-	BlacklistRepo          output.TokenBlacklistPort
+	UserServiceLogin    input.UserServiceLogin
+	UserServiceRegister input.UserServiceRegister
+	CommentGetService   input.CommentGetService
+	CommentAddService   input.CommentAddService
+	RateHandler         ratelimiter.RateLimiterHandler
+	StaticFileAdapter   output.StaticFilePort
+	ProductsGetService  input.ProductsGetService
+	CSRFMiddleware      *middleware.CSRFMiddleware
+	TokenService        output.TokenService
+	CSRFService         output.CSRFService
+	BlacklistRepo       output.TokenBlacklistPort
 }
 
 // BuildDependencies orchestrates the initialization of all internal services and repositories.
@@ -66,17 +66,17 @@ func (a *Application) BuildDependencies() (*Dependencies, error) {
 	}
 
 	return &Dependencies{
-		UserServiceLogin:       userServiceLogin,
-		UserServiceRegister:    userServiceRegister,
-		CommentGetService:      commentGetService,
-		CommentAddService:      commentAddService,
-		RateHandler:            bootstrap.SetupRateLimiter(a.config),
-		StaticFileAdapter:      bootstrap.SetupStaticFileAdapter(a.config),
-		ProductsGetService:     productsGetService,
-		TokenService:           tokenService,
-		CSRFMiddleware:         bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
-		CSRFService:            csrfService,
-		BlacklistRepo:          blacklistRepo,
+		UserServiceLogin:    userServiceLogin,
+		UserServiceRegister: userServiceRegister,
+		CommentGetService:   commentGetService,
+		CommentAddService:   commentAddService,
+		RateHandler:         bootstrap.SetupRateLimiter(a.config),
+		StaticFileAdapter:   bootstrap.SetupStaticFileAdapter(a.config),
+		ProductsGetService:  productsGetService,
+		TokenService:        tokenService,
+		CSRFMiddleware:      bootstrap.SetupCSRFMiddleware(csrfService, a.config.IsProduction()),
+		CSRFService:         csrfService,
+		BlacklistRepo:       blacklistRepo,
 	}, nil
 }
 
@@ -92,18 +92,20 @@ func (a *Application) BuildRouter() (http.Handler, error) {
 	}
 
 	// Step 2: Inject dependencies into the HTTP router factory.
-	return primaryHttp.NewRouter(
-		deps.UserServiceLogin,
-		deps.UserServiceRegister,
-		deps.CommentGetService,
-		deps.CommentAddService,
-		deps.RateHandler,
-		deps.StaticFileAdapter,
-		deps.ProductsGetService,
-		deps.CSRFMiddleware,
-		deps.CSRFService,
-		a.config.IsProduction(),
-		deps.BlacklistRepo,
-		deps.TokenService,
-	), nil
+	router := primaryRouter.NewRouter(primaryRouter.RouterDependencies{
+		UserServiceLogin:    deps.UserServiceLogin,
+		UserServiceRegister: deps.UserServiceRegister,
+		CommentGetService:   deps.CommentGetService,
+		CommentAddService:   deps.CommentAddService,
+		RateHandler:         deps.RateHandler,
+		StaticFileService:   deps.StaticFileAdapter,
+		ProductsGetService:  deps.ProductsGetService,
+		CSRFMiddleware:      deps.CSRFMiddleware,
+		CSRFService:         deps.CSRFService,
+		IsProduction:        a.config.IsProduction(),
+		BlacklistRepo:       deps.BlacklistRepo,
+		TokenService:        deps.TokenService,
+	})
+
+	return router, nil
 }

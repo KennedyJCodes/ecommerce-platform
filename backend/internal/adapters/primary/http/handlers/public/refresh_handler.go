@@ -2,7 +2,7 @@
 // This file contains the RefreshHandler, which processes token refresh requests
 // by validating the refresh token, revoking the old one, and issuing a new
 // access and refresh token pair.
-package http
+package public_handlers
 
 import (
 	"net/http"
@@ -65,9 +65,9 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if claims.Type != "refresh" {
-    	httpUtil.HandleError(w, errors.NewAuthError("Invalid token type"))
-    	return
-	}	
+		httpUtil.HandleError(w, errors.NewAuthError("Invalid token type"))
+		return
+	}
 
 	blacklisted, err := h.blacklistRepo.IsBlacklisted(claims.ID)
 	if err != nil || blacklisted {
@@ -80,7 +80,7 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		httpUtil.HandleError(w, errors.NewInternalError("Error generating access token"))
 		return
 	}
-	
+
 	newRefreshToken, err := h.tokenService.GenerateToken(claims.UserID, claims.UserName, models.TokenTypeRefresh)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error generating refresh token"))
@@ -93,7 +93,7 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		ttl = 0
 	}
 
-	if claims.ID != "" {	
+	if claims.ID != "" {
 		httpUtil.HandleError(w, errors.NewAuthError("Invalid refresh token"))
 		return
 	}
