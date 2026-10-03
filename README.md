@@ -9,6 +9,7 @@
 - [Qué es este proyecto](#qué-es-este-proyecto)
 - [Stack y herramientas](#stack-y-herramientas)
 - [Arquitectura del código](#arquitectura-del-código)
+- [Clonar el proyecto](#clonar-el-proyecto)
 - [Requisitos previos](#requisitos-previos)
 - [Puesta en marcha con Docker](#puesta-en-marcha-con-docker)
 - [Ficheros de Docker Compose](#ficheros-de-docker-compose)
@@ -65,6 +66,13 @@ El backend sigue una organización por capas inspirada en **hexagonal / puertos 
 - `internal/config`: carga y validación de configuración.
 - `pkg`: utilidades compartidas (cookies, rate limiter, errores, etc.).
 
+## Clonar el proyecto
+
+```bash
+git clone https://github.com/KennedyJCodes/ecommerce-platform.git
+cd ecommerce-platform
+```
+
 ## Requisitos previos
 
 - [Docker](https://docs.docker.com/get-docker/) y [Docker Compose](https://docs.docker.com/compose/) (plugin V2).
@@ -72,7 +80,7 @@ El backend sigue una organización por capas inspirada en **hexagonal / puertos 
 
 ## Puesta en marcha con Docker
 
-1. **Clonar el repositorio** (si aún no lo tienes).
+1. Si aún no has clonado el repositorio, sigue las instrucciones de [Clonar el proyecto](#clonar-el-proyecto).
 
 2. **Crear el fichero de entorno** en la raíz del proyecto a partir del ejemplo:
 
