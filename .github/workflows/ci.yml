@@ -19,11 +19,17 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
-          cache-dependency-path: ./backend/go.sum
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
-      - run: go build ./cmd/api
-      - run: go test ./...
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./cmd/api
+
+      - name: Test (race detector)
+        run: go test -race -cover ./...
 
   docker:
     name: Docker Build
