@@ -71,12 +71,14 @@ func (uc *CSRFUseCase) ValidateToken(tokenValue string, userID string) error {
 
 	// Check if token has exceeded its TTL
 	if !token.IsValid() {
-		uc.repository.Delete(userID) // Cleanup expired token
+		_ = uc.repository.Delete(userID)
 		return errors.NewNotFoundError(errors.ErrCSRFTokenExpired)
 	}
 
 	// Consume the token (single-use policy)
-	uc.repository.Delete(userID)
+	if err := uc.repository.Delete(userID); err != nil {
+		return errors.NewInternalError(errors.ErrCSRFDelete).WithError(err)
+	}
 
 	return nil
 }
