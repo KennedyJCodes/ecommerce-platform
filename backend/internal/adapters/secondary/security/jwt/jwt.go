@@ -33,33 +33,33 @@ func (j *JWTService) GenerateToken(userID int, userName string, tokenType models
 		return "", fmt.Errorf("error generating token ID: %w", err)
 	}
 
-	if tokenType == models_auth.TokenTypeAccess {
-		var claims = models_auth.Claims{
-		UserID:   userID,
-		UserName: userName,
-		Type:   "access",
-		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        hex.EncodeToString(jtiBytes),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+	switch tokenType {
+	case models_auth.TokenTypeAccess:
+		claims := models_auth.Claims{
+			UserID:   userID,
+			UserName: userName,
+			Type:     "access",
+			RegisteredClaims: jwt.RegisteredClaims{
+				ID:        hex.EncodeToString(jtiBytes),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			},
 		}
-
-		var token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		return token.SignedString(j.secretKey)
-	} else if tokenType == models_auth.TokenTypeRefresh {
-		var claims = models_auth.Claims{
-		UserID:   userID,
-		UserName: userName,
-		Type:   "refresh",
-		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        hex.EncodeToString(jtiBytes),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
+
+	case models_auth.TokenTypeRefresh:
+		claims := models_auth.Claims{
+			UserID:   userID,
+			UserName: userName,
+			Type:     "refresh",
+			RegisteredClaims: jwt.RegisteredClaims{
+				ID:        hex.EncodeToString(jtiBytes),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			},
 		}
-
-		var token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		return token.SignedString(j.secretKey)
 	}
 
