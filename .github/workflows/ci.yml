@@ -31,6 +31,23 @@ jobs:
       - name: Test (race detector)
         run: go test -race -cover ./...
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11
+          working-directory: backend
+
   docker:
     name: Docker Build
     runs-on: ubuntu-latest

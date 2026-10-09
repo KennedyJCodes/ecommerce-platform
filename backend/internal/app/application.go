@@ -2,6 +2,7 @@
 package app
 
 import (
+	"log"
 	"fmt"
 	"net/http"
 
@@ -107,9 +108,13 @@ func (a *Application) GetSSLKeyFile() string {
 // You must call Close in the shutdown flow to prevent resource leaks.
 func (a *Application) Close() {
 	if a.db != nil {
-		a.db.Close()
+		if err := a.db.Close(); err != nil {
+			log.Printf("error closing database: %v", err)
+		}
 	}
 	if a.redisClient != nil {
-		a.redisClient.Close()
+		if err := a.redisClient.Close(); err != nil {
+			log.Printf("error closing redis client: %v", err)
+		}
 	}
 }
