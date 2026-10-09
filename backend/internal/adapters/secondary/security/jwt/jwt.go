@@ -33,37 +33,34 @@ func (j *JWTService) GenerateToken(userID int, userName string, tokenType models
 		return "", fmt.Errorf("error generating token ID: %w", err)
 	}
 
+	var (
+		typ string
+		ttl time.Duration
+	)
+
 	switch tokenType {
 	case models_auth.TokenTypeAccess:
-		claims := models_auth.Claims{
-			UserID:   userID,
-			UserName: userName,
-			Type:     "access",
-			RegisteredClaims: jwt.RegisteredClaims{
-				ID:        hex.EncodeToString(jtiBytes),
-				IssuedAt:  jwt.NewNumericDate(time.Now()),
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
-			},
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		return token.SignedString(j.secretKey)
-
+		typ, ttl = "access", 15*time.Minute
 	case models_auth.TokenTypeRefresh:
-		claims := models_auth.Claims{
-			UserID:   userID,
-			UserName: userName,
-			Type:     "refresh",
-			RegisteredClaims: jwt.RegisteredClaims{
-				ID:        hex.EncodeToString(jtiBytes),
-				IssuedAt:  jwt.NewNumericDate(time.Now()),
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
-			},
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		return token.SignedString(j.secretKey)
+		typ, ttl = "refresh", 7*24*time.Hour
+	default:
+		return "", fmt.Errorf("invalid token type")
 	}
 
-	return "", fmt.Errorf("invalid token type")
+	now := time.Now()
+	claims := models_auth.Claims{
+		UserID:   userID,
+		UserName: userName,
+		Type:     typ,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        hex.EncodeToString(jtiBytes),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(j.secretKey)
 }
 
 // ValidateRefreshToken validates a refresh token string and returns its claims.
