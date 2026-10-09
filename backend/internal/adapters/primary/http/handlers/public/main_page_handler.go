@@ -4,6 +4,7 @@ package public_handlers
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 	"path/filepath"
 )
@@ -49,5 +50,8 @@ func (h *MainPageHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error loading page", http.StatusInternalServerError)
 		return
 	}
-	tmpl.Execute(w, nil)
+
+	if err := tmpl.Execute(w, nil); err != nil {
+		log.Printf("error rendering index page: %v", err)
+	}
 }

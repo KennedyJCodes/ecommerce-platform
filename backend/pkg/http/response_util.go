@@ -16,7 +16,10 @@ import (
 func SendJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(data)
+	
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("error encoding JSON response: %v", err)
+	}
 }
 
 // HandleError processes application errors and sends appropriate HTTP responses.
