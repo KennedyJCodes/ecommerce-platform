@@ -17,6 +17,7 @@ const (
 	ErrInvalidCSRFToken   = "Invalid CSRF token"
 	ErrCSRFTokenExpired   = "CSRF token expired"
 	ErrCSRFTokenNotFound  = "CSRF token not found"
+	ErrCSRFDelete         = "Error deleting CSRF token"
 	ErrInvalidEmail       = "Invalid email address"
 	ErrEmailAlreadyExists  = "The email address is already registered"
 	ErrGeneratingCodeVerification = "Error generating code verification"

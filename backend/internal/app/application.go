@@ -2,8 +2,8 @@
 package app
 
 import (
+	"log"
 	"fmt"
-	"net/http"
 
 	bootstrap_database "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap/database"
 	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
@@ -24,7 +24,6 @@ type Application struct {
 	config      *config.AppConfig // app configuration (e.g. port, DSNs, flags)
 	db          *sqlx.DB          // connection to the main database
 	redisClient *redis.Client     // Redis client for cache/sessions
-	httpServer  *http.Server      // HTTP server responsible for managing incoming requests and lifecycle control
 }
 
 // NewApplication creates and returns an empty Application instance.
@@ -107,9 +106,13 @@ func (a *Application) GetSSLKeyFile() string {
 // You must call Close in the shutdown flow to prevent resource leaks.
 func (a *Application) Close() {
 	if a.db != nil {
-		a.db.Close()
+		if err := a.db.Close(); err != nil {
+			log.Printf("error closing database: %v", err)
+		}
 	}
 	if a.redisClient != nil {
-		a.redisClient.Close()
+		if err := a.redisClient.Close(); err != nil {
+			log.Printf("error closing redis client: %v", err)
+		}
 	}
 }

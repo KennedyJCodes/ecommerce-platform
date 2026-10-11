@@ -81,7 +81,8 @@ func (r *SQLUserRepository) SaveUser(ctx context.Context, user models_auth.User)
 	if err != nil {
 		return models_auth.User{}, errorsApp.NewInternalError(errorsApp.ErrDatabaseTransaction).WithError(err)
 	}
-	defer tx.Rollback()
+	
+	defer func() { _ = tx.Rollback() }()
 
 	result, err := tx.ExecContext(ctx,
 		"INSERT INTO user_registration (username, password, email, verified_at) VALUES (?, ?, ?, ?)",

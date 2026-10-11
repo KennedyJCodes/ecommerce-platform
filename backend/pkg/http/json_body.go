@@ -30,7 +30,7 @@ func DecodeJSONBody(w stdhttp.ResponseWriter, r *stdhttp.Request, dst any, maxBy
 
 	// MaxBytesReader stops oversized payloads before the decoder consumes unbounded data.
 	r.Body = stdhttp.MaxBytesReader(w, r.Body, maxBytes)
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
