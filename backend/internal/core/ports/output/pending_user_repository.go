@@ -20,4 +20,9 @@ type PendingUserRepository interface {
 
 	// DeletePendingUser removes a pending registration after successful verification.
 	DeletePendingUser(userID string) error
+
+	// RegisterVerificationAttempt atomically consumes one verification attempt and
+	// returns the attempt number. It fails if the pending user does not exist or
+	// if the attempt limit was exceeded (in which case the pending user is deleted).
+	RegisterVerificationAttempt(userID string, maxAttempts int) (int, error)
 }

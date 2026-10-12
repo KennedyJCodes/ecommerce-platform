@@ -23,6 +23,8 @@ type UserVerificationService struct {
 
 var _ input.UserVerificationService = (*UserVerificationService)(nil)
 
+const maxVerificationAttempts = 5
+
 // NewUserVerificationService creates the service used by the /verify endpoint.
 func NewUserVerificationService(
 	userRepository output.UserRepository,
@@ -46,11 +48,25 @@ func (s *UserVerificationService) Verify(ctx context.Context, pendingUserID stri
 		return nil, "", appErrors.NewValidationError(appErrors.ErrInvalidRequest)
 	}
 
+	// 1. Consume an attempt BEFORE comparing the code.
+	attempts, err := s.pendingUserRepository.RegisterVerificationAttempt(pendingUserID, maxVerificationAttempts)
+	if err != nil {
+		return nil, "", err
+	}
+
 	hashCode, err := s.pendingUserRepository.GetPendingUserHashCode(pendingUserID)
 	if err != nil {
 		return nil, "", err
 	}
+	
+	// 2. Wrong code: if this was the last allowed attempt, delete the pending user.
 	if err := s.hasher.Compare([]byte(code), hashCode); err != nil {
+		if attempts >= maxVerificationAttempts {
+			if delErr := s.pendingUserRepository.DeletePendingUser(pendingUserID); delErr != nil {
+				return nil, "", delErr
+			}
+			return nil, "", appErrors.NewTooManyRequestsError(appErrors.ErrTooManyVerificationAttempts)
+		}
 		return nil, "", appErrors.NewAuthError(appErrors.ErrInvalidCredentials)
 	}
 
