@@ -19,7 +19,9 @@ type pendingUserRepositoryMock struct {
 	pendingUser *modelsdb.PendingUser
 	hashCode    string
 	deleted     bool
+	attempts    int
 
+	attemptErr  error
 	hashCodeErr error
 	getUserErr  error
 	deleteErr   error
@@ -39,6 +41,15 @@ func (m *pendingUserRepositoryMock) GetPendingUser(string) (*modelsdb.PendingUse
 		return nil, m.getUserErr
 	}
 	return m.pendingUser, nil
+}
+func (m *pendingUserRepositoryMock) RegisterVerificationAttempt(string, int) (int, error) {
+	if m.attemptErr != nil {
+		return 0, m.attemptErr
+	}
+	if m.attempts == 0 {
+		m.attempts = 1
+	}
+	return m.attempts, nil
 }
 func (m *pendingUserRepositoryMock) DeletePendingUser(string) error {
 	m.deleted = true
@@ -111,7 +122,9 @@ func TestUserVerificationService_Verify(t *testing.T) {
 	tests := []struct {
 		name        string
 		code        string
-		hashCodeErr error 
+		attempts    int
+		attemptErr  error
+		hashCodeErr error
 		getUserErr  error
 		saveErr     error
 		wantErr     bool
@@ -128,6 +141,19 @@ func TestUserVerificationService_Verify(t *testing.T) {
 			name:    "incorrect code",
 			code:    "000000",
 			wantErr: true,
+		},
+		{
+			name:        "incorrect code on last attempt",
+			code:        "000000",
+			attempts:    5,
+			wantErr:     true,
+			wantDeleted: true,
+		},
+		{
+			name:       "attempt registration fails",
+			code:       "123456",
+			attemptErr: errors.New("database unavailable"),
+			wantErr:    true,
 		},
 		{
 			name:        "hash code not found or expired",
@@ -154,6 +180,8 @@ func TestUserVerificationService_Verify(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			pending := &pendingUserRepositoryMock{
 				hashCode:    validHash,
+				attempts:    tt.attempts,
+				attemptErr:  tt.attemptErr,
 				hashCodeErr: tt.hashCodeErr,
 				getUserErr:  tt.getUserErr,
 				pendingUser: &modelsdb.PendingUser{
@@ -181,7 +209,6 @@ func TestUserVerificationService_Verify(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
-
 
 			if gotTokens.AccessToken != "access-token" || gotTokens.RefreshToken != "refresh-token" || gotCSRF != "csrf-token" {
 				t.Errorf("unexpected tokens: %+v, %q", gotTokens, gotCSRF)
