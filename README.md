@@ -1,8 +1,8 @@
 # Ecommerce Platform
 
-**Proyecto personal** en evolución: la idea a medio plazo es convertirlo en una **plataforma de comercio electrónico** completa. Hoy el foco sigue apoyándose en un catálogo pensado al inicio para relojes: API en Go, frontend estático (HTML/CSS), usuarios (con verificación por email), productos y comentarios.
+**Proyecto personal** en evolución: una **plataforma de comercio electrónico** con API en Go, frontend estático (HTML/CSS), usuarios (con verificación por email), productos y comentarios.
 
-**Sobre los nombres y el alcance:** el proyecto **empezó** con la idea de centrarse **solo en relojes**; por eso muchas cosas aún hablan de relojes (por ejemplo el nombre de la base `store_watches`, textos del frontend, ejemplos en configuración). **Decidí ampliar** el objetivo hacia una **plataforma de comercio** más general. Ese cambio de rumbo es reciente: **con el tiempo** se irá **actualizando** código, copys, esquema de datos y documentación para que reflejen mejor un ecommerce genérico, sin prisa de romper lo que ya funciona.
+El proyecto está orientado a un ecommerce general; algunos datos de ejemplo y textos heredados todavía pueden mencionar relojes.
 
 ## Contenido
 
@@ -27,7 +27,7 @@
 
 Es una aplicación web monolito **API + estáticos**: el backend en **Go** expone rutas REST y entrega los archivos del directorio `frontend` (HTML y CSS). Los datos persistentes viven en **MySQL**; **Redis** se usa para soporte de la aplicación (por ejemplo tokens CSRF y los registros pendientes de verificación, que caducan a los 10 minutos). El esquema y los datos de ejemplo se crean con migraciones versionadas (golang-migrate) que ejecuta el servicio `migrate` de Docker Compose antes de arrancar el backend.
 
-No es un producto comercial cerrado: es un **laboratorio** para ir sumando piezas (pagos, carrito, panel de administración, etc.) hasta tener una plataforma de ecommerce coherente. Lo que aún suene muy a “tienda de relojes” en nombres o textos es herencia de ese arranque; se irá unificando con el tiempo (como se indica arriba).
+No es un producto comercial cerrado: es una base en evolución para construir una plataforma de ecommerce.
 
 Funcionalidades principales hoy:
 
@@ -37,7 +37,6 @@ Funcionalidades principales hoy:
 - Listado de comentarios y alta de comentarios (ruta protegida con autenticación y CSRF).
 - Rate limiting por IP, CORS diferenciado para rutas públicas y privadas, cabeceras de seguridad HTTP.
 
-En el esquema SQL existen tablas relacionadas con **pagos y webhooks** (PayPal) y el archivo `.env.example` documenta variables para PayPal; la integración activa de pagos puede ampliarse en el backend según evolucione el proyecto.
 
 ## Stack y herramientas
 
@@ -133,9 +132,9 @@ En el **compose base** y en **`docker-compose.prod.yml`**, el healthcheck del ba
 
 ## Variables de entorno
 
-La configuración se basa en **variables de entorno**, documentadas en [`.env.example`](.env.example). Docker Compose inyecta en el servicio `backend` las credenciales de MySQL y Redis, el secreto JWT y la configuración de Resend; el resto (rate limiting, PayPal, etc.) puedes definirla en tu `.env` siguiendo ese mismo ejemplo.
+La configuración se basa en **variables de entorno**, documentadas en [`.env.example`](.env.example). Docker Compose inyecta en el servicio `backend` las credenciales de MySQL y Redis, el secreto JWT y la configuración de Resend; el resto (rate limiting, etc.) puedes definirlo en tu `.env` siguiendo ese mismo ejemplo.
 
-En código, las claves que lee Viper coinciden con el nombre de las variables de entorno en mayúsculas (por ejemplo `DATABASE_HOST`, `REDIS_PORT`). `AutomaticEnv()` permite sobrescribir lo definido en `backend/internal/config/.env` con variables del sistema operativo (incluidas las que inyecta Docker Compose en el contenedor).
+En código, las claves que lee Viper coinciden con el nombre de las variables de entorno en mayúsculas (por ejemplo `DATABASE_HOST`, `REDIS_PORT`). `AutomaticEnv()` permite sobrescribir los valores definidos por defecto con variables del sistema operativo (incluidas las que inyecta Docker Compose en el contenedor).
 
 ## Puertos y servicios
 
@@ -151,8 +150,8 @@ Si levantas el stack con `docker-compose.prod.yml`, en el host pueden publicarse
 
 ## Base de datos
 
-- **Motor**: MySQL 8.0, base `store_watches`, charset `utf8mb4`.
-- **Inicialización**: migraciones versionadas en `backend/migrations` (archivos `.up.sql` / `.down.sql`), aplicadas por el servicio `migrate`. Incluyen datos semilla de relojes.
+- **Motor**: MySQL 8.0, base definida por `MYSQL_DATABASE`, charset `utf8mb4`.
+- **Inicialización**: migraciones versionadas en `backend/migrations` (archivos `.up.sql` / `.down.sql`), aplicadas por el servicio `migrate`. Incluyen datos semilla.
 
 Tablas principales:
 
@@ -161,8 +160,6 @@ Tablas principales:
 | `user_registration` | Usuarios verificados (usuario, email, contraseña hasheada, fecha de verificación). |
 | `products` | Catálogo (nombre, descripción, precio, stock, marca, imagen, etc.). |
 | `comments` | Comentarios y valoraciones ligados a usuarios. |
-| `payments` | Registros de órdenes PayPal (esquema preparado para integración). |
-| `webhook_events` | Eventos de webhook asociados a pagos. |
 
 **Redis** almacena información efímera: tokens CSRF, tokens revocados y registros pendientes de verificación (con TTL). No sustituye a MySQL como fuente de verdad del negocio.
 
@@ -199,7 +196,7 @@ Los ficheros estáticos (CSS, imágenes, etc.) se sirven bajo rutas registradas 
    docker compose up mysql redis migrate
    ```
 
-2. Si el backend corre **en tu máquina** y las bases de datos en Docker, apunta el host a `127.0.0.1` y los puertos publicados (**3307** para MySQL, **6380** para Redis) mediante variables de entorno (por ejemplo un `.env` en la raíz o en `backend/internal/config`, según cómo ejecutes la app).
+2. Si el backend corre **en tu máquina** y las bases de datos en Docker, apunta el host a `127.0.0.1` y los puertos publicados (**3307** para MySQL, **6380** para Redis) mediante variables de entorno.
 
 3. Desde el directorio `backend`:
 
@@ -221,16 +218,16 @@ go test ./...
 
 ### CI en GitHub Actions
 
-En [`.github/workflows/ci.yml`](.github/workflows/ci.yml) hay un workflow **CI** que, en **push y pull request hacia la rama `main`**, ejecuta en paralelo:
+En [`.github/workflows/ci.yml`](.github/workflows/ci.yml) hay un workflow **CI** que, en **push y pull request hacia la rama `master`**, ejecuta en paralelo:
 
-- **Test**: `go build ./cmd/api` y `go test ./...` dentro de `backend/`.
+- **Test**: `go vet ./...`, `go build ./cmd/api` y `go test -race -cover ./...` dentro de `backend/`.
 - **Docker Build**: `docker build -f backend/Dockerfile` desde la raíz del repositorio (respeta [`.dockerignore`](.dockerignore) para el contexto de build).
 
-Si trabajas sobre **`develop`** u otras ramas, ese workflow **no** se dispara hasta que abras un PR contra `main` (o amplíes la lista `branches` en el YAML para incluir `develop`).
+Si trabajas sobre otras ramas, ese workflow **no** se dispara hasta que abras un PR contra `master` (o amplíes la lista `branches` en el YAML).
 
 ## Seguridad y secretos
 
-- No subas **contraseñas, JWT secrets, API keys de Resend ni claves de PayPal** al repositorio. Los ficheros con secretos deben permanecer solo en tu máquina: revisa [`.gitignore`](.gitignore) (incluye `.env` y `backend/internal/config/.env`, entre otros).
+- No subas **contraseñas, secretos JWT ni API keys de Resend** al repositorio. Los ficheros con secretos deben permanecer solo en tu máquina: revisa [`.gitignore`](.gitignore) (incluye `.env` y `backend/internal/config/.env`, entre otros).
 - En producción usa secretos rotados, HTTPS y revisa CORS y rate limits según tu despliegue.
 
 ## Solución de problemas
