@@ -3,7 +3,7 @@
 package bootstrap_database
 
 import (
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/config"
 )
 
 // SetupDatabaseRedis extracts the Redis-specific configuration from the global application config.

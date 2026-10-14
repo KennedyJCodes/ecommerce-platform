@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
-	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/database"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_code_verification"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
+	models_auth "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
+	modelsdb "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/database"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/services/service_code_verification"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/security/security_auth"
 )
 
 // ---------- Mocks ----------

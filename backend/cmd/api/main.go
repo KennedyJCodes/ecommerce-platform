@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/app"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/app"
 	_ "github.com/go-sql-driver/mysql"
 )
 

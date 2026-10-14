@@ -5,8 +5,8 @@ package input
 import (
 	"context"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/dto/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
 )
 
 // UserServiceLogin defines the interface for user authentication operations.

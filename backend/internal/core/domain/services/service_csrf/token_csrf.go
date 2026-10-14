@@ -6,9 +6,9 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/security"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/security"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 )
 
 // CSRFUseCase orchestrates the lifecycle of anti-forgery tokens.

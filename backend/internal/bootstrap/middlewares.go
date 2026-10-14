@@ -5,12 +5,12 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
-	repository_redis "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/redis"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_csrf"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/adapters/primary/http/middleware"
+	repository_redis "github.com/KennedyJCodes/ecommerce-platform/internal/adapters/secondary/repository/redis"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/config"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/services/service_csrf"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	ratelimiter "github.com/KennedyJCodes/ecommerce-platform/pkg/security/rate_limiter"
 	"github.com/redis/go-redis/v9"
 )
 

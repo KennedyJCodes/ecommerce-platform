@@ -5,11 +5,11 @@ package service_auth
 import (
 	"context"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/security/security_auth"
 )
 
 // BaseAuthService serves as a foundational structure for authentication use cases.

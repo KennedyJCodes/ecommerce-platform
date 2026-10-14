@@ -2,10 +2,10 @@
 package service_reviews
 
 import (
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/review"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/review"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 )
 
 // ReviewGetService orchestrates the retrieval of user feedback and reviews.

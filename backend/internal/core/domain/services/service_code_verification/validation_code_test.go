@@ -3,7 +3,7 @@ package service_code_verification_test
 import (
 	"testing"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_code_verification"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/services/service_code_verification"
 )
 
 func TestCodeValidator(t *testing.T) {

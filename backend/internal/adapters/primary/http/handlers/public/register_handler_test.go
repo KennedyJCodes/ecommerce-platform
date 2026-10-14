@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	dto "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
+	dto "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/dto/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/http/cookies"
 )
 
 type registerHandlerServiceMock struct {

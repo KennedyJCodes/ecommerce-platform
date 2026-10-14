@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
-	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
+	httpUtil "github.com/KennedyJCodes/ecommerce-platform/pkg/http"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/http/cookies"
 )
 
 // RefreshHandler handles HTTP requests for token renewal.

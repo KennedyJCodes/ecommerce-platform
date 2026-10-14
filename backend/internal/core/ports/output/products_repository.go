@@ -1,7 +1,7 @@
 // Package output defines output port interfaces for the application.
 package output
 
-import "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/product"
+import "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/product"
 
 // ProductsRepository defines the persistence contract for product data management.
 // Implementations are responsible for querying the database or external storage.

@@ -1,7 +1,7 @@
 // Package input defines service contracts for comment-related business logic, user operations, and input validation.
 package input
 
-import "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/review"
+import "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/dto/review"
 
 // ReviewAddService handles creation of new reviews.
 type ReviewAddService interface {

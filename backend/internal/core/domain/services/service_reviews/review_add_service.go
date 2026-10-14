@@ -2,11 +2,11 @@
 package service_reviews
 
 import (
-	dto "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/review"
-	models_review "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/review"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	dto "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/dto/review"
+	models_review "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/review"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 )
 
 // ReviewAddService orchestrates the validation and persistence of a new review.

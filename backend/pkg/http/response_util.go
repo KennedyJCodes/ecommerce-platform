@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 )
 
 // SendJSONResponse sends a JSON-encoded response with proper headers and status code.

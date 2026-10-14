@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/http/cookies"
 )
 
 // contextKey is a private type used to define keys for context values.

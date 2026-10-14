@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"time"
 
-	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	appErrors "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
+	models_auth "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	appErrors "github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/security/security_auth"
 )
 
 // UserVerificationService validates a pending user's code and completes registration.

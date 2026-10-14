@@ -3,7 +3,7 @@ package input
 import (
 	"context"
 
-	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
+	models_auth "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
 )
 
 // UserVerificationService completes a pending registration using its verification code.

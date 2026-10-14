@@ -2,7 +2,7 @@
 package output
 
 import (
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/security"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/security"
 )
 
 // CSRFRepository defines the persistence contract for managing CSRF token lifecycle.

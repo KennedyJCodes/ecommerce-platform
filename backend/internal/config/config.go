@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/security"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/security"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )

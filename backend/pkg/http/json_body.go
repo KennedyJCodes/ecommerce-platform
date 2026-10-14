@@ -7,7 +7,7 @@ import (
 	"mime"
 	stdhttp "net/http"
 
-	appErrors "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	appErrors "github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 )
 
 const (

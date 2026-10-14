@@ -1,7 +1,7 @@
 // Package input defines service contracts for comment-related business logic, user operations, and input validation.
 package input
 
-import "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/product"
+import "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/product"
 
 // ProductsGetService defines the interface for retrieving product information.
 // Implementations should handle filtering and fetching products from the data source.

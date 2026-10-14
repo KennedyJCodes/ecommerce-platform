@@ -3,7 +3,7 @@
 package security_auth
 
 import (
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 

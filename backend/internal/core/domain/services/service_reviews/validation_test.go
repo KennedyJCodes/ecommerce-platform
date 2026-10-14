@@ -3,7 +3,7 @@ package service_reviews_test
 import (
 	"testing"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_reviews"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/services/service_reviews"
 )
 
 func TestReviewValidator(t *testing.T) {

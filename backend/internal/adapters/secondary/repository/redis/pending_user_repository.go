@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/database"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	appErrors "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	modelsdb "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/database"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	appErrors "github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 	"github.com/redis/go-redis/v9"
 )
 
