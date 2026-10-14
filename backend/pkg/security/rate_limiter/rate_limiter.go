@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/security"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/security"
 	"golang.org/x/time/rate"
 )
 

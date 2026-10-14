@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
 	"github.com/gorilla/mux"
 )
 

@@ -5,12 +5,12 @@ package bootstrap
 import (
 	"fmt"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/notification"
-	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/security/jwt"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/static"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/adapters/secondary/notification"
+	repository_mysql "github.com/KennedyJCodes/ecommerce-platform/internal/adapters/secondary/repository/mysql"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/adapters/secondary/security/jwt"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/adapters/secondary/static"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/config"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
 	"github.com/jmoiron/sqlx"
 )
 

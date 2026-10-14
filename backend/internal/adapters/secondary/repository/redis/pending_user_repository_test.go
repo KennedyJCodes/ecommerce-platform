@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/database"
+	modelsdb "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/database"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 )

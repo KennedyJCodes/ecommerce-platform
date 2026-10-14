@@ -5,12 +5,12 @@ package public_handlers
 import (
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
-	httpUtil "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/dto/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
+	httpUtil "github.com/KennedyJCodes/ecommerce-platform/pkg/http"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/http/cookies"
 )
 
 // LoginHandler handles HTTP requests related to user login.

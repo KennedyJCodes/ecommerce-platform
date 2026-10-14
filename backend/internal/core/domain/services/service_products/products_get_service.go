@@ -4,9 +4,9 @@ package service_products
 import (
 	"log"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/product"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/product"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
 )
 
 // ProductsGetService orchestrates the retrieval of product information.

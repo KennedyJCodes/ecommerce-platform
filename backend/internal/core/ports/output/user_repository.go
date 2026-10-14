@@ -4,7 +4,7 @@ package output
 import (
 	"context"
 
-	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
+	models_auth "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
 )
 
 // UserRepository persists and retrieves user credentials.

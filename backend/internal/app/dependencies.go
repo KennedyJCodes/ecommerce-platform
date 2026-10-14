@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
-	primaryRouter "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/router"
-	repository_redis "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/redis"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
-	ratelimiter "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/adapters/primary/http/middleware"
+	primaryRouter "github.com/KennedyJCodes/ecommerce-platform/internal/adapters/primary/http/router"
+	repository_redis "github.com/KennedyJCodes/ecommerce-platform/internal/adapters/secondary/repository/redis"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/bootstrap"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/http/cookies"
+	ratelimiter "github.com/KennedyJCodes/ecommerce-platform/pkg/security/rate_limiter"
 )
 
 // Dependencies holds all the initialized services, ports, and handlers required  to run the application.

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/http/cookies"
 )
 
 func TestWithValue(t *testing.T) {

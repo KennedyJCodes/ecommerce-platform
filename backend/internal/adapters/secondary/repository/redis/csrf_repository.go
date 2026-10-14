@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/security"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/security"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 	"github.com/redis/go-redis/v9"
 )
 

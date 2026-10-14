@@ -7,9 +7,9 @@ import (
 	"errors"
 	"log"
 
-	models_product "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/product"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	Custom_errors "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	models_product "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/product"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	Custom_errors "github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 	"github.com/jmoiron/sqlx"
 )
 

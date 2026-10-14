@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
 	"github.com/golang-jwt/jwt/v5"
 )
 

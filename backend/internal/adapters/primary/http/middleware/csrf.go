@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	cookies "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/http/cookies"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	cookies "github.com/KennedyJCodes/ecommerce-platform/pkg/http/cookies"
 )
 
 // CSRFMiddleware coordinates CSRF protection by validating tokens against a dedicated CSRF service. It uses a Double Submit Cookie pattern coupled with server-side validation and rotates tokens after each use.

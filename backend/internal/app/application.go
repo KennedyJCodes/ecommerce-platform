@@ -5,8 +5,8 @@ import (
 	"log"
 	"fmt"
 
-	bootstrap_database "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/bootstrap/database"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
+	bootstrap_database "github.com/KennedyJCodes/ecommerce-platform/internal/bootstrap/database"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/config"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 )

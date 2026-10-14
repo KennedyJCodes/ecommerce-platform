@@ -5,14 +5,14 @@ package bootstrap
 import (
 	"fmt"
 
-	repository_mysql "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/secondary/repository/mysql"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_code_verification"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_products"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/services/service_reviews"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
+	repository_mysql "github.com/KennedyJCodes/ecommerce-platform/internal/adapters/secondary/repository/mysql"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/services/service_auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/services/service_code_verification"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/services/service_products"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/services/service_reviews"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/security/security_auth"
 	"github.com/jmoiron/sqlx"
 )
 

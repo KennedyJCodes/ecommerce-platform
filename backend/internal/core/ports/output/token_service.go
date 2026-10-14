@@ -2,7 +2,7 @@
 // This file contains the TokenService interface for JWT-related operations.
 package output
 
-import "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
+import "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
 
 // TokenService defines the contract for JWT generation, validation, and parsing.
 // Implementations handle the lifecycle of access tokens and refresh tokens used

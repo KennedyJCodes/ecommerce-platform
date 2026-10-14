@@ -5,7 +5,7 @@ package bootstrap_database
 import (
 	"fmt"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/config"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/config"
 	"github.com/jmoiron/sqlx"
 )
 

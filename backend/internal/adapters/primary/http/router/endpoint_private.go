@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/adapters/primary/http/middleware"
 	"github.com/gorilla/mux"
 )
 

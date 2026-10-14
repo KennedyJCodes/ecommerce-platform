@@ -3,12 +3,12 @@ package router
 import (
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/handlers/private"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/handlers/public"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/adapters/primary/http/middleware"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/rate_limiter"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/adapters/primary/http/handlers/private"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/adapters/primary/http/handlers/public"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/adapters/primary/http/middleware"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/security/rate_limiter"
 	"github.com/gorilla/mux"
 )
 

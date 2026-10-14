@@ -2,7 +2,7 @@
 package output
 
 import (
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/review"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/review"
 )
 
 // ReviewRepository persists and retrieves reviews.

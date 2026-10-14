@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	appErrors "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	appErrors "github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 )
 
 // These tests document the shared JSON body contract used by auth and comment handlers.

@@ -1,4 +1,4 @@
-module github.com/David-Alejandro-Jimenez/ecommerce-platform
+module github.com/KennedyJCodes/ecommerce-platform
 
 go 1.23.2
 

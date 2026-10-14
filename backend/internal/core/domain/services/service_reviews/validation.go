@@ -2,7 +2,7 @@
 package service_reviews
 
 import (
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 )
 
 // CommentValidationData represents the payload required to validate a comment.

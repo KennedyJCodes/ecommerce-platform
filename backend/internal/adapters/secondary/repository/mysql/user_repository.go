@@ -6,9 +6,9 @@ import (
 	"database/sql"
 	"errors"
 
-	models_auth "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/auth"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	errorsApp "github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
+	models_auth "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	errorsApp "github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
 	"github.com/jmoiron/sqlx"
 )
 

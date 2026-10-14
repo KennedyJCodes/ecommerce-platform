@@ -6,12 +6,12 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/dto/auth"
-	modelsdb "github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/domain/models/database"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/input"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/internal/core/ports/output"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/errors"
-	"github.com/David-Alejandro-Jimenez/ecommerce-platform/pkg/security/security_auth"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/dto/auth"
+	modelsdb "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/database"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/errors"
+	"github.com/KennedyJCodes/ecommerce-platform/pkg/security/security_auth"
 )
 
 type UserRegisterService struct{ BaseAuthService }
