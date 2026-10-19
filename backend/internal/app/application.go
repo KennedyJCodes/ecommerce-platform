@@ -2,8 +2,8 @@
 package app
 
 import (
-	"log"
 	"fmt"
+	"log"
 
 	bootstrap_database "github.com/KennedyJCodes/ecommerce-platform/internal/bootstrap/database"
 	"github.com/KennedyJCodes/ecommerce-platform/internal/config"
@@ -66,11 +66,12 @@ func (a *Application) SetupDatabase() error {
 // Side effects:
 // - assigns a.redisClient a ready-to-use client.
 func (a *Application) SetupRedis() error {
-	redisConfig, err := bootstrap_database.SetupDatabaseRedis(a.config)
+	redisConfig := a.config.GetRedisConfig()
+	client, err := bootstrap_database.SetupRedis(redisConfig)
 	if err != nil {
 		return fmt.Errorf("error connecting to Redis: %w", err)
 	}
-	a.redisClient = config.NewRedisClient(redisConfig)
+	a.redisClient = client
 	return nil
 }
 

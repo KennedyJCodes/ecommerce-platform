@@ -1,22 +1,44 @@
 // Package bootstrap_database provides functions to initialize and configure database connections.
-// This file specifically handles the retrieval of Redis configuration settings.
+// This file specifically handles the initialization of the Redis client.
 package bootstrap_database
 
 import (
+	"context"
+	"fmt"
+	"log"
+	"time"
+
 	"github.com/KennedyJCodes/ecommerce-platform/internal/config"
+	"github.com/redis/go-redis/v9"
 )
 
-// SetupDatabaseRedis extracts the Redis-specific configuration from the global application config.
-// Unlike SQL databases that require an immediate connection string (DSN), this function retrieves a dedicated RedisConfig model which includes the address, password, and DB index needed to initialize the Redis client later in the application lifecycle.
+// SetupRedis initializes and validates a Redis client using the provided configuration.
+// It returns an error when Redis cannot be reached, allowing the application to decide how to handle startup failure.
+func SetupRedis(cfg config.RedisConfig) (*redis.Client, error) {
+	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 
-// Parameters:
-//   - appConfig: a pointer to the application configuration manager.
-//
-// Returns:
-//   - config.RedisConfig: a struct containing all necessary parameters for Redis connectivity.
-//   - error: returns nil by default, but follows the bootstrap signature for consistency.
-func SetupDatabaseRedis(appConfig *config.AppConfig) (config.RedisConfig, error) {
-	// Delegation to the config provider to extract Redis-specific values.
-	redisConfig := appConfig.GetRedisConfig()
-	return redisConfig, nil
+	client := redis.NewClient(&redis.Options{
+		Addr:         addr,
+		Username:     cfg.Username,
+		Password:     cfg.Password,
+		DB:           cfg.DB,
+		DialTimeout:  cfg.DialTimeout,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
+		PoolSize:     cfg.PoolSize,
+		MinIdleConns: cfg.MinIdleConns,
+		MaxRetries:   cfg.MaxRetries,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pong, err := client.Ping(ctx).Result()
+	if err != nil {
+		_ = client.Close()
+		return nil, fmt.Errorf("error connecting to Redis on %s: %w", addr, err)
+	}
+
+	log.Printf("Successfully connected to Redis on %s - Response: %s", addr, pong)
+	return client, nil
 }
