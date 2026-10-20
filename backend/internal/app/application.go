@@ -2,8 +2,8 @@
 package app
 
 import (
-	"log"
 	"fmt"
+	"log"
 
 	bootstrap_database "github.com/KennedyJCodes/ecommerce-platform/internal/bootstrap/database"
 	"github.com/KennedyJCodes/ecommerce-platform/internal/config"
@@ -38,13 +38,9 @@ func NewConfigApplication() *Application {
 // Must be run before any Setup that depends on the configuration.
 // Side effects:
 // - assigns a valid instance to a.config.
-// Errors:
-// - currently the implementation always returns nil; if you change to a
-// validation that can fail, propagate the error appropriately.
 func (a *Application) LoadConfig() error {
 	a.config = config.NewAppConfig()
-	config.ValidateRequiredConfig(a.config.GetConfig())
-	return nil
+	return config.ValidateRequiredConfig(a.config.GetConfig())
 }
 
 // SetupDatabase establishes the primary connection to the database (MySQL)
@@ -66,11 +62,12 @@ func (a *Application) SetupDatabase() error {
 // Side effects:
 // - assigns a.redisClient a ready-to-use client.
 func (a *Application) SetupRedis() error {
-	redisConfig, err := bootstrap_database.SetupDatabaseRedis(a.config)
+	redisConfig := a.config.GetRedisConfig()
+	client, err := bootstrap_database.SetupRedis(redisConfig)
 	if err != nil {
 		return fmt.Errorf("error connecting to Redis: %w", err)
 	}
-	a.redisClient = config.NewRedisClient(redisConfig)
+	a.redisClient = client
 	return nil
 }
 
