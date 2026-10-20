@@ -38,13 +38,9 @@ func NewConfigApplication() *Application {
 // Must be run before any Setup that depends on the configuration.
 // Side effects:
 // - assigns a valid instance to a.config.
-// Errors:
-// - currently the implementation always returns nil; if you change to a
-// validation that can fail, propagate the error appropriately.
 func (a *Application) LoadConfig() error {
 	a.config = config.NewAppConfig()
-	config.ValidateRequiredConfig(a.config.GetConfig())
-	return nil
+	return config.ValidateRequiredConfig(a.config.GetConfig())
 }
 
 // SetupDatabase establishes the primary connection to the database (MySQL)

@@ -1,14 +1,14 @@
 package config
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/spf13/viper"
 )
 
 // ValidateRequiredConfig checks that all mandatory configuration keys are present and non-empty.
-// It terminates the application with a fatal error if any required key is missing or uses an insecure default.
-func ValidateRequiredConfig(config *viper.Viper) {
+// It returns an error if any required key is missing or uses an insecure default.
+func ValidateRequiredConfig(config *viper.Viper) error {
 	required := []string{
 		"SECURITY_JWT_JWT_SECRET",
 		"DATABASE_USER",
@@ -30,11 +30,13 @@ func ValidateRequiredConfig(config *viper.Viper) {
 		}
 
 		if key == "SECURITY_JWT_JWT_SECRET" && value == "your-secret-key" {
-			log.Fatalf("Missing configuration: SECURITY_JWT_JWT_SECRET cannot use the insecure default value 'your-secret-key'. Please set a strong secret via ENV or .env file.")
+			return fmt.Errorf("missing configuration: SECURITY_JWT_JWT_SECRET cannot use the insecure default value 'your-secret-key'. Please set a strong secret via ENV or .env file")
 		}
 	}
 
 	if len(missing) > 0 {
-		log.Fatalf("Missing configuration (use ENV vars or .env file): %v", missing)
+		return fmt.Errorf("missing configuration (use ENV vars or .env file): %v", missing)
 	}
+
+	return nil
 }
