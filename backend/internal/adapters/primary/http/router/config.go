@@ -35,34 +35,39 @@ type HandlerConfig struct {
 	Products   *public_handlers.ProductsHandler
 }
 
-func buildHandlers(
-	userServiceLogin input.UserServiceLogin,
-	userServiceRegister input.UserServiceRegister,
-	userVerificationService input.UserVerificationService,
-	reviewGetService input.ReviewGetService,
-	reviewAddService input.ReviewAddService,
-	staticFileService output.StaticFilePort,
-	productsGetService input.ProductsGetService,
-	csrfService output.CSRFService,
-	tokenService output.TokenService,
-	blacklistRepo output.TokenBlacklistPort,
-	isProduction bool,
-) HandlerConfig {
+// HandlerDependencies contains the dependencies required to construct all HTTP handlers.
+// Keeping this separate from RouterDependencies makes buildHandlers explicit about the
+// dependencies it needs without passing unrelated router configuration through it.
+type HandlerDependencies struct {
+	UserServiceLogin        input.UserServiceLogin
+	UserServiceRegister     input.UserServiceRegister
+	UserVerificationService input.UserVerificationService
+	ReviewGetService        input.ReviewGetService
+	ReviewAddService        input.ReviewAddService
+	StaticFileService       output.StaticFilePort
+	ProductsGetService      input.ProductsGetService
+	CSRFService             output.CSRFService
+	TokenService            output.TokenService
+	BlacklistRepo           output.TokenBlacklistPort
+	IsProduction            bool
+}
+
+func buildHandlers(deps HandlerDependencies) HandlerConfig {
 
 	mainPageHandler := public_handlers.NewMainPageHandler()
-	mainPageHandler.SetStaticDir(staticFileService.GetStaticDir())
+	mainPageHandler.SetStaticDir(deps.StaticFileService.GetStaticDir())
 
 	return HandlerConfig{
-		Login:      public_handlers.NewLoginHandler(userServiceLogin, csrfService, isProduction),
-		Register:   public_handlers.NewRegisterHandler(userServiceRegister, isProduction),
-		Verify:     public_handlers.NewVerifyHandler(userVerificationService, isProduction),
-		Refresh:    public_handlers.NewRefreshHandler(tokenService, blacklistRepo, isProduction),
-		ReviewsGet: public_handlers.NewReviewsGetHandler(reviewGetService),
-		ReviewsAdd: private_handlers.NewReviewsAddHandler(reviewAddService),
-		Logout:     private_handlers.NewLogoutHandler(tokenService, blacklistRepo, isProduction),
+		Login:      public_handlers.NewLoginHandler(deps.UserServiceLogin, deps.CSRFService, deps.IsProduction),
+		Register:   public_handlers.NewRegisterHandler(deps.UserServiceRegister, deps.IsProduction),
+		Verify:     public_handlers.NewVerifyHandler(deps.UserVerificationService, deps.IsProduction),
+		Refresh:    public_handlers.NewRefreshHandler(deps.TokenService, deps.BlacklistRepo, deps.IsProduction),
+		ReviewsGet: public_handlers.NewReviewsGetHandler(deps.ReviewGetService),
+		ReviewsAdd: private_handlers.NewReviewsAddHandler(deps.ReviewAddService),
+		Logout:     private_handlers.NewLogoutHandler(deps.TokenService, deps.BlacklistRepo, deps.IsProduction),
 		MainPage:   mainPageHandler,
-		StaticFile: public_handlers.NewStaticFileHandler(staticFileService),
-		Products:   public_handlers.NewProductsHandler(productsGetService),
+		StaticFile: public_handlers.NewStaticFileHandler(deps.StaticFileService),
+		Products:   public_handlers.NewProductsHandler(deps.ProductsGetService),
 	}
 }
 
