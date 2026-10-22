@@ -72,7 +72,16 @@ func SetupUserService(userRepo output.UserRepository, pendingUserRepository outp
 	codeVerificationService := service_code_verification.NewCodeVerificationService()
 
 	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService, hasher),
-		service_auth.NewUserRegisterService(userRepo, pendingUserRepository, userNameValidator, passwordValidator, emailValidator, hasher, codeVerificationService, codeVerificationSender)
+		service_auth.NewUserRegisterService(service_auth.UserRegisterServiceDependencies{
+			UserRepo:                userRepo,
+			PendingUserRepository:   pendingUserRepository,
+			UserNameValidator:       userNameValidator,
+			PasswordValidator:       passwordValidator,
+			EmailValidator:          emailValidator,
+			Hasher:                  hasher,
+			CodeVerificationService: codeVerificationService,
+			CodeVerificationSender:  codeVerificationSender,
+		})
 }
 
 // SetupUserVerificationService initializes the pending-registration verification flow.
