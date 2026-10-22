@@ -18,12 +18,30 @@ type UserRegisterService struct{ BaseAuthService }
 
 const pendingUserTTL = 10 * time.Minute
 
-func NewUserRegisterService(userRepo output.UserRepository, pendingUserRepository output.PendingUserRepository, userNameValidator, passwordValidator input.Validator, emailValidator input.Validator, hasher security_auth.Hasher, codeVerificationService input.CodeVerificationService, codeVerificationSender output.CodeVerificationSender) input.UserServiceRegister {
+// UserRegisterServiceDependencies groups the collaborators required by the
+// user registration use case. Keeping this explicit makes the constructor
+// easier to read and safer to extend when a new dependency is added.
+type UserRegisterServiceDependencies struct {
+	UserRepo                output.UserRepository
+	PendingUserRepository   output.PendingUserRepository
+	UserNameValidator       input.Validator
+	PasswordValidator       input.Validator
+	EmailValidator          input.Validator
+	Hasher                  security_auth.Hasher
+	CodeVerificationService input.CodeVerificationService
+	CodeVerificationSender  output.CodeVerificationSender
+}
+
+func NewUserRegisterService(deps UserRegisterServiceDependencies) input.UserServiceRegister {
 	return &UserRegisterService{BaseAuthService: BaseAuthService{
-		UserRepo: userRepo, PendingUserRepository: pendingUserRepository,
-		UserNameValidator: userNameValidator, PasswordValidator: passwordValidator,
-		EmailValidator: emailValidator, Hasher: hasher,
-		CodeVerificationService: codeVerificationService, CodeVerificationSender: codeVerificationSender,
+		UserRepo:                deps.UserRepo,
+		PendingUserRepository:   deps.PendingUserRepository,
+		UserNameValidator:       deps.UserNameValidator,
+		PasswordValidator:       deps.PasswordValidator,
+		EmailValidator:          deps.EmailValidator,
+		Hasher:                  deps.Hasher,
+		CodeVerificationService: deps.CodeVerificationService,
+		CodeVerificationSender:  deps.CodeVerificationSender,
 	}}
 }
 

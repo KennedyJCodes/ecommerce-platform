@@ -19,25 +19,36 @@ type UserLoginService struct {
 	BaseAuthService
 }
 
+// UserLoginServiceDependencies groups the collaborators required by the
+// user login use case. Keeping this explicit makes the constructor easier to
+// read and safer to extend when a new dependency is added.
+type UserLoginServiceDependencies struct {
+	UserRepo          output.UserRepository
+	UserNameValidator input.Validator
+	PasswordValidator input.Validator
+	TokenService      output.TokenService
+	CSRFService       output.CSRFService
+	Hasher            security_auth.Hasher
+}
+
 // NewUserLoginService initializes a UserLoginService with all necessary
 // infrastructure and domain dependencies.
 
 // Parameters:
-//   - userRepo: persistence adapter for user data.
-//   - userNameValidator/passwordValidator: business rule engines for input integrity.
-//   - csrfService/csrfCookieSetter: components for cross-site request forgery protection.
+//   - deps: persistence, validation, hashing, token, and CSRF collaborators
+//     required by the login flow.
 //
 // Returns:
 //   - input.UserServiceLogin: the abstracted login service interface.
-func NewUserLoginService(userRepo output.UserRepository, userNameValidator, passwordValidator input.Validator, tokenService output.TokenService, csrfService output.CSRFService, hasher security_auth.Hasher) input.UserServiceLogin {
+func NewUserLoginService(deps UserLoginServiceDependencies) input.UserServiceLogin {
 	return &UserLoginService{
 		BaseAuthService: BaseAuthService{
-			UserRepo:          userRepo,
-			UserNameValidator: userNameValidator,
-			PasswordValidator: passwordValidator,
-			TokenService:      tokenService,
-			CSRFService:       csrfService,
-			Hasher:            hasher,
+			UserRepo:          deps.UserRepo,
+			UserNameValidator: deps.UserNameValidator,
+			PasswordValidator: deps.PasswordValidator,
+			TokenService:      deps.TokenService,
+			CSRFService:       deps.CSRFService,
+			Hasher:            deps.Hasher,
 		},
 	}
 }

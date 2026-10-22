@@ -59,19 +59,19 @@ func NewRouter(deps RouterDependencies) *mux.Router {
 	router := mux.NewRouter()
 
 	// 2. Build all HTTP handlers using the reusable helper
-	handlers := buildHandlers(
-		deps.UserServiceLogin,
-		deps.UserServiceRegister,
-		deps.UserVerificationService,
-		deps.ReviewGetService,
-		deps.ReviewAddService,
-		deps.StaticFileService,
-		deps.ProductsGetService,
-		deps.CSRFService,
-		deps.TokenService,
-		deps.BlacklistRepo,
-		deps.IsProduction,
-	)
+	handlers := buildHandlers(HandlerDependencies{
+		UserServiceLogin:        deps.UserServiceLogin,
+		UserServiceRegister:     deps.UserServiceRegister,
+		UserVerificationService: deps.UserVerificationService,
+		ReviewGetService:        deps.ReviewGetService,
+		ReviewAddService:        deps.ReviewAddService,
+		StaticFileService:       deps.StaticFileService,
+		ProductsGetService:      deps.ProductsGetService,
+		CSRFService:             deps.CSRFService,
+		TokenService:            deps.TokenService,
+		BlacklistRepo:           deps.BlacklistRepo,
+		IsProduction:            deps.IsProduction,
+	})
 
 	// 3. Configure global middleware using the reusable helper
 	middlewareManager := configureMiddleware(router)
