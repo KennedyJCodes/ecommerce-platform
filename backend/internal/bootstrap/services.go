@@ -71,7 +71,14 @@ func SetupUserService(userRepo output.UserRepository, pendingUserRepository outp
 	hasher := &security_auth.BcryptHasher{}
 	codeVerificationService := service_code_verification.NewCodeVerificationService()
 
-	return service_auth.NewUserLoginService(userRepo, userNameValidator, passwordValidator, tokenService, csrfService, hasher),
+	return service_auth.NewUserLoginService(service_auth.UserLoginServiceDependencies{
+			UserRepo:          userRepo,
+			UserNameValidator: userNameValidator,
+			PasswordValidator: passwordValidator,
+			TokenService:      tokenService,
+			CSRFService:       csrfService,
+			Hasher:            hasher,
+		}),
 		service_auth.NewUserRegisterService(service_auth.UserRegisterServiceDependencies{
 			UserRepo:                userRepo,
 			PendingUserRepository:   pendingUserRepository,
