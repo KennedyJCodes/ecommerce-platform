@@ -49,20 +49,20 @@ func (s *UserVerificationService) Verify(ctx context.Context, pendingUserID stri
 	}
 
 	// 1. Consume an attempt BEFORE comparing the code.
-	attempts, err := s.pendingUserRepository.RegisterVerificationAttempt(pendingUserID, maxVerificationAttempts)
+	attempts, err := s.pendingUserRepository.RegisterVerificationAttempt(ctx, pendingUserID, maxVerificationAttempts)
 	if err != nil {
 		return nil, "", err
 	}
 
-	hashCode, err := s.pendingUserRepository.GetPendingUserHashCode(pendingUserID)
+	hashCode, err := s.pendingUserRepository.GetPendingUserHashCode(ctx, pendingUserID)
 	if err != nil {
 		return nil, "", err
 	}
-	
+
 	// 2. Wrong code: if this was the last allowed attempt, delete the pending user.
 	if err := s.hasher.Compare([]byte(code), hashCode); err != nil {
 		if attempts >= maxVerificationAttempts {
-			if delErr := s.pendingUserRepository.DeletePendingUser(pendingUserID); delErr != nil {
+			if delErr := s.pendingUserRepository.DeletePendingUser(ctx, pendingUserID); delErr != nil {
 				return nil, "", delErr
 			}
 			return nil, "", appErrors.NewTooManyRequestsError(appErrors.ErrTooManyVerificationAttempts)
@@ -70,7 +70,7 @@ func (s *UserVerificationService) Verify(ctx context.Context, pendingUserID stri
 		return nil, "", appErrors.NewAuthError(appErrors.ErrInvalidCredentials)
 	}
 
-	pendingUser, err := s.pendingUserRepository.GetPendingUser(pendingUserID)
+	pendingUser, err := s.pendingUserRepository.GetPendingUser(ctx, pendingUserID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -85,7 +85,7 @@ func (s *UserVerificationService) Verify(ctx context.Context, pendingUserID stri
 		return nil, "", err
 	}
 
-	if err := s.pendingUserRepository.DeletePendingUser(pendingUserID); err != nil {
+	if err := s.pendingUserRepository.DeletePendingUser(ctx, pendingUserID); err != nil {
 		return nil, "", err
 	}
 
@@ -98,7 +98,7 @@ func (s *UserVerificationService) Verify(ctx context.Context, pendingUserID stri
 		return nil, "", appErrors.NewInternalError(appErrors.ErrTokenGeneration).WithError(err)
 	}
 
-	csrfToken, err := s.csrfService.GenerateToken(strconv.FormatUint(user.UserID, 10))
+	csrfToken, err := s.csrfService.GenerateToken(ctx, strconv.FormatUint(user.UserID, 10))
 	if err != nil {
 		return nil, "", appErrors.NewInternalError(appErrors.ErrTokenGeneration).WithError(err)
 	}

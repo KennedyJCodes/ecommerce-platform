@@ -15,10 +15,7 @@ import (
 // RedisCSRFRepository implements a repository for CSRF tokens using Redis as the backend store.
 // It leverages Redis key-value storage to manage security tokens associated with user sessions.
 type RedisCSRFRepository struct {
-	// client: the Redis client used to execute commands.
 	client *redis.Client
-	// context: the background context for Redis operations.
-	context context.Context
 }
 
 // NewRedisCSRFRepository creates and returns a new instance of RedisCSRFRepository.
@@ -26,8 +23,7 @@ type RedisCSRFRepository struct {
 //   - client: an initialized *redis.Client connection.
 func NewRedisCSRFRepository(client *redis.Client) *RedisCSRFRepository {
 	return &RedisCSRFRepository{
-		client:  client,
-		context: context.Background(),
+		client: client,
 	}
 }
 
@@ -39,7 +35,7 @@ func NewRedisCSRFRepository(client *redis.Client) *RedisCSRFRepository {
 //
 // Returns:
 //   - error: an error if serialization or the Redis SET command fails.
-func (r *RedisCSRFRepository) Save(token *models_security.CSRFToken) error {
+func (r *RedisCSRFRepository) Save(ctx context.Context, token *models_security.CSRFToken) error {
 	data, err := json.Marshal(token)
 	if err != nil {
 		return err
@@ -49,7 +45,7 @@ func (r *RedisCSRFRepository) Save(token *models_security.CSRFToken) error {
 	// Calculate TTL dynamically based on the distance to ExpiresAt.
 	timeToLive := time.Until(token.ExpiresAt)
 
-	return r.client.Set(r.context, key, data, timeToLive).Err()
+	return r.client.Set(ctx, key, data, timeToLive).Err()
 }
 
 // Find retrieves a CSRF token from Redis for a specific user.
@@ -61,9 +57,9 @@ func (r *RedisCSRFRepository) Save(token *models_security.CSRFToken) error {
 // Returns:
 //   - *models_security.CSRFToken: the retrieved token if found.
 //   - error: a NotFoundError if missing, or InternalError for other Redis/parsing failures.
-func (r *RedisCSRFRepository) Find(userID string) (*models_security.CSRFToken, error) {
+func (r *RedisCSRFRepository) Find(ctx context.Context, userID string) (*models_security.CSRFToken, error) {
 	key := "csrf:" + userID
-	data, err := r.client.Get(r.context, key).Bytes()
+	data, err := r.client.Get(ctx, key).Bytes()
 	if err == redis.Nil {
 		// Specific mapping for expired or non-existent keys in Redis.
 		return nil, errors.NewNotFoundError(errors.ErrCSRFTokenNotFound)
@@ -86,7 +82,7 @@ func (r *RedisCSRFRepository) Find(userID string) (*models_security.CSRFToken, e
 //
 // Returns:
 //   - error: an error if the Redis DEL command fails.
-func (r *RedisCSRFRepository) Delete(userID string) error {
+func (r *RedisCSRFRepository) Delete(ctx context.Context, userID string) error {
 	key := "csrf:" + userID
-	return r.client.Del(r.context, key).Err()
+	return r.client.Del(ctx, key).Err()
 }

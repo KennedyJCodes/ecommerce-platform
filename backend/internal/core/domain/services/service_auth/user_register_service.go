@@ -92,7 +92,7 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 		ID: userID, Username: request.UserName, PasswordHash: string(passwordHash),
 		Email: request.Email, HashCode: string(codeHash), Attempts: 0,
 	}
-	if err := r.PendingUserRepository.SavePendingUser(pendingUser, pendingUserTTL); err != nil {
+	if err := r.PendingUserRepository.SavePendingUser(ctx, pendingUser, pendingUserTTL); err != nil {
 		return "", err
 	}
 

@@ -78,7 +78,7 @@ func (l *UserLoginService) Login(ctx context.Context, request dto.LoginRequest) 
 	}
 
 	userIDStr := fmt.Sprintf("%d", user.UserID)
-	csrfToken, err := l.GenerateCSRFToken(userIDStr)
+	csrfToken, err := l.GenerateCSRFToken(ctx, userIDStr)
 	if err != nil {
 		return nil, "", err
 	}

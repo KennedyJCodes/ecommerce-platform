@@ -32,14 +32,15 @@ func TestPendingUserRepositorySaveGetAndDelete(t *testing.T) {
 		Attempts:     2,
 	}
 
-	if err := repository.SavePendingUser(pendingUser, time.Minute); err != nil {
+	ctx := context.Background()
+	if err := repository.SavePendingUser(ctx, pendingUser, time.Minute); err != nil {
 		t.Fatalf("SavePendingUser() error = %v", err)
 	}
-	hashCode, err := repository.GetPendingUserHashCode(pendingUser.ID)
+	hashCode, err := repository.GetPendingUserHashCode(ctx, pendingUser.ID)
 	if err != nil || hashCode != pendingUser.HashCode {
 		t.Fatalf("GetPendingUserHashCode() = %q, %v; want %q, nil", hashCode, err, pendingUser.HashCode)
 	}
-	got, err := repository.GetPendingUser(pendingUser.ID)
+	got, err := repository.GetPendingUser(ctx, pendingUser.ID)
 	if err != nil {
 		t.Fatalf("GetPendingUser() error = %v", err)
 	}
@@ -47,10 +48,10 @@ func TestPendingUserRepositorySaveGetAndDelete(t *testing.T) {
 		t.Fatalf("GetPendingUser() = %+v, want %+v", got, pendingUser)
 	}
 
-	if err := repository.DeletePendingUser(pendingUser.ID); err != nil {
+	if err := repository.DeletePendingUser(ctx, pendingUser.ID); err != nil {
 		t.Fatalf("DeletePendingUser() error = %v", err)
 	}
-	if _, err := repository.GetPendingUserHashCode(pendingUser.ID); err == nil {
+	if _, err := repository.GetPendingUserHashCode(ctx, pendingUser.ID); err == nil {
 		t.Fatal("GetPendingUserHashCode() error = nil after deletion")
 	}
 }
@@ -58,13 +59,14 @@ func TestPendingUserRepositorySaveGetAndDelete(t *testing.T) {
 func TestPendingUserRepositoryMissingUser(t *testing.T) {
 	repository, _ := newPendingUserRepositoryForTest(t)
 
-	if _, err := repository.GetPendingUser("missing"); err == nil {
+	ctx := context.Background()
+	if _, err := repository.GetPendingUser(ctx, "missing"); err == nil {
 		t.Fatal("GetPendingUser() error = nil for missing user")
 	}
-	if _, err := repository.GetPendingUserHashCode("missing"); err == nil {
+	if _, err := repository.GetPendingUserHashCode(ctx, "missing"); err == nil {
 		t.Fatal("GetPendingUserHashCode() error = nil for missing user")
 	}
-	if _, err := repository.RegisterVerificationAttempt("missing", 5); err == nil {
+	if _, err := repository.RegisterVerificationAttempt(ctx, "missing", 5); err == nil {
 		t.Fatal("RegisterVerificationAttempt() error = nil for missing user")
 	}
 }
@@ -76,18 +78,19 @@ func TestPendingUserRepositoryRegisterVerificationAttempt(t *testing.T) {
 		HashCode: "code-hash",
 		Attempts: 0,
 	}
-	if err := repository.SavePendingUser(pendingUser, time.Minute); err != nil {
+	ctx := context.Background()
+	if err := repository.SavePendingUser(ctx, pendingUser, time.Minute); err != nil {
 		t.Fatalf("SavePendingUser() error = %v", err)
 	}
 
 	for want, i := 1, 1; i <= 5; want, i = want+1, i+1 {
-		got, err := repository.RegisterVerificationAttempt(pendingUser.ID, 5)
+		got, err := repository.RegisterVerificationAttempt(ctx, pendingUser.ID, 5)
 		if err != nil || got != want {
 			t.Fatalf("RegisterVerificationAttempt() = %d, %v; want %d, nil", got, err, want)
 		}
 	}
 
-	if _, err := repository.RegisterVerificationAttempt(pendingUser.ID, 5); err == nil {
+	if _, err := repository.RegisterVerificationAttempt(ctx, pendingUser.ID, 5); err == nil {
 		t.Fatal("RegisterVerificationAttempt() error = nil after max attempts")
 	}
 	if exists, err := client.Exists(context.Background(), "pending_user:"+pendingUser.ID).Result(); err != nil || exists != 0 {

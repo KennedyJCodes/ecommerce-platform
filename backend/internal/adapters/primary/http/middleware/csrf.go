@@ -84,13 +84,13 @@ func (m *CSRFMiddleware) ProtectCR(next http.Handler) http.Handler {
 		}
 
 		// 4. Cryptographic/Logical validation via service (consumes the old token)
-		if err := m.service.ValidateToken(cookie.Value, userID); err != nil {
+		if err := m.service.ValidateToken(r.Context(), cookie.Value, userID); err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
 		// 5. Generate a new CSRF token for the next request (token rotation)
-		newToken, err := m.service.GenerateToken(userID)
+		newToken, err := m.service.GenerateToken(r.Context(), userID)
 		if err == nil {
 			cookies.SetCSRFCookie(w, newToken, m.isProduction)
 			w.Header().Set("X-CSRF-Token", newToken)

@@ -27,22 +27,22 @@ type pendingUserRepositoryMock struct {
 	deleteErr   error
 }
 
-func (m *pendingUserRepositoryMock) SavePendingUser(*modelsdb.PendingUser, time.Duration) error {
+func (m *pendingUserRepositoryMock) SavePendingUser(context.Context, *modelsdb.PendingUser, time.Duration) error {
 	return nil
 }
-func (m *pendingUserRepositoryMock) GetPendingUserHashCode(string) (string, error) {
+func (m *pendingUserRepositoryMock) GetPendingUserHashCode(context.Context, string) (string, error) {
 	if m.hashCodeErr != nil {
 		return "", m.hashCodeErr
 	}
 	return m.hashCode, nil
 }
-func (m *pendingUserRepositoryMock) GetPendingUser(string) (*modelsdb.PendingUser, error) {
+func (m *pendingUserRepositoryMock) GetPendingUser(context.Context, string) (*modelsdb.PendingUser, error) {
 	if m.getUserErr != nil {
 		return nil, m.getUserErr
 	}
 	return m.pendingUser, nil
 }
-func (m *pendingUserRepositoryMock) RegisterVerificationAttempt(string, int) (int, error) {
+func (m *pendingUserRepositoryMock) RegisterVerificationAttempt(context.Context, string, int) (int, error) {
 	if m.attemptErr != nil {
 		return 0, m.attemptErr
 	}
@@ -51,7 +51,7 @@ func (m *pendingUserRepositoryMock) RegisterVerificationAttempt(string, int) (in
 	}
 	return m.attempts, nil
 }
-func (m *pendingUserRepositoryMock) DeletePendingUser(string) error {
+func (m *pendingUserRepositoryMock) DeletePendingUser(context.Context, string) error {
 	m.deleted = true
 	return m.deleteErr
 }
@@ -90,11 +90,11 @@ func (m *tokenServiceMock) ValidateToken(string) (*models_auth.Claims, error) { 
 
 type csrfServiceMock struct{ userID string }
 
-func (m *csrfServiceMock) GenerateToken(userID string) (string, error) {
+func (m *csrfServiceMock) GenerateToken(_ context.Context, userID string) (string, error) {
 	m.userID = userID
 	return "csrf-token", nil
 }
-func (m *csrfServiceMock) ValidateToken(string, string) error { return nil }
+func (m *csrfServiceMock) ValidateToken(context.Context, string, string) error { return nil }
 
 // ---------- Helpers ----------
 

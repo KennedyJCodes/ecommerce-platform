@@ -14,8 +14,7 @@ import (
 
 // RedisPendingUserRepository stores pending users as Redis Hashes.
 type RedisPendingUserRepository struct {
-	client  *redis.Client
-	context context.Context
+	client *redis.Client
 }
 
 var _ output.PendingUserRepository = (*RedisPendingUserRepository)(nil)
@@ -36,15 +35,14 @@ var registerAttemptScript = redis.NewScript(`
 // NewRedisPendingUserRepository creates a repository backed by Redis.
 func NewRedisPendingUserRepository(client *redis.Client) output.PendingUserRepository {
 	return &RedisPendingUserRepository{
-		client:  client,
-		context: context.Background(),
+		client: client,
 	}
 }
 
 // GetPendingUser retrieves a pending user from its Redis Hash.
-func (r *RedisPendingUserRepository) GetPendingUser(userID string) (*modelsdb.PendingUser, error) {
+func (r *RedisPendingUserRepository) GetPendingUser(ctx context.Context, userID string) (*modelsdb.PendingUser, error) {
 	key := "pending_user:" + userID
-	fields, err := r.client.HGetAll(r.context, key).Result()
+	fields, err := r.client.HGetAll(ctx, key).Result()
 	if err != nil {
 		return nil, appErrors.NewInternalError(appErrors.ErrDatabaseQuery).WithError(err)
 	}
@@ -68,9 +66,9 @@ func (r *RedisPendingUserRepository) GetPendingUser(userID string) (*modelsdb.Pe
 }
 
 // GetPendingUserHashCode retrieves only the verification-code hash from a pending user Redis Hash.
-func (r *RedisPendingUserRepository) GetPendingUserHashCode(userID string) (string, error) {
+func (r *RedisPendingUserRepository) GetPendingUserHashCode(ctx context.Context, userID string) (string, error) {
 	key := "pending_user:" + userID
-	hashCode, err := r.client.HGet(r.context, key, "hash_code").Result()
+	hashCode, err := r.client.HGet(ctx, key, "hash_code").Result()
 	if err == redis.Nil {
 		return "", appErrors.NewNotFoundError(appErrors.ErrUserNotFound)
 	}
@@ -81,9 +79,9 @@ func (r *RedisPendingUserRepository) GetPendingUserHashCode(userID string) (stri
 	return hashCode, nil
 }
 
-func (r *RedisPendingUserRepository) RegisterVerificationAttempt(userID string, maxAttempts int) (int, error) {
+func (r *RedisPendingUserRepository) RegisterVerificationAttempt(ctx context.Context, userID string, maxAttempts int) (int, error) {
 	key := "pending_user:" + userID
-	result, err := registerAttemptScript.Run(r.context, r.client, []string{key}, maxAttempts).Int()
+	result, err := registerAttemptScript.Run(ctx, r.client, []string{key}, maxAttempts).Int()
 	if err != nil {
 		return 0, appErrors.NewInternalError(appErrors.ErrDatabaseUpdate).WithError(err)
 	}
@@ -97,7 +95,7 @@ func (r *RedisPendingUserRepository) RegisterVerificationAttempt(userID string, 
 }
 
 // SavePendingUser stores every pending-user field in a Redis Hash and applies its TTL.
-func (r *RedisPendingUserRepository) SavePendingUser(user *modelsdb.PendingUser, ttl time.Duration) error {
+func (r *RedisPendingUserRepository) SavePendingUser(ctx context.Context, user *modelsdb.PendingUser, ttl time.Duration) error {
 	key := "pending_user:" + user.ID
 	fields := map[string]interface{}{
 		"id":            user.ID,
@@ -109,16 +107,16 @@ func (r *RedisPendingUserRepository) SavePendingUser(user *modelsdb.PendingUser,
 	}
 
 	pipeline := r.client.TxPipeline()
-	pipeline.HSet(r.context, key, fields)
-	pipeline.Expire(r.context, key, ttl)
-	_, err := pipeline.Exec(r.context)
+	pipeline.HSet(ctx, key, fields)
+	pipeline.Expire(ctx, key, ttl)
+	_, err := pipeline.Exec(ctx)
 	return err
 }
 
 // DeletePendingUser removes a pending user from Redis after verification.
-func (r *RedisPendingUserRepository) DeletePendingUser(userID string) error {
+func (r *RedisPendingUserRepository) DeletePendingUser(ctx context.Context, userID string) error {
 	key := "pending_user:" + userID
-	if err := r.client.Del(r.context, key).Err(); err != nil {
+	if err := r.client.Del(ctx, key).Err(); err != nil {
 		return appErrors.NewInternalError(appErrors.ErrDatabaseDelete).WithError(err)
 	}
 	return nil
