@@ -1,7 +1,11 @@
 // Package input defines service contracts for comment-related business logic, user operations, and input validation.
 package input
 
-import "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/review"
+import (
+	"context"
+
+	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/review"
+)
 
 // ReviewGetService handles retrieval of reviews.
 type ReviewGetService interface {
@@ -9,5 +13,5 @@ type ReviewGetService interface {
 	// Returns:
 	//   - []models_review.Review: list of reviews including metadata.
 	//   - error: non-nil if the query fails.
-	AllReviews() ([]models_review.Review, error)
+	AllReviews(ctx context.Context) ([]models_review.Review, error)
 }

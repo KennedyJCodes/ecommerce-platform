@@ -69,7 +69,7 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blacklisted, err := h.blacklistRepo.IsBlacklisted(claims.ID)
+	blacklisted, err := h.blacklistRepo.IsBlacklisted(r.Context(), claims.ID)
 	if err != nil || blacklisted {
 		httpUtil.HandleError(w, errors.NewAuthError("Refresh token revoked"))
 		return
@@ -98,7 +98,7 @@ func (h *RefreshHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.blacklistRepo.Add(claims.ID, ttl); err != nil {
+	if err := h.blacklistRepo.Add(r.Context(), claims.ID, ttl); err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error revoking refresh token"))
 		return
 	}

@@ -71,7 +71,7 @@ func (h *LogoutHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if claims.ID != "" {
-		if err := h.blacklistRepo.Add(claims.ID, ttl); err != nil {
+		if err := h.blacklistRepo.Add(r.Context(), claims.ID, ttl); err != nil {
 			httpUtil.HandleError(w, errors.NewInternalError("Error logging out"))
 			return
 		}
@@ -90,7 +90,7 @@ func (h *LogoutHandler) Handle(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if refreshClaims.ID != "" {
-				_ = h.blacklistRepo.Add(refreshClaims.ID, refreshTTL)
+				_ = h.blacklistRepo.Add(r.Context(), refreshClaims.ID, refreshTTL)
 			}
 		}
 	}

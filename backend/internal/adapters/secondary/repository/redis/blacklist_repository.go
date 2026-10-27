@@ -13,10 +13,7 @@ import (
 // It leverages Redis key-value storage to track revoked JWT tokens, with automatic expiration
 // aligned to each token's remaining validity period.
 type RedisBlacklistRepository struct {
-	// client: the Redis client used to execute commands.
 	client *redis.Client
-	// context: the background context for Redis operations.
-	context context.Context
 }
 
 // NewRedisBlacklistRepository creates and returns a new instance of RedisBlacklistRepository.
@@ -24,8 +21,7 @@ type RedisBlacklistRepository struct {
 //   - client: an initialized *redis.Client connection.
 func NewRedisBlacklistRepository(client *redis.Client) *RedisBlacklistRepository {
 	return &RedisBlacklistRepository{
-		client:  client,
-		context: context.Background(),
+		client: client,
 	}
 }
 
@@ -36,9 +32,9 @@ func NewRedisBlacklistRepository(client *redis.Client) *RedisBlacklistRepository
 //   - ttl: the duration for which the token should remain blacklisted.
 // Returns:
 //   - error: an error if the Redis SET command fails.
-func (r *RedisBlacklistRepository) Add(jti string, ttl time.Duration) error {
+func (r *RedisBlacklistRepository) Add(ctx context.Context, jti string, ttl time.Duration) error {
 	key := "blacklist:" + jti
-	return r.client.Set(r.context, key, "1", ttl).Err()
+	return r.client.Set(ctx, key, "1", ttl).Err()
 }
 
 // IsBlacklisted checks whether a given JWT ID exists in the blacklist.
@@ -48,9 +44,9 @@ func (r *RedisBlacklistRepository) Add(jti string, ttl time.Duration) error {
 // Returns:
 //   - bool: true if the token is blacklisted (revoked).
 //   - error: an error if the Redis GET command fails.
-func (r *RedisBlacklistRepository) IsBlacklisted(jti string) (bool, error) {
+func (r *RedisBlacklistRepository) IsBlacklisted(ctx context.Context, jti string) (bool, error) {
 	key := "blacklist:" + jti
-	_, err := r.client.Get(r.context, key).Result()
+	_, err := r.client.Get(ctx, key).Result()
 	if err == redis.Nil {
 		return false, nil
 	}

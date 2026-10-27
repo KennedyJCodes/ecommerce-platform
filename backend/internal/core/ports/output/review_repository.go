@@ -2,6 +2,8 @@
 package output
 
 import (
+	"context"
+
 	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/review"
 )
 
@@ -11,7 +13,7 @@ type ReviewRepository interface {
 	// Returns:
 	//   - []models_review.Review: slice of reviews.
 	//   - error: non-nil if retrieval fails.
-	GetReviews() ([]models_review.Review, error)
+	GetReviews(ctx context.Context) ([]models_review.Review, error)
 
 	// SaveReview stores a new review with associated user ID and rating.
 	// Parameters:
@@ -19,5 +21,5 @@ type ReviewRepository interface {
 	//   - review:  The review object to be saved.
 	// Returns:
 	//   - error: non-nil if persistence fails.
-	SaveReview(userID int, review models_review.Review) error
+	SaveReview(ctx context.Context, userID int, review models_review.Review) error
 }

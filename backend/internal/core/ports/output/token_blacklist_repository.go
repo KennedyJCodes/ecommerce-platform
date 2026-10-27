@@ -2,7 +2,10 @@
 // This file contains the TokenBlacklistPort interface for managing revoked JWT tokens.
 package output
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // TokenBlacklistPort defines the contract for persisting and querying revoked JWT tokens.
 // Implementations handle the storage and retrieval of blacklisted token identifiers (jti),
@@ -15,7 +18,7 @@ type TokenBlacklistPort interface {
 	//   - ttl: the duration for which the token should remain blacklisted.
 	// Returns:
 	//   - error: non-nil if the storage operation fails.
-	Add(jti string, ttl time.Duration) error
+	Add(ctx context.Context, jti string, ttl time.Duration) error
 
 	// IsBlacklisted checks whether a given token identifier has been revoked.
 	// Parameters:
@@ -23,5 +26,5 @@ type TokenBlacklistPort interface {
 	// Returns:
 	//   - bool: true if the token is blacklisted (revoked).
 	//   - error: non-nil if the query operation fails.
-	IsBlacklisted(jti string) (bool, error)
+	IsBlacklisted(ctx context.Context, jti string) (bool, error)
 }

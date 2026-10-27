@@ -30,7 +30,7 @@ func NewReviewsGetHandler(reviewService input.ReviewGetService) *ReviewsGetHandl
 
 // It calls the GetReviews method of the commentService to fetch reviews. If an error occurs during the retrieval, it sends an HTTP error response with a 500 (Internal Server Error) status using a utility function. If successful, it returns the reviews in JSON format with an HTTP 200 (OK) status.
 func (h *ReviewsGetHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	comments, err := h.ReviewService.AllReviews()
+	comments, err := h.ReviewService.AllReviews(r.Context())
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error getting feedback"))
 		return
