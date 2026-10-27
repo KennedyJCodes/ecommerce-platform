@@ -2,6 +2,7 @@
 package output
 
 import (
+	"context"
 	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/security"
 )
 
@@ -13,7 +14,7 @@ type CSRFRepository interface {
 	//   - token: Pointer to the CSRFToken model containing value and expiration data.
 	// Returns:
 	//   - error: non-nil if the storage operation fails.
-	Save(token *models_security.CSRFToken) error
+	Save(ctx context.Context, token *models_security.CSRFToken) error
 
 	// Find retrieves a specific CSRF token record by its value.
 	// Parameters:
@@ -21,7 +22,7 @@ type CSRFRepository interface {
 	// Returns:
 	//   - *models_security.CSRFToken: pointer to the found token model.
 	//   - error: non-nil if the token does not exist or the query fails.
-	Find(value string) (*models_security.CSRFToken, error)
+	Find(ctx context.Context, value string) (*models_security.CSRFToken, error)
 
 	// Delete removes a CSRF token from the storage.
 	// This should be used during logout or after a token has been consumed/expired.
@@ -29,5 +30,5 @@ type CSRFRepository interface {
 	//   - value: The unique string value of the token to be deleted.
 	// Returns:
 	//   - error: non-nil if the deletion fails.
-	Delete(value string) error
+	Delete(ctx context.Context, value string) error
 }

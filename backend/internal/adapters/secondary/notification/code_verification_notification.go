@@ -2,6 +2,7 @@ package notification
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,8 +18,8 @@ type codeVerificationNotification struct {
 
 func NewCodeVerificationNotification(apiKey, fromEmail string) *codeVerificationNotification {
 	return &codeVerificationNotification{
-		apiKey:     apiKey,
-		fromEmail:  fromEmail,
+		apiKey:    apiKey,
+		fromEmail: fromEmail,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -32,7 +33,7 @@ type CodeVerificationPayload struct {
 	HTML    string   `json:"html"`
 }
 
-func (m *codeVerificationNotification) SendCodeVerification(to string, code string) error {
+func (m *codeVerificationNotification) SendCodeVerification(ctx context.Context, to string, code string) error {
 	payload := CodeVerificationPayload{
 		From:    m.fromEmail,
 		To:      []string{to},
@@ -45,7 +46,7 @@ func (m *codeVerificationNotification) SendCodeVerification(to string, code stri
 		return fmt.Errorf("error serializing payload: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, "https://api.resend.com/emails", bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("error creating request: %w", err)
 	}
@@ -60,7 +61,7 @@ func (m *codeVerificationNotification) SendCodeVerification(to string, code stri
 
 	if resp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-    	return fmt.Errorf("resend responded with status %d: %s", resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("resend responded with status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	return nil

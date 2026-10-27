@@ -2,6 +2,7 @@
 package service_csrf
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"time"
@@ -28,7 +29,7 @@ func NewCSRFUseCase(repo output.CSRFRepository, timeToLive time.Duration) *CSRFU
 
 // GenerateToken creates a cryptographically secure random token for a specific user.
 // The token is encoded in Base64 (URL Safe) and persisted with an expiration timestamp.
-func (uc *CSRFUseCase) GenerateToken(userID string) (string, error) {
+func (uc *CSRFUseCase) GenerateToken(ctx context.Context, userID string) (string, error) {
 	if userID == "" {
 		return "", errors.NewValidationError(errors.ErrEmptyField)
 	}
@@ -49,7 +50,7 @@ func (uc *CSRFUseCase) GenerateToken(userID string) (string, error) {
 		ExpiresAt: now.Add(uc.timeToLive),
 	}
 
-	if err := uc.repository.Save(token); err != nil {
+	if err := uc.repository.Save(ctx, token); err != nil {
 		return "", errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
 
@@ -59,8 +60,8 @@ func (uc *CSRFUseCase) GenerateToken(userID string) (string, error) {
 // ValidateToken verifies if the provided token matches the stored value for the user.
 // It also checks for expiration; if the token is expired, it is removed from the repository.
 // On success, the token is consumed (deleted) to enforce single-use policy.
-func (uc *CSRFUseCase) ValidateToken(tokenValue string, userID string) error {
-	token, err := uc.repository.Find(userID)
+func (uc *CSRFUseCase) ValidateToken(ctx context.Context, tokenValue string, userID string) error {
+	token, err := uc.repository.Find(ctx, userID)
 	if err != nil {
 		return errors.NewNotFoundError(errors.ErrCSRFTokenNotFound)
 	}
@@ -71,12 +72,12 @@ func (uc *CSRFUseCase) ValidateToken(tokenValue string, userID string) error {
 
 	// Check if token has exceeded its TTL
 	if !token.IsValid() {
-		_ = uc.repository.Delete(userID)
+		_ = uc.repository.Delete(ctx, userID)
 		return errors.NewNotFoundError(errors.ErrCSRFTokenExpired)
 	}
 
 	// Consume the token (single-use policy)
-	if err := uc.repository.Delete(userID); err != nil {
+	if err := uc.repository.Delete(ctx, userID); err != nil {
 		return errors.NewInternalError(errors.ErrCSRFDelete).WithError(err)
 	}
 

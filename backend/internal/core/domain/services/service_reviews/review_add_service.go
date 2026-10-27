@@ -2,6 +2,7 @@
 package service_reviews
 
 import (
+	"context"
 	dto "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/dto/review"
 	models_review "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/review"
 	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
@@ -30,7 +31,7 @@ type ReviewAddService struct {
 //   - input.ReviewAddService: service to add new reviews.
 func NewReviewAddService(reviewRepository output.ReviewRepository, reviewValidate input.Validator) input.ReviewAddService {
 	return &ReviewAddService{
-		ReviewRepository: reviewRepository, 
+		ReviewRepository: reviewRepository,
 		ReviewValidate:   reviewValidate,
 	}
 }
@@ -49,7 +50,7 @@ func NewReviewAddService(reviewRepository output.ReviewRepository, reviewValidat
 
 // Returns:
 //   - error: nil on success, or a validation/InternalError on failure.
-func (s *ReviewAddService) AddReview(userID int, request dto.ReviewRequest) error {
+func (s *ReviewAddService) AddReview(ctx context.Context, userID int, request dto.ReviewRequest) error {
 	validationData := ReviewValidationData{
 		Content: request.Content,
 		Rating:  request.Rating,
@@ -65,7 +66,7 @@ func (s *ReviewAddService) AddReview(userID int, request dto.ReviewRequest) erro
 		Rating:  request.Rating,
 	}
 
-	err = s.ReviewRepository.SaveReview(userID, newReview)
+	err = s.ReviewRepository.SaveReview(ctx, userID, newReview)
 	if err != nil {
 		return errors.NewInternalError("Error Saving Review").WithError(err)
 	}

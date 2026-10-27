@@ -19,8 +19,8 @@ import (
 //  3. Orchestrating the generation of session (JWT) and security (CSRF) tokens.
 type BaseAuthService struct {
 	// UserRepo: output port for user data persistence and existence checks.
-	UserRepo              output.UserRepository
-	
+	UserRepo output.UserRepository
+
 	PendingUserRepository output.PendingUserRepository
 
 	// UserNameValidator: strategy to enforce username complexity and format rules.
@@ -113,12 +113,12 @@ func (b *BaseAuthService) GenerateTokenPair(userId int, username string) (*model
 // GenerateCSRFToken creates a CSRF token for the given userID.
 // It fails silently if CSRFService is not configured, allowing for optional CSRF flows.
 // Returns the generated token string, or an empty string and nil if CSRF is disabled.
-func (b *BaseAuthService) GenerateCSRFToken(userID string) (string, error) {
+func (b *BaseAuthService) GenerateCSRFToken(ctx context.Context, userID string) (string, error) {
 	if b.CSRFService == nil {
 		return "", nil
 	}
 
-	csrfToken, err := b.CSRFService.GenerateToken(userID)
+	csrfToken, err := b.CSRFService.GenerateToken(ctx, userID)
 	if err != nil {
 		return "", errors.NewInternalError(errors.ErrTokenGeneration).WithError(err)
 	}
@@ -126,8 +126,8 @@ func (b *BaseAuthService) GenerateCSRFToken(userID string) (string, error) {
 	return csrfToken, nil
 }
 
-func (b *BaseAuthService) SendCodeVerification(email string, code string) error {
-	emailErr := b.CodeVerificationSender.SendCodeVerification(email, code)
+func (b *BaseAuthService) SendCodeVerification(ctx context.Context, email string, code string) error {
+	emailErr := b.CodeVerificationSender.SendCodeVerification(ctx, email, code)
 	if emailErr != nil {
 		return errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(emailErr)
 	}

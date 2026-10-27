@@ -61,7 +61,7 @@ func (h *ReviewsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// Step 2: Decode JSON body
 	var review dto.ReviewRequest
-		if err := httpUtil.DecodeJSONBody(w, r, &review, httpUtil.MaxCommentBodySize); err != nil {
+	if err := httpUtil.DecodeJSONBody(w, r, &review, httpUtil.MaxCommentBodySize); err != nil {
 		httpUtil.HandleError(w, err)
 		return
 	}
@@ -76,7 +76,7 @@ func (h *ReviewsAddHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Step 4: Call domain service to add the review
-	err := h.ReviewService.AddReview(userIdInt, review)
+	err := h.ReviewService.AddReview(r.Context(), userIdInt, review)
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError(errors.ErrInternalServer))
 		return

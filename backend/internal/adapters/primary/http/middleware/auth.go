@@ -126,13 +126,13 @@ func AuthMiddleware(options *AuthOptions) Middleware {
 			}
 
 			if claims.Type != string(models_auth.TokenTypeAccess) {
-    			http.Error(w, "Invalid token type", http.StatusUnauthorized)
-   				return
+				http.Error(w, "Invalid token type", http.StatusUnauthorized)
+				return
 			}
 
 			// Check whether the validated token has been revoked.
 			if options.BlacklistRepo != nil {
-				blacklisted, err := options.BlacklistRepo.IsBlacklisted(claims.ID)
+				blacklisted, err := options.BlacklistRepo.IsBlacklisted(r.Context(), claims.ID)
 				if err != nil {
 					http.Error(w, "Internal server error", http.StatusInternalServerError)
 					return
