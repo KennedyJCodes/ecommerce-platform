@@ -3,9 +3,9 @@
 package repository_mysql
 
 import (
+	"context"
 	"database/sql"
 	"errors"
-	"log"
 
 	models_product "github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/product"
 	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/output"
@@ -37,17 +37,15 @@ func NewSqlProductsRepository(db *sqlx.DB) (output.ProductsRepository, error) {
 // Returns:
 //   - []models_product.Product: a slice containing all products in the catalog.
 //   - error: an InternalError if the query execution or scanning fails.
-func (r *SqlProductsRepository) GetProducts() ([]models_product.Product, error) {
+func (r *SqlProductsRepository) GetProducts(ctx context.Context) ([]models_product.Product, error) {
 	var product []models_product.Product
 	const sqlQuery = `
 	SELECT product_id, product_name, product_description, product_price, stock_quantity, brand, image_url, movement_type
 	FROM products`
 
 	// Execute the query and map the entire result set to the product slice.
-	err := r.db.Select(&product, sqlQuery)
+	err := r.db.SelectContext(ctx, &product, sqlQuery)
 	if err != nil {
-		// Wrap low-level DB error in a domain-friendly InternalError.
-		log.Printf("Error executing GetProducts query: %v", err)
 		return nil, Custom_errors.NewInternalError(Custom_errors.ErrDatabaseQuery).WithError(err)
 	}
 
@@ -62,7 +60,7 @@ func (r *SqlProductsRepository) GetProducts() ([]models_product.Product, error) 
 // Returns:
 //   - models.Product: the found product model.
 //   - error: a NotFoundError if the ID does not exist, or a BadRequestError for invalid input formats.
-func (r *SqlProductsRepository) GetProductByID(id int) (models_product.Product, error) {
+func (r *SqlProductsRepository) GetProductByID(ctx context.Context, id int) (models_product.Product, error) {
 	var product models_product.Product
 	const sqlQuery = `
 	SELECT product_id, product_name, product_description, product_price, stock_quantity, brand, image_url, movement_type
@@ -75,7 +73,7 @@ func (r *SqlProductsRepository) GetProductByID(id int) (models_product.Product, 
 	}
 
 	// Use Get for a single row result.
-	err := r.db.Get(&product, sqlQuery, id)
+	err := r.db.GetContext(ctx, &product, sqlQuery, id)
 	if err != nil {
 		// Specific check for no rows to return a domain-friendly 404 error.
 		if errors.Is(err, sql.ErrNoRows) {
@@ -93,7 +91,7 @@ func (r *SqlProductsRepository) GetProductByID(id int) (models_product.Product, 
 //
 // Returns:
 //   - []models_product.Product: a slice of products matching the criteria.
-func (r *SqlProductsRepository) GetProductsByBrand(brand string) ([]models_product.Product, error) {
+func (r *SqlProductsRepository) GetProductsByBrand(ctx context.Context, brand string) ([]models_product.Product, error) {
 	var productByBrand []models_product.Product
 	const sqlQuery = `
 		SELECT product_id, product_name, product_description, product_price, stock_quantity, brand, image_url, movement_type
@@ -101,7 +99,7 @@ func (r *SqlProductsRepository) GetProductsByBrand(brand string) ([]models_produ
 		WHERE brand = ?`
 
 	// Execute parameterized query to filter by brand.
-	err := r.db.Select(&productByBrand, sqlQuery, brand)
+	err := r.db.SelectContext(ctx, &productByBrand, sqlQuery, brand)
 	if err != nil {
 		return []models_product.Product{}, Custom_errors.NewInternalError(Custom_errors.ErrDatabaseQuery).WithError(err)
 	}

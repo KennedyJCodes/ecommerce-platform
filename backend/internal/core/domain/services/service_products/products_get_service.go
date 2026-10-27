@@ -2,7 +2,7 @@
 package service_products
 
 import (
-	"log"
+	"context"
 
 	"github.com/KennedyJCodes/ecommerce-platform/internal/core/domain/models/product"
 	"github.com/KennedyJCodes/ecommerce-platform/internal/core/ports/input"
@@ -27,10 +27,9 @@ func NewProductsGetService(productsRepository output.ProductsRepository) input.P
 //   - brand: the manufacturer's name to filter by.
 //
 // Returns a slice of products or an error if the repository query fails.
-func (p *ProductsGetService) GetProductsByBrand(brand string) ([]models_product.Product, error) {
-	products, err := p.productsRepository.GetProductsByBrand(brand)
+func (p *ProductsGetService) GetProductsByBrand(ctx context.Context, brand string) ([]models_product.Product, error) {
+	products, err := p.productsRepository.GetProductsByBrand(ctx, brand)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 	return products, nil
@@ -41,8 +40,8 @@ func (p *ProductsGetService) GetProductsByBrand(brand string) ([]models_product.
 //   - id: the unique numerical identifier of the product.
 //
 // Returns the product model or an empty model and an error if not found.
-func (p *ProductsGetService) GetProductByID(id int) (models_product.Product, error) {
-	product, err := p.productsRepository.GetProductByID(id)
+func (p *ProductsGetService) GetProductByID(ctx context.Context, id int) (models_product.Product, error) {
+	product, err := p.productsRepository.GetProductByID(ctx, id)
 	if err != nil {
 		return models_product.Product{}, err
 	}
@@ -51,8 +50,8 @@ func (p *ProductsGetService) GetProductByID(id int) (models_product.Product, err
 
 // GetProducts retrieves the entire collection of watches available in the store.
 // Returns all product entries or an error in case of persistence failure.
-func (p *ProductsGetService) GetProducts() ([]models_product.Product, error) {
-	products, err := p.productsRepository.GetProducts()
+func (p *ProductsGetService) GetProducts(ctx context.Context) ([]models_product.Product, error) {
+	products, err := p.productsRepository.GetProducts(ctx)
 	if err != nil {
 		return nil, err
 	}

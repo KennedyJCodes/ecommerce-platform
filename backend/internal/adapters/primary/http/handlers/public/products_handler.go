@@ -31,7 +31,7 @@ func NewProductsHandler(productsService input.ProductsGetService) *ProductsHandl
 // Handle processes requests to retrieve the full list of products.
 // It returns a JSON array of products with a 200 OK status on success, or a 500 Internal Server Error if the service fails.
 func (h *ProductsHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	products, err := h.productsService.GetProducts()
+	products, err := h.productsService.GetProducts(r.Context())
 	if err != nil {
 		httpUtil.HandleError(w, errors.NewInternalError("Error getting products"))
 		return
@@ -67,7 +67,7 @@ func (h *ProductsHandler) HandleGetByID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	product, err := h.productsService.GetProductByID(id)
+	product, err := h.productsService.GetProductByID(r.Context(), id)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			httpUtil.HandleError(w, errors.NewNotFoundError("Product not found"))
@@ -93,7 +93,7 @@ func (h *ProductsHandler) HandleGetByBrand(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	products, err := h.productsService.GetProductsByBrand(brand)
+	products, err := h.productsService.GetProductsByBrand(r.Context(), brand)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			httpUtil.HandleError(w, errors.NewNotFoundError("Product not found"))

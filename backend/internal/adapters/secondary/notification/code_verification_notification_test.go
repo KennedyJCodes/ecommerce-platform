@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -27,7 +28,7 @@ func TestSendCodeVerification(t *testing.T) {
 		}, nil
 	})
 
-	if err := notification.SendCodeVerification("recipient@example.com", "012345"); err != nil {
+	if err := notification.SendCodeVerification(context.Background(), "recipient@example.com", "012345"); err != nil {
 		t.Fatalf("SendCodeVerification() error = %v", err)
 	}
 	if receivedRequest == nil {
@@ -67,7 +68,7 @@ func TestSendCodeVerificationReturnsErrorForFailedResponse(t *testing.T) {
 		}, nil
 	})
 
-	if err := notification.SendCodeVerification("recipient@example.com", "012345"); err == nil {
+	if err := notification.SendCodeVerification(context.Background(), "recipient@example.com", "012345"); err == nil {
 		t.Fatal("SendCodeVerification() error = nil, want error")
 	}
 }

@@ -96,7 +96,7 @@ func (r *UserRegisterService) Register(ctx context.Context, request dto.Register
 		return "", err
 	}
 
-	if err := r.SendCodeVerification(request.Email, code); err != nil {
+	if err := r.SendCodeVerification(ctx, request.Email, code); err != nil {
 		return "", err
 	}
 

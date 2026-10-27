@@ -1,5 +1,7 @@
 package output
 
+import "context"
+
 type CodeVerificationSender interface {
-	SendCodeVerification(to string, code string) error
+	SendCodeVerification(ctx context.Context, to string, code string) error
 }

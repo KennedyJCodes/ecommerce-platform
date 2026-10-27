@@ -126,8 +126,8 @@ func (b *BaseAuthService) GenerateCSRFToken(ctx context.Context, userID string) 
 	return csrfToken, nil
 }
 
-func (b *BaseAuthService) SendCodeVerification(email string, code string) error {
-	emailErr := b.CodeVerificationSender.SendCodeVerification(email, code)
+func (b *BaseAuthService) SendCodeVerification(ctx context.Context, email string, code string) error {
+	emailErr := b.CodeVerificationSender.SendCodeVerification(ctx, email, code)
 	if emailErr != nil {
 		return errors.NewInternalError(errors.ErrGeneratingCodeVerification).WithError(emailErr)
 	}
