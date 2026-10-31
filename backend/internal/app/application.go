@@ -4,9 +4,11 @@ package app
 import (
 	"fmt"
 	"log"
+	"log/slog"
 
 	bootstrap_database "github.com/KennedyJCodes/ecommerce-platform/internal/bootstrap/database"
 	"github.com/KennedyJCodes/ecommerce-platform/internal/config"
+	application_logger "github.com/KennedyJCodes/ecommerce-platform/internal/logger"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 )
@@ -40,6 +42,11 @@ func NewConfigApplication() *Application {
 // - assigns a valid instance to a.config.
 func (a *Application) LoadConfig() error {
 	a.config = config.NewAppConfig()
+	slog.SetDefault(application_logger.New(
+		a.config.GetLogLevel(),
+		a.config.GetString("ENV"),
+	))
+
 	return config.ValidateRequiredConfig(a.config.GetConfig())
 }
 
