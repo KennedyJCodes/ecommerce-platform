@@ -18,6 +18,7 @@ func TestNewAppConfig(t *testing.T) {
 		{
 			name: "environment overrides",
 			env: map[string]string{
+				"LOG_LEVEL":   "DEBUG",
 				"SERVER_PORT": "9090",
 				"REDIS_HOST":  "redis.test",
 				"REDIS_PORT":  "6380",
@@ -49,6 +50,13 @@ func TestNewAppConfig(t *testing.T) {
 
 			appConfig := NewAppConfig()
 			redisConfig := appConfig.GetRedisConfig()
+
+			if tt.name == "environment overrides" && appConfig.GetLogLevel() != "DEBUG" {
+				t.Errorf("GetLogLevel() = %q, want %q", appConfig.GetLogLevel(), "DEBUG")
+			}
+			if tt.name == "defaults" && appConfig.GetLogLevel() != "INFO" {
+				t.Errorf("GetLogLevel() = %q, want %q", appConfig.GetLogLevel(), "INFO")
+			}
 
 			if got := appConfig.GetPort(); got != tt.wantPort {
 				t.Errorf("GetPort() = %q, want %q", got, tt.wantPort)
@@ -107,6 +115,7 @@ func TestValidateRequiredConfig(t *testing.T) {
 func validRequiredConfig() *viper.Viper {
 	config := viper.New()
 	for _, key := range []string{
+		"LOG_LEVEL",
 		"SECURITY_JWT_JWT_SECRET",
 		"DATABASE_USER",
 		"DATABASE_PASSWORD",

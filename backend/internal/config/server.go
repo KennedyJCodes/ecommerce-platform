@@ -19,6 +19,16 @@ func (a *AppConfig) GetPort() string {
 	return port
 }
 
+// GetLogLevel returns the configured logging level.
+// It falls back to "INFO" when LOG_LEVEL is not set.
+func (a *AppConfig) GetLogLevel() string {
+	logLevel := a.config.GetString("LOG_LEVEL")
+	if logLevel == "" {
+		return "INFO"
+	}
+	return logLevel
+}
+
 // GetRateLimitConfig returns a LimiterConfig populated from RATE_LIMITING_* configuration keys.
 func (a *AppConfig) GetRateLimitConfig() models_security.LimiterConfig {
 	return models_security.LimiterConfig{

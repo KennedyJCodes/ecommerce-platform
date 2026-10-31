@@ -8,6 +8,9 @@ func setDefaults(config *viper.Viper) {
 	config.SetDefault("SERVER_PORT", "8080")
 	config.SetDefault("STATIC_DIR", "./../frontend")
 
+	// Logging configuration defaults.
+	config.SetDefault("LOG_LEVEL", "INFO")
+
 	// Rate limiting configuration defaults.
 	config.SetDefault("RATE_LIMITING_REQUESTS", 10.0)
 	config.SetDefault("RATE_LIMITING_BURST", 5)

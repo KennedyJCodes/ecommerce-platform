@@ -136,6 +136,8 @@ La configuración se basa en **variables de entorno**, documentadas en [`.env.ex
 
 En código, las claves que lee Viper coinciden con el nombre de las variables de entorno en mayúsculas (por ejemplo `DATABASE_HOST`, `REDIS_PORT`). `AutomaticEnv()` permite sobrescribir los valores definidos por defecto con variables del sistema operativo (incluidas las que inyecta Docker Compose en el contenedor).
 
+`LOG_LEVEL` controla el nivel mínimo de los logs y admite `DEBUG`, `INFO`, `WARN` y `ERROR`. Si no se puede cargar la variable, la configuración usa `INFO` como valor por defecto. Para desarrollo local puedes usar `DEBUG`; en producción se recomienda `INFO` o un nivel superior. La configuración considera `LOG_LEVEL` una clave obligatoria, pero su valor por defecto permite que la aplicación continúe cuando no está definida explícitamente.
+
 ## Puertos y servicios
 
 | Servicio | Puerto en tu máquina | Puerto dentro de la red Docker |

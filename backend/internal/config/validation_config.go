@@ -10,6 +10,7 @@ import (
 // It returns an error if any required key is missing or uses an insecure default.
 func ValidateRequiredConfig(config *viper.Viper) error {
 	required := []string{
+		"LOG_LEVEL",
 		"SECURITY_JWT_JWT_SECRET",
 		"DATABASE_USER",
 		"DATABASE_PASSWORD",
