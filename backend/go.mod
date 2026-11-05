@@ -1,6 +1,6 @@
 module github.com/KennedyJCodes/ecommerce-platform
 
-go 1.23.2
+go 1.26.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.35.0
@@ -11,7 +11,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/unrolled/secure v1.17.0
 	golang.org/x/crypto v0.32.0
-	golang.org/x/time v0.10.0
+	golang.org/x/time v0.16.0
 )
 
 require (
