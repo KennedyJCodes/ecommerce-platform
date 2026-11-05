@@ -33,7 +33,7 @@ func HandleError(w http.ResponseWriter, err error) {
 			log.Printf("[INTERNAL ERROR] %s", appErr.Error())
 		}
 		http.Error(w, appErr.Message, appErr.Code)
-	} else {
+	} else {	
 		log.Printf("[UNEXPECTED ERROR] %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

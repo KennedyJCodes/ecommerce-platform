@@ -35,9 +35,9 @@ type RouterDependencies struct {
 // It performs the following steps:
 //  1. Instantiate handler objects for login, registration, comments, etc.
 //  2. Set up the MainPageHandler with the static directory path.
-//  3. Create and configure a MiddlewareManager, adding global middleware
-//     for logging, timing, and CORS.
-//  4. Build a RouterConfig with dependencies and call SetupRoutes.
+//  3. Create and configure a MiddlewareManager for functional global middleware.
+//  4. Register request logging separately as an observability concern.
+//  5. Build a RouterConfig with dependencies and call SetupRoutes.
 
 // Parameters:
 //   - userServiceLogin: service for authenticating users on login.
@@ -75,8 +75,9 @@ func NewRouter(deps RouterDependencies) *mux.Router {
 
 	// 3. Configure global middleware using the reusable helper
 	middlewareManager := configureMiddleware(router)
+	configureRequestLogging(router)
 
-	// 4. Build RouterConfig with dependencies
+	// 5. Build RouterConfig with dependencies
 	c := &RouterConfig{
 		Handlers:          handlers,
 		IPExtractor:       ratelimiter.NewDefaultIPExtractor("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/32"),

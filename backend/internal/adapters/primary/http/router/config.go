@@ -74,13 +74,16 @@ func buildHandlers(deps HandlerDependencies) HandlerConfig {
 func configureMiddleware(router *mux.Router) *middleware.MiddlewareManager {
 	manager := middleware.NewMiddlewareManager()
 
-	timingConfig := middleware.DefaultTimingConfig()
-	timingConfig.WarningThreshold = 200 * time.Millisecond
-
-	manager.AddGlobal(middleware.LoggingMiddleware)
-	manager.AddGlobal(middleware.TimingMiddleware(timingConfig))
-
 	manager.ApplyToRouter(router)
 
 	return manager
+}
+
+// configureRequestLogging registers request observability independently from
+// the middleware manager, which is reserved for functional router middleware.
+func configureRequestLogging(router *mux.Router) {
+	loggingConfig := middleware.DefaultTimingConfig()
+	loggingConfig.WarningThreshold = 200 * time.Millisecond
+
+	router.Use(mux.MiddlewareFunc(middleware.LoggingMiddleware(loggingConfig)))
 }
